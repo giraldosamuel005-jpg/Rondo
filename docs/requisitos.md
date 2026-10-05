@@ -36,7 +36,8 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - ID de usuario: `String` (UUID, lo asigna el servidor)
 - **Errores:**
   - "Ingresa un número de celular válido."
-  - "El código es incorrecto. Intenta de nuevo."
+  - "El código es incorrecto. Intenta de nuevo. Te quedan [X] intentos."
+  - "Demasiados intentos fallidos. Pide un código nuevo." (máximo 3 intentos por código; se puede pedir otro código cada 30 s)
   - "El código expiró. Solicita uno nuevo."
   - "No pudimos enviar el SMS. Revisa tu conexión e intenta otra vez."
 
@@ -408,3 +409,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-10-04 | RF-20 | Se agrega `unidades por toma: int`. La dosis queda como texto descriptivo, y el error "La dosis debe ser un número mayor a cero" pasa a referirse a las unidades por toma. |
 | 2026-10-04 | RF-21 | Se define la fórmula completa de unidades por día y días restantes, que antes no se podía calcular con los datos de RF-20. |
 | 2026-10-04 | RF-23 | El contacto de emergencia de la ficha se elige de los contactos de RF-04 en vez de escribirse otra vez. |
+| 2026-10-05 | RF-01 | El error de código incorrecto indica los intentos restantes. Se agrega un límite de 3 intentos por código, con el mensaje "Demasiados intentos fallidos. Pide un código nuevo.", y una espera de 30 s para pedir otro código. |

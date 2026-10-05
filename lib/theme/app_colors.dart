@@ -17,6 +17,8 @@ class AppColors {
   // Estados
   static const fieldBorder = Color(0xFFC9D2E0); // Borde de los campos
   static const error = Color(0xFFC62828); // Mensajes de error
+  static const errorSurface = Color(0xFFFDECEC); // Fondo rosado suave para cajas de error
+
 
   // Degradado "Hero Sky" para la parte de arriba del login
   static const heroSkyTop = Color(0xFFD2E5FF);

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
+import 'codigo_screen.dart';
+
 
 /// Pantalla 1 del login: la persona escribe su número de celular.
 class LoginScreen extends StatefulWidget {
@@ -36,7 +38,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (_error != null) return;
 
-    // Etapa 3: aquí iremos a la pantalla del código.
+    // Abre la pantalla del código, encima de esta.
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CodigoScreen(celular: celular),
+      ),
+    );
   }
 
   @override

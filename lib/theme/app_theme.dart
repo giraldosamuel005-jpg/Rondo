@@ -12,6 +12,17 @@ class AppTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.paperWhite,
 
+      
+      // Barra superior: blanca, sin sombra, con la flecha de volver grande.
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.paperWhite,
+        foregroundColor: AppColors.ink,
+        surfaceTintColor: Colors.transparent, // Evita que se tiña de color al hacer scroll
+        elevation: 0,
+        iconTheme: IconThemeData(size: 28),
+      ),
+
+
       // Paleta: le dice a Flutter qué color usar para cada "rol".
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.charcoal,
@@ -43,7 +54,7 @@ class AppTheme {
         bodyLarge: GoogleFonts.inter(
           fontSize: 18,
           height: 1.4,
-          color: AppColors.ink,
+          color: AppColors.ink,         
         ),
         // Texto secundario / de ayuda
         bodyMedium: GoogleFonts.inter(
