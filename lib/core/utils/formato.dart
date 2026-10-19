@@ -45,3 +45,10 @@ String horaCorta(DateTime fecha) {
   final sufijo = fecha.hour < 12 ? 'a. m.' : 'p. m.';
   return '$hora:$minutos $sufijo';
 }
+
+/// ["Ana"] → "Ana"; ["Ana", "Luis"] → "Ana y Luis"; ["Ana", "Luis", "Marta"] → "Ana, Luis y Marta".
+String listaNatural(List<String> partes) {
+  if (partes.isEmpty) return '';
+  if (partes.length == 1) return partes.first;
+  return '${partes.sublist(0, partes.length - 1).join(', ')} y ${partes.last}';
+}

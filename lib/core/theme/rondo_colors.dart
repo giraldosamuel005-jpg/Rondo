@@ -20,6 +20,8 @@ class RondoColors extends ThemeExtension<RondoColors> {
     required this.alert,
     required this.alertText,
     required this.alertBg,
+    required this.onAlert,
+    required this.alertBlobs,
     required this.toggleOff,
     required this.glassTop,
     required this.glassBottom,
@@ -62,6 +64,12 @@ class RondoColors extends ThemeExtension<RondoColors> {
   final Color alertText;
   final Color alertBg;
 
+  /// Texto sobre el botón ámbar "Pedir ayuda ahora".
+  final Color onAlert;
+
+  /// Manchas de fondo de la pantalla de alerta.
+  final List<Color> alertBlobs;
+
   final Color toggleOff;
 
   // Vidrio (tarjetas y controles)
@@ -102,6 +110,8 @@ class RondoColors extends ThemeExtension<RondoColors> {
     alert: Color(0xFFF59E0B),
     alertText: Color(0xFF92400E),
     alertBg: Color(0xFFFBF3E4),
+    onAlert: Color(0xFF3B2300),
+    alertBlobs: [Color(0xFFFCD34D), Color(0xFFFDBA74), Color(0xFFFDE68A)],
     toggleOff: Color(0x240E1A19), // 14 %
     glassTop: Color(0xA8FFFFFF), // 66 %
     glassBottom: Color(0x66FFFFFF), // 40 %
@@ -140,6 +150,8 @@ class RondoColors extends ThemeExtension<RondoColors> {
     alert: Color(0xFFFBBF24),
     alertText: Color(0xFFFCD34D),
     alertBg: Color(0xFF140E05),
+    onAlert: Color(0xFF3B2300),
+    alertBlobs: [Color(0xFFB45309), Color(0xFF92400E), Color(0xFF78350F)],
     toggleOff: Color(0x2EFFFFFF), // 18 %
     glassTop: Color(0x1CFFFFFF), // 11 %
     glassBottom: Color(0x0AFFFFFF), // 4 %
@@ -179,6 +191,8 @@ class RondoColors extends ThemeExtension<RondoColors> {
     Color? alert,
     Color? alertText,
     Color? alertBg,
+    Color? onAlert,
+    List<Color>? alertBlobs,
     Color? toggleOff,
     Color? glassTop,
     Color? glassBottom,
@@ -211,6 +225,8 @@ class RondoColors extends ThemeExtension<RondoColors> {
       alert: alert ?? this.alert,
       alertText: alertText ?? this.alertText,
       alertBg: alertBg ?? this.alertBg,
+      onAlert: onAlert ?? this.onAlert,
+      alertBlobs: alertBlobs ?? this.alertBlobs,
       toggleOff: toggleOff ?? this.toggleOff,
       glassTop: glassTop ?? this.glassTop,
       glassBottom: glassBottom ?? this.glassBottom,
@@ -250,6 +266,11 @@ class RondoColors extends ThemeExtension<RondoColors> {
       alert: mix(alert, other.alert),
       alertText: mix(alertText, other.alertText),
       alertBg: mix(alertBg, other.alertBg),
+      onAlert: mix(onAlert, other.onAlert),
+      alertBlobs: [
+        for (var i = 0; i < alertBlobs.length; i++)
+          mix(alertBlobs[i], other.alertBlobs[i % other.alertBlobs.length]),
+      ],
       toggleOff: mix(toggleOff, other.toggleOff),
       glassTop: mix(glassTop, other.glassTop),
       glassBottom: mix(glassBottom, other.glassBottom),

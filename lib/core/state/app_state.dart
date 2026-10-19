@@ -91,6 +91,16 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Resultado de una alerta de caída (RF-13 a RF-15).
+  /// `enviada`: se avisó a los contactos; si no, la persona dijo "Estoy bien".
+  void registrarAlerta({required bool enviada, String? detalle}) {
+    _registrar(
+      enviada ? TipoEvento.alertaEnviada : TipoEvento.alertaCancelada,
+      detalle: detalle,
+    );
+    notifyListeners();
+  }
+
   /// Ajustes → Apariencia: automático, claro u oscuro.
   void cambiarModoTema(ThemeMode modo) {
     _modoTema = modo;
@@ -112,7 +122,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _registrar(TipoEvento tipo) {
-    _eventos.add(Evento(tipo: tipo, fecha: DateTime.now()));
+  void _registrar(TipoEvento tipo, {String? detalle}) {
+    _eventos.add(Evento(tipo: tipo, fecha: DateTime.now(), detalle: detalle));
   }
 }

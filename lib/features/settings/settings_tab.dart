@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +12,7 @@ import '../../core/widgets/glass.dart';
 import '../../core/widgets/permission_row.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/tab_page.dart';
+import '../alert/fall_alert_page.dart';
 import '../auth/login_page.dart';
 
 /// Pestaña Ajustes: perfil, apariencia, permisos (RF-31), aviso del 123 (RF-34)
@@ -48,6 +50,22 @@ class SettingsTab extends StatelessWidget {
       (ruta) => false,
     );
     estado.cerrarSesion();
+  }
+
+  /// Abre la alerta de caída sin sensores, para probarla y para la demo.
+  void _simularCaida(BuildContext context) {
+    if (context.read<AppState>().rondaEnPausa) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tu ronda está en pausa. Reanúdala para probar la alerta.')),
+      );
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true, // Entra desde abajo, como una alerta
+        builder: (_) => FallAlertPage(detectadaA: DateTime.now()),
+      ),
+    );
   }
 
   @override
@@ -161,6 +179,24 @@ class SettingsTab extends StatelessWidget {
           icon: Icons.logout_rounded,
           onPressed: () => _cerrarSesion(context),
         ),
+
+        // ---------- Solo en desarrollo ----------
+        if (kDebugMode) ...[
+          const SizedBox(height: 22),
+          const SectionLabel('Modo de pruebas'),
+          SecondaryButton(
+            label: 'Simular caída',
+            icon: Icons.warning_amber_rounded,
+            blur: false,
+            onPressed: () => _simularCaida(context),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Solo aparece mientras desarrollamos la app.',
+            textAlign: TextAlign.center,
+            style: t.bodySmall,
+          ),
+        ],
       ],
     );
   }

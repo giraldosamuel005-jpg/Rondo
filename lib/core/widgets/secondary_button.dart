@@ -12,12 +12,16 @@ class SecondaryButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.height = 50,
+    this.blur = true,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final double height;
+
+  /// `false` para no sumar otro desenfoque (máximo 6 por pantalla).
+  final bool blur;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +32,7 @@ class SecondaryButton extends StatelessWidget {
     return Glass(
       radius: height,
       shadow: false,
+      blur: blur,
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(

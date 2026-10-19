@@ -58,14 +58,24 @@ class _FilaEvento extends StatelessWidget {
     final c = context.rondo;
     final t = Theme.of(context).textTheme;
 
-    final (icono, titulo, destacado) = switch (evento.tipo) {
-      TipoEvento.rondaActivada => (Icons.shield_rounded, 'Ronda activada', true),
-      TipoEvento.rondaPausada => (Icons.pause_rounded, 'Ronda en pausa', false),
-      TipoEvento.rondaReanudada => (Icons.play_arrow_rounded, 'Ronda reanudada', true),
+    // Color del ícono: turquesa (normal), neutro (pausa) o ámbar (alerta enviada).
+    final (icono, titulo, fondo, color) = switch (evento.tipo) {
+      TipoEvento.rondaActivada => (Icons.shield_rounded, 'Ronda activada', c.accentSoft, c.accent),
+      TipoEvento.rondaPausada => (Icons.pause_rounded, 'Ronda en pausa', c.neutralSoft, c.textSecondary),
+      TipoEvento.rondaReanudada => (Icons.play_arrow_rounded, 'Ronda reanudada', c.accentSoft, c.accent),
+      TipoEvento.alertaCancelada => (Icons.check_rounded, 'Posible caída: estabas bien', c.accentSoft, c.accent),
+      TipoEvento.alertaEnviada => (
+          Icons.notifications_active_rounded,
+          'Alerta enviada',
+          c.alert.withValues(alpha: 0.18),
+          c.alertText,
+        ),
     };
+    final cuando = '${diaRelativo(evento.fecha)} · ${horaCorta(evento.fecha)}';
 
     return Semantics(
-      label: '$titulo, ${diaRelativo(evento.fecha)} a las ${horaCorta(evento.fecha)}',
+      label: '$titulo, ${diaRelativo(evento.fecha)} a las ${horaCorta(evento.fecha)}'
+          '${evento.detalle != null ? '. ${evento.detalle}' : ''}',
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -75,10 +85,10 @@ class _FilaEvento extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: destacado ? c.accentSoft : c.neutralSoft,
+                color: fondo,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icono, size: 22, color: destacado ? c.accent : c.textSecondary),
+              child: Icon(icono, size: 22, color: color),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -91,7 +101,7 @@ class _FilaEvento extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${diaRelativo(evento.fecha)} · ${horaCorta(evento.fecha)}',
+                    evento.detalle == null ? cuando : '$cuando · ${evento.detalle}',
                     style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
                   ),
                 ],
@@ -121,7 +131,7 @@ class _SinEventos extends StatelessWidget {
           Text('Aún no hay nada aquí', style: t.titleMedium),
           const SizedBox(height: 4),
           Text(
-            'Cuando actives o pauses tu ronda, lo verás en esta lista.',
+            'Cuando actives o pauses tu ronda, o haya una alerta, lo verás en esta lista.',
             textAlign: TextAlign.center,
             style: t.bodyMedium,
           ),

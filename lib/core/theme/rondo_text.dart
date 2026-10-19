@@ -93,4 +93,14 @@ class RondoText {
         fontWeight: FontWeight.w600,
         color: c.text,
       );
+
+  /// Cuenta regresiva de la alerta ("0:10"): números de ancho fijo para que
+  /// no "bailen" al cambiar.
+  static TextStyle countdown(RondoColors c) => GoogleFonts.geist(
+        fontSize: 56,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -2,
+        color: c.text,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
 }

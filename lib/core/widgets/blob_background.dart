@@ -20,10 +20,18 @@ class Blob {
 /// Fondo de pantalla con 2–3 manchas de color muy difuminadas.
 /// Sin manchas detrás, el vidrio no se percibe (docs/DESIGN.md, principio 1).
 class BlobBackground extends StatelessWidget {
-  const BlobBackground({super.key, required this.child, this.blobs = entrar});
+  const BlobBackground({
+    super.key,
+    required this.child,
+    this.blobs = entrar,
+    this.alerta = false,
+  });
 
   final Widget child;
   final List<Blob> blobs;
+
+  /// Fondo ámbar de la pantalla de alerta (colores `alertBg` y `alertBlobs`).
+  final bool alerta;
 
   // Posiciones distintas por pantalla, para que no se vea como plantilla.
   static const entrar = [
@@ -52,6 +60,12 @@ class BlobBackground extends StatelessWidget {
     Blob(Alignment(-1.0, 1.2), 340, 2),
   ];
 
+  static const alertaCaida = [
+    Blob(Alignment(-1.3, -1.1), 360, 0),
+    Blob(Alignment(1.45, -0.05), 320, 1),
+    Blob(Alignment(-0.7, 1.25), 360, 2),
+  ];
+
   static const inicio = [
     Blob(Alignment(-1.35, -1.0), 360, 0),
     Blob(Alignment(1.5, -0.35), 300, 2),
@@ -61,6 +75,7 @@ class BlobBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.rondo;
+    final colores = alerta ? c.alertBlobs : c.blobs;
     final oscuro = Theme.of(context).brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -68,7 +83,7 @@ class BlobBackground extends StatelessWidget {
       value: oscuro ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Stack(
         children: [
-          Positioned.fill(child: ColoredBox(color: c.bg)),
+          Positioned.fill(child: ColoredBox(color: alerta ? c.alertBg : c.bg)),
           Positioned.fill(
             // Las manchas se pintan una vez y no reciben toques.
             child: RepaintBoundary(
@@ -89,7 +104,7 @@ class BlobBackground extends StatelessWidget {
                             height: blob.size,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: c.blobs[blob.colorIndex % c.blobs.length]
+                              color: colores[blob.colorIndex % colores.length]
                                   .withValues(alpha: c.blobOpacity),
                             ),
                           ),
