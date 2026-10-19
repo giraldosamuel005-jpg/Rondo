@@ -7,7 +7,7 @@ import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/contact_row.dart';
 import '../../core/widgets/contact_sheets.dart';
 import '../../core/widgets/glass.dart';
-import '../../core/widgets/permission_row.dart';
+import '../../core/widgets/permisos_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/rondo_back_button.dart';
 import '../../core/widgets/step_pill.dart';
@@ -105,29 +105,8 @@ class ContactsPage extends StatelessWidget {
                       const SizedBox(height: 22),
 
                       // ---------- Permisos (RF-30) ----------
-                      // Por ahora solo visuales: más adelante cada interruptor
-                      // pedirá el permiso real de Android.
                       const SectionLabel('Lo que Rondó necesita'),
-                      Glass(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            PermissionRow(
-                              title: 'Ubicación siempre',
-                              reason: 'Solo se envía dentro de una alerta.',
-                              value: estado.permisoUbicacion,
-                              onChanged: estado.cambiarPermisoUbicacion,
-                            ),
-                            const GlassDivider(indent: 18),
-                            PermissionRow(
-                              title: 'Sensores de movimiento',
-                              reason: 'Detectan la caída en el teléfono.',
-                              value: estado.permisoSensores,
-                              onChanged: estado.cambiarPermisoSensores,
-                            ),
-                          ],
-                        ),
-                      ),
+                      const PermisosCard(),
 
                       const Spacer(),
                       const SizedBox(height: 24),

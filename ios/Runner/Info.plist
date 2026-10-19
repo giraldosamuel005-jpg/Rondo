@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Rondó envía tu ubicación a tus contactos solo dentro de una alerta.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Rondó usa los sensores de movimiento para detectar caídas.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
