@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show ChangeNotifier, ThemeMode;
 import '../models/consentimiento.dart';
 import '../models/contacto.dart';
 import '../models/evento.dart';
+import '../models/ficha_medica.dart';
 import '../models/tipo_cuenta.dart';
 import '../permisos/permisos_sistema.dart';
 
@@ -30,6 +31,9 @@ class AppState extends ChangeNotifier {
   /// Cuándo aceptó el aviso "no reemplaza al 123" (RF-34).
   DateTime? _avisoAceptadoEn;
 
+  /// RF-23. Por ahora en memoria; al guardarla en el celular, cifrada (7.1).
+  FichaMedica? _fichaMedica;
+
   DateTime? _rondaActivaDesde;
   bool _rondaEnPausa = false;
   final List<Evento> _eventos = [];
@@ -53,6 +57,12 @@ class AppState extends ChangeNotifier {
   /// `null` si no lo ha dado.
   DateTime? fechaConsentimiento(TipoConsentimiento tipo) => _consentimientos[tipo];
   DateTime? get avisoAceptadoEn => _avisoAceptadoEn;
+
+  /// `null` si todavía no la ha llenado.
+  FichaMedica? get fichaMedica => _fichaMedica;
+
+  /// La ficha es de quien se cuida, no del cuidador.
+  bool get usaFichaMedica => _tipo == TipoCuenta.paraMi;
   DateTime? get rondaActivaDesde => _rondaActivaDesde;
   bool get rondaEnPausa => _rondaEnPausa;
   ThemeMode get modoTema => _modoTema;
@@ -119,8 +129,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Retirar el consentimiento de datos médicos borra la ficha (Ley 1581).
   void retirarConsentimiento(TipoConsentimiento tipo) {
     _marcarConsentimiento(tipo, false);
+    if (tipo == TipoConsentimiento.datosMedicos) _fichaMedica = null;
+    notifyListeners();
+  }
+
+  /// Sin consentimiento de datos médicos no se guarda nada (RF-30): la
+  /// pantalla debe pedirlo antes.
+  void guardarFichaMedica(FichaMedica ficha) {
+    if (!tieneConsentimiento(TipoConsentimiento.datosMedicos)) {
+      throw StateError('Falta el consentimiento de datos médicos.');
+    }
+    _fichaMedica = ficha;
     notifyListeners();
   }
 
@@ -170,6 +192,7 @@ class AppState extends ChangeNotifier {
     _permisoSensores = false;
     _consentimientos.clear();
     _avisoAceptadoEn = null;
+    _fichaMedica = null;
     _rondaActivaDesde = null;
     _rondaEnPausa = false;
     _eventos.clear();
