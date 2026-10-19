@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' show ChangeNotifier, ThemeMode;
 
+import '../models/consentimiento.dart';
 import '../models/contacto.dart';
 import '../models/evento.dart';
 import '../models/tipo_cuenta.dart';
@@ -21,6 +22,13 @@ class AppState extends ChangeNotifier {
   final List<Contacto> _contactos = [];
   bool _permisoUbicacion = false;
   bool _permisoSensores = false;
+
+  /// Cada consentimiento dado, con la fecha en que se dio (RF-30).
+  final Map<TipoConsentimiento, DateTime> _consentimientos = {};
+
+  /// Cuándo aceptó el aviso "no reemplaza al 123" (RF-34).
+  DateTime? _avisoAceptadoEn;
+
   DateTime? _rondaActivaDesde;
   bool _rondaEnPausa = false;
   final List<Evento> _eventos = [];
@@ -35,6 +43,11 @@ class AppState extends ChangeNotifier {
   List<Contacto> get contactos => List.unmodifiable(_contactos);
   bool get permisoUbicacion => _permisoUbicacion;
   bool get permisoSensores => _permisoSensores;
+  bool tieneConsentimiento(TipoConsentimiento tipo) => _consentimientos.containsKey(tipo);
+
+  /// `null` si no lo ha dado.
+  DateTime? fechaConsentimiento(TipoConsentimiento tipo) => _consentimientos[tipo];
+  DateTime? get avisoAceptadoEn => _avisoAceptadoEn;
   DateTime? get rondaActivaDesde => _rondaActivaDesde;
   bool get rondaEnPausa => _rondaEnPausa;
   ThemeMode get modoTema => _modoTema;
@@ -50,10 +63,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Paso 1 del registro.
+  /// Paso 1 del registro. Solo se llega aquí con el aviso del 123 aceptado.
   void guardarPerfil({required String nombre, required TipoCuenta tipo}) {
     _nombre = nombre;
     _tipo = tipo;
+    _avisoAceptadoEn ??= DateTime.now();
     notifyListeners();
   }
 
@@ -67,8 +81,21 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// El interruptor de ubicación, con su razón al lado, es el consentimiento
+  /// explícito de ubicación (RF-30).
   void cambiarPermisoUbicacion(bool valor) {
     _permisoUbicacion = valor;
+    _marcarConsentimiento(TipoConsentimiento.ubicacion, valor);
+    notifyListeners();
+  }
+
+  void darConsentimiento(TipoConsentimiento tipo) {
+    _marcarConsentimiento(tipo, true);
+    notifyListeners();
+  }
+
+  void retirarConsentimiento(TipoConsentimiento tipo) {
+    _marcarConsentimiento(tipo, false);
     notifyListeners();
   }
 
@@ -116,10 +143,21 @@ class AppState extends ChangeNotifier {
     _contactos.clear();
     _permisoUbicacion = false;
     _permisoSensores = false;
+    _consentimientos.clear();
+    _avisoAceptadoEn = null;
     _rondaActivaDesde = null;
     _rondaEnPausa = false;
     _eventos.clear();
     notifyListeners();
+  }
+
+  /// Guarda la fecha solo la primera vez que se da; al retirarlo se borra.
+  void _marcarConsentimiento(TipoConsentimiento tipo, bool dado) {
+    if (dado) {
+      _consentimientos.putIfAbsent(tipo, DateTime.now);
+    } else {
+      _consentimientos.remove(tipo);
+    }
   }
 
   void _registrar(TipoEvento tipo, {String? detalle}) {
