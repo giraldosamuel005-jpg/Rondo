@@ -1,390 +1,346 @@
-# Bevel — Style Reference
-> Morning metrics in cloudlight. Build screens as a bright white health journal punctuated by a softly glowing wearable dashboard.
-
-**Theme:** light
-
-Source measurements are normalized; roles and recommendations are interpreted. Font summary lists are independent, not paired by position. HTML examples are reconstructions, not source components.
-
-Bevel frames health data as a sunlit consumer device experience: a white editorial canvas, near-black SF Pro headlines, mist-blue bento surfaces, and realistic iPhone/Apple Watch product imagery. Oversized 600-weight headings use tight negative tracking and compact line-height, while supporting copy stays soft gray and generously spaced. Color is restrained in the site shell; pale sky gradients and small multicolor health-data rings are reserved for product visuals and feature atmosphere rather than universal controls.
-
-## Tokens — Colors
-
-| Name | Value | Token | Role |
-|------|-------|-------|------|
-| Paper White | `#ffffff` | `--color-paper-white` | Page backgrounds, navigation surfaces, footer backgrounds, and open whitespace |
-| Charcoal | `#1f2025` | `--color-charcoal` | Filled download controls, dark surface blocks, logos, and monochrome iconography |
-| Ink | `#222326` | `--color-ink` | Display headings, section headings, feature titles, and primary text |
-| Cloud Card | `#ebf0f8` | `--color-cloud-card` | Feature-card surfaces, light icon fills, and text inside Charcoal download controls |
-| Body Gray | `#747679` | `--color-body-gray` | Body copy, muted navigation links, helper text, and secondary labels |
-| Signal Gold | `#ffca00` | `--color-signal-gold` | Rating stars and small positive health-data indicators |
-| Coral Signal | `#ffab94` | `--color-coral-signal` | Warm metric accents and lower-edge washes in feature visualizations |
-| Recovery Green | `#31ce01` | `--color-recovery-green` | Recovery rings and green-tinted metric visualizations |
-| Metric Blue | `#415eee` | `--color-metric-blue` | Circular metric indicators and blue gradient treatments in product visuals |
-| Sleep Lilac | `#b9a6ff` | `--color-sleep-lilac` | Sleep-oriented metric rings and soft violet visual accents |
-| Hero Sky | `linear-gradient(#d2e5ff, #fff9ee)` | `--color-hero-sky` | Top hero atmosphere behind the device composition, fading from cool daylight into warm paper |
+# Rondó: especificación de diseño "Cristal" (Liquid Glass)
+
+> Documento de handoff para implementación en **Flutter/Dart**. Fuente: canvas de diseño "Rondó · Liquid Glass", página **A · Cristal a fondo**.
+> Si este archivo y el código se contradicen, este archivo manda. Si este archivo y la especificación técnica (`Rondo_Especificacion_Tecnica.pdf`) se contradicen en **comportamiento**, manda la especificación técnica; este documento solo define **apariencia**.
+
+---
+
+## 1. Principios
+
+1. **Vidrio sobre luz de color.** Las superficies son paneles translúcidos con desenfoque sobre un fondo con 2–3 manchas de color muy difuminadas. Sin manchas detrás, el vidrio no se percibe: todo fondo de pantalla lleva su capa de manchas.
+2. **Una sola acción principal por pantalla:** cápsula "tintada" (turquesa sólido con brillo). Todo lo demás es vidrio neutro.
+3. **El color tiene significado:**
+   - Turquesa = marca, acción, estado activo.
+   - **Coral = SOLO errores** (código incorrecto, campo inválido). Nunca decorativo, nunca para alertas de caída.
+   - **Ámbar = alerta de emergencia** (posible caída, cuenta regresiva).
+4. **Claro y oscuro son equivalentes**, no uno derivado del otro: cada modo tiene su propia paleta (sección 3).
+5. **Copy humano, en tuteo**, frases cortas, el error dice el problema y la salida en la misma frase.
+6. **Sin contraseñas:** acceso por celular + código SMS de 4 dígitos, o biometría.
+
+---
+
+## 2. Arquitectura visual de una pantalla
+
+```
+Stack
+ ├─ Fondo sólido (bg)
+ ├─ Capa de manchas (3 círculos, blur 56–70 px, opacidad 0.4–0.75)
+ └─ SafeArea → contenido
+      ├─ Barra superior: botón Atrás (círculo de vidrio 44) + indicador de progreso (cápsula de vidrio)
+      ├─ Título grande (32/700) + subtítulo (15/400, texto secundario)
+      ├─ Tarjetas de vidrio (radio 24)
+      ├─ Spacer
+      └─ Botón principal tintado (cápsula, alto 56) + nota legal 12px
+```
+
+Márgenes laterales de pantalla: **20 px** (24 en la pantalla Entrar). Separación entre tarjetas: **10–12 px**. Antes de un bloque nuevo: **22 px**.
+
+---
+
+## 3. Tokens
+
+### 3.1 Color
+
+| Token | Claro | Oscuro | Uso |
+|---|---|---|---|
+| `bg` | `#EAF1F0` | `#06110F` | Fondo de pantalla |
+| `text` | `#0E1A19` | `#EEF5F4` | Texto principal |
+| `textSecondary` | `#3B4D4A` | `#A3B5B2` | Subtítulos, etiquetas, ayudas |
+| `accent` | `#0B7A6E` | `#2DD4BF` | Marca, toggles, progreso, iconos activos |
+| `accentLink` | `#0B6B60` | `#5EEAD4` | Enlaces de texto |
+| `accentSoft` | `#0B7A6E` @ 12% | `#2DD4BF` @ 14% | Fondo de chips/iconos activos |
+| `onAccent` | `#FFFFFF` | `#032A25` | Texto sobre botón tintado |
+| `hairline` | `#0E1A19` @ 10% | `#FFFFFF` @ 10% | Separadores dentro de tarjetas |
+| `error` | `#D9442F` | `#FF7A66` | Bordes de error |
+| `errorText` | `#B5321F` | `#FF9A89` | Texto de error |
+| `errorSurface` | `#D9442F` @ 9% | `#FF7A66` @ 10% | Fondo de banner de error |
+| `alert` | `#F59E0B` | `#FBBF24` | Anillo de cuenta regresiva, botón de ayuda |
+| `alertText` | `#92400E` | `#FCD34D` | Chip "Posible caída" |
+| `alertBg` | `#FBF3E4` | `#140E05` | Fondo de la pantalla de alerta |
+| `toggleOff` | `#0E1A19` @ 14% | `#FFFFFF` @ 18% | Toggle apagado |
 
-## Tokens — Typography
+**Manchas de fondo (blobs)**
 
-### -apple-system, BlinkMacSystemFont, Inter, "Segoe UI", sans-serif — SF Pro system typography carries every interface layer. Use 600-weight display text at 40px–80px with -0.03em tracking: its compact, almost lockup-like lines make wellness claims feel like product labels rather than editorial copy. Use 400-weight body text at 18px–24px and 500-weight navigation/actions at 16px–18px. · `--font-apple-system-blinkmacsystemfont-inter-segoe-ui-sans-serif`
-- **Substitute:** Inter
-- **Weights:** 400, 500, 600
-- **Sizes:** 12px, 16px, 18px, 24px, 40px, 64px, 80px
-- **Line height:** 0.90, 1.00, 1.10, 1.30, 1.40
-- **Letter spacing:** -2.4px at 80px, -1.92px at 64px, -1.2px at 40px, -0.24px at 24px, +0.16px at 18px navigation, and normal at 16px body controls
-- **Role:** SF Pro system typography carries every interface layer. Use 600-weight display text at 40px–80px with -0.03em tracking: its compact, almost lockup-like lines make wellness claims feel like product labels rather than editorial copy. Use 400-weight body text at 18px–24px and 500-weight navigation/actions at 16px–18px.
+| | Claro | Oscuro |
+|---|---|---|
+| Turquesa | `#5EEAD4` op. 0.6–0.7 | `#0F766E` op. 0.55–0.6 |
+| Azul | `#93C5FD` op. 0.5–0.6 | `#1E40AF` op. 0.4–0.45 |
+| Menta | `#A7F3D0` op. 0.7 | `#065F46` op. 0.7 |
+| Violeta (opcional, solo paso 1) | `#C4B5FD` op. 0.45 | `#4C1D95` op. 0.4 |
+| Alerta | `#FCD34D`, `#FDBA74`, `#FDE68A` | `#B45309`, `#92400E`, `#78350F` |
 
-### Type Scale
+Tamaño 240–380 px, desenfoque 56 px (claro) / 64–70 px (oscuro). Posición: una arriba-izquierda o arriba-derecha, una a media altura en el borde opuesto, una abajo. Varía la posición entre pantallas para que no se vea como plantilla.
 
-| Role | Family | Weight | Size | Line Height | Letter Spacing | Token |
-|------|--------|--------|------|-------------|----------------|-------|
-| caption | -apple-system | 400 | 12px | 1.1 | 0px | `--text-caption` |
-| nav | -apple-system | 500 | 16px | 1.4 | 0px | `--text-nav` |
-| brand-nav | -apple-system | 500 | 18px | 1.4 | 0.162px | `--text-brand-nav` |
-| body | -apple-system | 400 | 24px | 1.3 | 0px | `--text-body` |
-| section-label | -apple-system | 600 | 24px | 0.9 | -0.24px | `--text-section-label` |
-| card-heading | -apple-system | 600 | 40px | 1 | -1.2px | `--text-card-heading` |
-| display | -apple-system | 600 | 64px | 1 | -1.92px | `--text-display` |
-| hero-display | -apple-system | 600 | 80px | 1 | -2.4px | `--text-hero-display` |
+### 3.2 Vidrio (3 niveles)
 
-## Tokens — Spacing & Shapes
+| Nivel | Uso | Claro | Oscuro |
+|---|---|---|---|
+| **Tarjeta** | Listas, campos, opciones | Degradado vertical blanco 66% → 40% | Blanco 11% → 4% |
+| **Control** | Botón atrás, progreso, tab bar, botones secundarios | Igual que tarjeta, forma cápsula/círculo | Igual |
+| **Tintado** | Botón principal | Degradado `#139384` → `#0B7A6E` | Degradado `#5EEAD4` → `#2DD4BF` |
 
-**Base unit:** 8px
+Receta común:
+- Desenfoque de fondo: **28 px** (CSS) ≈ `sigma 14` en Flutter.
+- Borde 1 px: claro blanco @ 75%, oscuro blanco @ 16%.
+- Brillo interior superior 1 px: claro blanco @ 95%, oscuro blanco @ 22%.
+- Sombra: claro `0 12 32` `#143C37` @ 10%; oscuro `0 16 40` negro @ 35%.
+- Tintado: brillo interior superior blanco @ 45% (claro) / 70% (oscuro), sombra de color del acento @ 30–35%, borde blanco @ 25–35%.
 
-**Density:** comfortable
+### 3.3 Tipografía
 
-### Spacing Scale
+Familia: **Geist** (paquete `google_fonts`), con la del sistema como respaldo. En iOS puede usarse SF Pro (sistema).
 
-| Name | Value | Token |
-|------|-------|-------|
-| 8 | 8px | `--spacing-8` |
-| 16 | 16px | `--spacing-16` |
-| 24 | 24px | `--spacing-24` |
-| 32 | 32px | `--spacing-32` |
-| 40 | 40px | `--spacing-40` |
-| 48 | 48px | `--spacing-48` |
-| 80 | 80px | `--spacing-80` |
-| 96 | 96px | `--spacing-96` |
-| 160 | 160px | `--spacing-160` |
+| Estilo | Tamaño / peso | Interletrado | Uso |
+|---|---|---|---|
+| `brand` | 46 / 700 | -1.4 | "Rondó" en Entrar |
+| `alertTitle` | 40 / 700 | -1.0 | "¿Estás bien?" |
+| `title` | 32 / 700, alto de línea 1.1 | -0.8 | Títulos de pantalla |
+| `stat` | 22 / 700 | -0.4 | "Todo en orden" |
+| `headline` | 17 / 600 | 0 | Títulos de opción, botones |
+| `body` | 17 / 400 | 0 | Valores de campos |
+| `callout` | 15–16 / 400–600 | 0 | Subtítulos, nombres en listas |
+| `label` | 13 / 600 | 0 | Etiquetas, chips, descripciones |
+| `caption` | 12 / 400–600 | 0 | Notas legales, etiquetas de campo |
+| `countdown` | 56 / 700, números tabulares | -2 | "0:24" |
+| `codeDigit` | 32 / 600 | 0 | Dígitos del código |
 
-### Border Radius
+### 3.4 Radios y medidas
 
-| Element | Value |
-|---------|-------|
-| cards | 24-32px |
-| pills | 9999px |
-| images | 16-24px |
-| buttons | 128px |
-| navigation | 32px |
+| Elemento | Medida |
+|---|---|
+| Tarjeta / lista | radio 24 |
+| Tarjeta héroe (estado de ronda) | radio 32 |
+| Campo suelto / banner | radio 20 |
+| Caja de dígito | 76 alto, radio 22 |
+| Icono en tarjeta | 44×44, radio 14 |
+| Logo en Entrar | 104×104, radio 34 |
+| Botón principal | alto 56 (54 dentro de tarjeta), cápsula |
+| Botón secundario | alto 50, cápsula |
+| Botón de alerta | alto 64, cápsula |
+| Botón atrás / avatar perfil | 44×44 círculo |
+| Avatar en lista | 40 círculo (34 en pila, borde 2 del color de fondo) |
+| Toggle | 52×32, perilla 28 |
+| Tab bar | alto 68, cápsula flotante a 16 de los lados y 24 del borde inferior |
+| Toque mínimo | 44×44 |
 
-### Shadows
+---
 
-| Name | Value | Token |
-|------|-------|-------|
-| md | `rgba(0, 0, 0, 0.25) 0px 0px 16px -8px` | `--shadow-md` |
-| subtle | `rgb(255, 255, 255) 0px 1px 0px 0px inset, rgba(255, 255, ...` | `--shadow-subtle` |
-| lg | `rgb(255, 255, 255) 0px 0px 24px 0px inset` | `--shadow-lg` |
-| md-2 | `rgba(0, 0, 0, 0.15) 0px 2px 16px 0px` | `--shadow-md-2` |
-| subtle-2 | `rgba(255, 255, 255, 0.36) 0px 1px 0px 0px inset` | `--shadow-subtle-2` |
+## 4. Componentes
 
-### Layout
+**GlassCard**: contenedor de vidrio nivel Tarjeta. Si contiene filas, se separan con `hairline` de 1 px con sangría izquierda (16–18 px, o 68 cuando la fila tiene avatar).
 
-- **Section gap:** 80px
-- **Card padding:** 32px
-- **Element gap:** 16px
+**PrimaryButton**: cápsula tintada, texto `headline` en `onAccent` (peso 700 en oscuro). Solo uno por pantalla.
 
-## Components
+**SecondaryButton**: cápsula de vidrio, texto `headline`, color `text` o `textSecondary` si está deshabilitado (ej. "Reenviar en 0:24").
 
-### Floating Capsule Navigation
-**Role:** Public-site header
+**BackButton**: círculo de vidrio 44, chevron 18 px trazo 2.2. `semanticLabel: "Atrás"`.
 
-Use a Paper White (#ffffff) rounded bar with a 32px radius, a 12-20px backdrop blur, and 16px internal control spacing. Brand text is Ink at 18px/25.2px, weight 500, +0.16px tracking; secondary links are Body Gray at 16px/22.4px, weight 500.
+**StepPill**: cápsula de vidrio 32 alto: N barras de 18×5 (radio 3), la actual y anteriores en `accent`, las siguientes en `toggleOff` + texto "1 de 2" (`label`, `textSecondary`).
 
-### Charcoal Download Pill
-**Role:** Public conversion control
+**ChoiceCard** (¿Para quién?): vidrio, padding 16, fila: icono 44 en `accentSoft` | título + descripción | radio 24. Seleccionada: contorno interior 2 px `accent`, radio relleno `accent` con check `onAccent`. No seleccionada: icono sobre fondo neutro (`text` @ 6% / blanco @ 7%), radio vacío con borde 1.5 px.
 
-Fill with Charcoal (#1f2025), set Cloud Card (#ebf0f8) label and Apple icon color, use 128px radius, 8px vertical and 16px horizontal padding, and 16px/22.4px weight-500 text. Keep the control short and capsule-shaped rather than promoting it into a rectangular button.
+**GlassField**: etiqueta `caption` 600 arriba + valor `body`. Agrupados en una GlassCard con hairline. **Estado error**: fondo `errorSurface`, borde 1.5 `error`, etiqueta y ayuda en `errorText`, ayuda debajo ("Faltan 4 dígitos.").
 
-### Cloudlight Device Hero
-**Role:** Hero product showcase
+**PhoneField** (Entrar): dentro de una GlassCard junto con el botón principal: etiqueta → fila "+57" (`textSecondary`, 20/600) | divisor vertical 1×22 | número 20/600.
 
-Use the Hero Sky gradient from #d2e5ff to #fff9ee as a tall rounded visual field, then center layered iPhone and Apple Watch renders beneath an Ink headline. Keep the device artwork raw and dimensional; the hero background, not a card border, contains the composition.
-
-### Hero Rating Strip
-**Role:** App-store proof
-
-Place compact Signal Gold (#ffca00) stars beside small Body Gray metadata below the Charcoal download pill. Use 12px text for metadata and keep the strip visually subordinate to the hero callout.
-
-### Wearable Partner Row
-**Role:** Compatibility proof
-
-Center an Ink 24px/21.6px, weight-600 heading with -0.24px tracking above a single horizontal row of monochrome partner wordmarks. Keep wordmarks Charcoal (#1f2025) with generous 24px gaps and no enclosing cards.
-
-### Recognition Laurel Pair
-**Role:** Editorial social proof
-
-Render two small neutral-gray laurel marks and award labels centered above the next display headline. Use Body Gray (#747679) for the labels and preserve a 16px gap between the two awards.
-
-### Community Story Carousel Card
-**Role:** Member social-proof media
-
-Use portrait-format photographic and app-capture tiles with 16px rounded corners. Apply the image lift shadow rgba(0, 0, 0, 0.25) 0px 0px 16px -8px and allow outer carousel tiles to fade into the page edge.
-
-### Cloud Feature Card
-**Role:** Health metric explanation
-
-Use a Cloud Card (#ebf0f8) surface with a 24px radius and 32px padding. Set the feature name in Ink at 40px/40px, weight 600, -1.2px tracking; body copy uses Body Gray at 24px/31.2px, weight 400.
-
-### Inset Metric Visualization
-**Role:** Feature-card product preview
-
-Layer compact health charts, circular scores, and metric chips inside rounded 16px-24px imagery. Use Recovery Green (#31ce01), Metric Blue (#415eee), Sleep Lilac (#b9a6ff), and Coral Signal (#ffab94) only as data-category accents against pale surfaces.
-
-### Elevated QR Download Card
-**Role:** Persistent mobile-download prompt
-
-Use a compact Charcoal (#1f2025) card with Cloud Card (#ebf0f8) text and a high-contrast QR code. Round the card to 16px and apply rgba(0, 0, 0, 0.15) 0px 2px 16px 0px elevation.
-
-### Footer Link Group
-**Role:** Site footer navigation
-
-Group Ink (#222326) 18px/25.2px weight-500 links under compact headings on Paper White (#ffffff). Use 16px vertical link spacing and preserve the generous 160px section padding used around footer content.
-
-## Do's and Don'ts
-
-### Do
-- Use Paper White (#ffffff) as the default canvas and Cloud Card (#ebf0f8) for large feature surfaces.
-- Set display headings in Ink (#222326), weight 600, with -0.03em tracking at the 40px, 64px, and 80px steps.
-- Use 80px vertical section gaps and 32px padding inside Cloud Feature Cards.
-- Use 128px radius, 8px 16px padding, Charcoal (#1f2025) fill, and Cloud Card (#ebf0f8) text for public download buttons.
-- Use 24px or 32px card radii and 16px-24px radii for product imagery.
-- Keep Body Gray (#747679) supporting copy at 24px/31.2px, weight 400.
-- Restrict Recovery Green (#31ce01), Metric Blue (#415eee), Sleep Lilac (#b9a6ff), and Coral Signal (#ffab94) to health-data visuals and soft washes.
-
-### Don't
-- Do not use saturated metric colors as universal page backgrounds or filled public conversion buttons.
-- Do not set large headings above 600 weight or remove their -0.03em tracking.
-- Do not use square buttons; public download controls require a 128px radius.
-- Do not add visible borders to Cloud Feature Cards; use #ebf0f8 surfaces with no border and no shadow.
-- Do not replace the 80px section rhythm with dense 24px-40px stacked sections.
-- Do not use heavy drop shadows on cards; reserve rgba(0, 0, 0, 0.25) 0px 0px 16px -8px for floating imagery.
-- Do not turn the supporting Body Gray (#747679) copy into black or weight 600 text.
-
-## Surfaces
-
-| Level | Name | Value | Purpose |
-|-------|------|-------|---------|
-| 0 | Paper White | `#ffffff` | Primary page canvas, open sections, navigation, and footer. |
-| 1 | Cloud Card | `#ebf0f8` | Feature-card backgrounds and pale inset surfaces. |
-| 2 | Charcoal | `#1f2025` | Download pills, QR prompt surfaces, and dark monochrome blocks. |
-
-## Elevation
-
-- **Community Story Carousel Card:** `rgba(0, 0, 0, 0.25) 0px 0px 16px -8px`
-- **Elevated QR Download Card:** `rgba(0, 0, 0, 0.15) 0px 2px 16px 0px`
-
-## Imagery
-
-Product-render imagery leads the page: a realistic iPhone dashboard and Apple Watch overlap within the hero, with soft reflections and raw device edges rather than flat illustrations. Community proof appears as a horizontal sequence of portrait social posts, candid fitness images, food captures, and app screenshots, each rounded at 16px and softly lifted from the white canvas. Product visuals use small multicolor data rings and metric chips against mostly pale UI surfaces; the site shell itself remains almost entirely monochrome. Partner logos are black wordmarks, while award laurels are faint gray editorial marks. The composition is text-dominant between media moments, with imagery used as product evidence and member proof rather than decoration.
-
-## Layout
-
-The page is a vertically scrolling, center-aligned public landing page on Paper White, opening with a large rounded full-width hero field rather than a boxed content panel. A floating capsule navigation bar sits over the hero and remains visually available as the page moves through product imagery. The first screen centers a large two-line headline, muted supporting copy, a pill download control, compact rating proof, and overlapping phone-and-watch renders over a pale sky-to-warm gradient. Subsequent sections use broad white bands with centered compatibility logos, award proof, and large centered display statements; a horizontal community-media strip breaks the text rhythm with edge-faded portrait tiles. The lower content shifts to centered introduction copy followed by a three-column row of pale-blue feature cards, creating spacious 80px section intervals rather than dense dashboard stacking.
-
-## Agent Prompt Guide
-
-Quick Color Reference:
-- Paper White: #ffffff — Page backgrounds, navigation surfaces, footer backgrounds, and open whitespace
-- Charcoal: #1f2025 — Filled download controls, dark surface blocks, logos, and monochrome iconography
-- Ink: #222326 — Display headings, section headings, feature titles, and primary text
-- Cloud Card: #ebf0f8 — Feature-card surfaces, light icon fills, and text inside Charcoal download controls
-- Body Gray: #747679 — Body copy, muted navigation links, helper text, and secondary labels
-- Signal Gold: #ffca00 — Rating stars and small positive health-data indicators
-- Coral Signal: #ffab94 — Warm metric accents and lower-edge washes in feature visualizations
-- Recovery Green: #31ce01 — Recovery rings and green-tinted metric visualizations
-- Metric Blue: #415eee — Circular metric indicators and blue gradient treatments in product visuals
-- Sleep Lilac: #b9a6ff — Sleep-oriented metric rings and soft violet visual accents
-- Hero Sky: linear-gradient(#d2e5ff, #fff9ee) — Top hero atmosphere behind the device composition, fading from cool daylight into warm paper
-
-Create a centered health-app hero on the Hero Sky gradient, with an Ink (#222326) 80px/80px, weight-600 headline tracked at -2.4px; place Body Gray (#747679) 24px/31.2px copy, a Charcoal Download Pill, then overlapping iPhone and Apple Watch renders.
-Create a compatibility section on Paper White (#ffffff) with an Ink (#222326) 24px/21.6px, weight-600 heading tracked at -0.24px and a centered monochrome partner-wordmark row with 24px gaps.
-Create three Cloud Feature Cards using #ebf0f8, 24px radius, and 32px padding; set each title in Ink at 40px/40px, weight 600, -1.2px tracking, and its supporting copy in Body Gray at 24px/31.2px.
-Create a community-story carousel of rounded 16px portrait media tiles, using photographic member posts and app captures with rgba(0, 0, 0, 0.25) 0px 0px 16px -8px shadows and faded outer edges.
-
-## Similar Brands
-
-- **Gentler Streak** — Shares the Apple-platform health framing, large SF-style type, pale surfaces, and wearable-data visualization.
-- **Apple Fitness+** — Shares prominent Apple Watch product imagery, dark capsule controls, and restrained metric-color accents.
-- **Oura** — Shares a bright wellness canvas with product-led health insights and compact circular score visualizations.
-- **WHOOP** — Shares wearables-centered performance tracking, recovery-focused metric categories, and member-proof content.
-
-## Quick Start
-
-### CSS Custom Properties
-
-```css
-:root {
-  /* Colors */
-  --color-paper-white: #ffffff;
-  --color-charcoal: #1f2025;
-  --color-ink: #222326;
-  --color-cloud-card: #ebf0f8;
-  --color-body-gray: #747679;
-  --color-signal-gold: #ffca00;
-  --color-coral-signal: #ffab94;
-  --color-recovery-green: #31ce01;
-  --color-metric-blue: #415eee;
-  --color-sleep-lilac: #b9a6ff;
-  --color-hero-sky: #d2e5ff;
-  --gradient-hero-sky: linear-gradient(#d2e5ff, #fff9ee);
-
-  /* Typography — Font Families */
-  --font-apple-system-blinkmacsystemfont-inter-segoe-ui-sans-serif: '-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", sans-serif', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-
-  /* Typography — Scale */
-  --text-caption: 12px;
-  --leading-caption: 1.1;
-  --tracking-caption: 0px;
-  --text-nav: 16px;
-  --leading-nav: 1.4;
-  --tracking-nav: 0px;
-  --text-brand-nav: 18px;
-  --leading-brand-nav: 1.4;
-  --tracking-brand-nav: 0.162px;
-  --text-body: 24px;
-  --leading-body: 1.3;
-  --tracking-body: 0px;
-  --text-section-label: 24px;
-  --leading-section-label: 0.9;
-  --tracking-section-label: -0.24px;
-  --text-card-heading: 40px;
-  --leading-card-heading: 1;
-  --tracking-card-heading: -1.2px;
-  --text-display: 64px;
-  --leading-display: 1;
-  --tracking-display: -1.92px;
-  --text-hero-display: 80px;
-  --leading-hero-display: 1;
-  --tracking-hero-display: -2.4px;
-
-  /* Typography — Weights */
-  --font-weight-regular: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-
-  /* Spacing */
-  --spacing-unit: 8px;
-  --spacing-8: 8px;
-  --spacing-16: 16px;
-  --spacing-24: 24px;
-  --spacing-32: 32px;
-  --spacing-40: 40px;
-  --spacing-48: 48px;
-  --spacing-80: 80px;
-  --spacing-96: 96px;
-  --spacing-160: 160px;
-
-  /* Layout */
-  --section-gap: 80px;
-  --card-padding: 32px;
-  --element-gap: 16px;
-
-  /* Border Radius */
-  --radius-2xl: 16px;
-  --radius-3xl: 24px;
-  --radius-3xl-2: 32px;
-  --radius-full: 128px;
-  --radius-full-2: 9999px;
-
-  /* Named Radii */
-  --radius-cards: 24-32px;
-  --radius-pills: 9999px;
-  --radius-images: 16-24px;
-  --radius-buttons: 128px;
-  --radius-navigation: 32px;
-
-  /* Shadows */
-  --shadow-md: rgba(0, 0, 0, 0.25) 0px 0px 16px -8px;
-  --shadow-subtle: rgb(255, 255, 255) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.25) 0px 0px 4px 0px inset;
-  --shadow-lg: rgb(255, 255, 255) 0px 0px 24px 0px inset;
-  --shadow-md-2: rgba(0, 0, 0, 0.15) 0px 2px 16px 0px;
-  --shadow-subtle-2: rgba(255, 255, 255, 0.36) 0px 1px 0px 0px inset;
-
-  /* Surfaces */
-  --surface-paper-white: #ffffff;
-  --surface-cloud-card: #ebf0f8;
-  --surface-charcoal: #1f2025;
+**CodeInput**: 4 cajas de vidrio en grid de 4 columnas, separación 10. Dígitos erróneos: texto `errorText` + borde 1.5 `error`. Debajo, **ErrorBanner**: icono de círculo con "!" + título 15/600 en `errorText` + explicación 13 en `textSecondary`.
+
+**ContactRow**: avatar con iniciales (degradado turquesa para el 1.º, azul para el 2.º) | nombre 16/600 + "Relación · número" 13 | chip de orden "1.º" (`accentSoft`/`accent`) o "2.º" (neutro). Última fila: "Agregar contacto" con círculo de borde punteado y "+", en `accentLink`.
+
+**PermissionRow**: título 16/600 + razón 13 (`textSecondary`) | Toggle. La razón SIEMPRE va al lado del permiso, antes de pedir el permiso del sistema.
+
+**Toggle**: 52×32, encendido `accent` con perilla a la derecha, apagado `toggleOff`. Perilla blanca con sombra suave.
+
+**StatusChip**: cápsula, 13/700, padding 6×12. Variantes: *Ronda activa* (`accentSoft`/`accent`), *Alerta* (ámbar @ 18% / `alertText`), *En pausa* (neutro).
+
+**StatusRing** (Inicio): anillo 168 px con degradado cónico turquesa, 72% relleno (progreso decorativo del día), centro con pulso del logo y "Vigilando". En oscuro añade halo `accent` @ 25% blur 50.
+
+**CountdownRing** (Alerta): círculo de vidrio 220 → anillo cónico `alert` (proporción = tiempo restante) → centro sólido con "0:24" y "para avisar".
+
+**GlassTabBar**: cápsula de vidrio flotante, 4 pestañas iguales (icono 22 + etiqueta 11). Activa: fondo `accentSoft` en cápsula, color `accentLink`, peso 700. Pestañas: **Inicio · Contactos · Historial · Ajustes** (pendiente confirmar con la especificación).
+
+**Logo**: arco circular abierto (gap arriba-izquierda) + línea de pulso cardiaco, trazo redondeado `accent`. En Inicio solo se usa la línea de pulso.
+
+Iconografía: trazo 1.8–2.2, extremos redondeados, 18–24 px. Sugerido: `lucide_icons` o SVG propios. Sin emoji.
+
+---
+
+## 5. Pantallas
+
+### 01 · Entrar
+- Logo en vidrio (104) a 110 px del borde superior → "Rondó" (`brand`) → "Alguien pendiente, siempre." (17, `textSecondary`).
+- Spacer.
+- GlassCard con PhoneField + PrimaryButton **"Enviarme el código"**.
+- Nota: "Te llega un SMS de 4 dígitos. Sin contraseñas." (13, centrada).
+- SecondaryButton con icono: **"Entrar con Face ID"** (en Android: "Entrar con huella"; decidir según plataforma con `local_auth`).
+- "¿Primera vez? **Crear cuenta**" (enlace).
+
+### 02 · ¿Para quién es la cuenta? (Paso 1 de 2)
+- BackButton + StepPill "1 de 2".
+- Título + "Puede cambiarlo después."
+- ChoiceCards: **Me cuido a mí** ("El teléfono vigila caídas y avisa a tus contactos.") / **Cuido a alguien** ("Recibes sus alertas y su ubicación cuando algo pasa.").
+- GlassCard: "¿Cómo te llamas?" / "Celular".
+- PrimaryButton **"Continuar"** + "Al continuar aceptas el *tratamiento de datos de salud*." (enlace al aviso de Ley 1581).
+
+### 03 · ¿A quién avisamos? (Paso 2 de 2)
+- BackButton + StepPill "2 de 2".
+- Título + "Al menos un contacto. Les llega un SMS, incluso sin datos."
+- GlassCard de ContactRows + "Agregar contacto".
+- Etiqueta "Lo que Rondó necesita" → GlassCard de PermissionRows: **Ubicación siempre** ("Solo se envía dentro de una alerta.") / **Sensores de movimiento** ("Detectan la caída en el teléfono.").
+- PrimaryButton **"Activar mi ronda"** + "Puedes pausarla cuando quieras." Deshabilitado si no hay contactos.
+
+### 04 · Código (estado error)
+- BackButton → "Escribe el código" → "Lo enviamos al **+57 315 002 0755**".
+- CodeInput (4 dígitos, autoavance, pegado desde SMS / autofill).
+- Error: ErrorBanner "Ese código no coincide" / "Te quedan 2 intentos. También puedes pedir uno nuevo." Solo los dígitos afectados se marcan en coral; el botón principal NO cambia de color.
+- Spacer → GlassCard info: "Sin datos móviles, el código llega igual por SMS."
+- PrimaryButton **"Confirmar"** + SecondaryButton **"Reenviar en 0:24"** (deshabilitado hasta 0:00, luego "Reenviar código").
+
+### 05 · Inicio (ronda activa)
+- Fecha (15, secundario) + "Hola, {nombre}" (`title`) | avatar de perfil 44 con iniciales.
+- Tarjeta héroe (radio 32): StatusRing → chip "Ronda activa" → "Todo en orden" → "Desde las 7:02 a. m. · sin novedades".
+- Grid 2 columnas: **Pausar ronda** / **Ruta segura** (vidrio, icono + etiqueta).
+- Fila "Te cuidan 2 personas" con avatares apilados + chevron.
+- GlassTabBar flotante. Dejar ~100 px de padding inferior en el scroll para que el contenido pase por debajo del vidrio.
+- Estados a diseñar luego: *En pausa* (anillo gris, chip neutro, botón "Reanudar"), *Sin conexión*.
+
+### 06 · Alerta de caída
+- Fondo `alertBg` + manchas ámbar. Pantalla completa, sin navegación, debe mostrarse sobre la pantalla de bloqueo (full-screen intent en Android).
+- Chip "Posible caída · {hora}" → "¿Estás bien?" (`alertTitle`) → "Si no respondes, avisamos a {contacto 1} con tu ubicación."
+- CountdownRing (30 s sugeridos; el valor real lo define la especificación).
+- SecondaryButton grande **"Estoy bien"** (vidrio, 64) y botón ámbar **"Pedir ayuda ahora"** (icono de teléfono, texto `#3B2300`).
+- Nota: "Se enviará un SMS a {contactos}."
+- Vibración + sonido + anuncio de accesibilidad al aparecer.
+
+---
+
+## 6. Implementación en Flutter
+
+### 6.1 Tema
+
+```dart
+@immutable
+class RondoColors extends ThemeExtension<RondoColors> {
+  final Color bg, text, textSecondary, accent, accentLink, onAccent,
+      hairline, error, errorText, errorSurface, alert, alertText, alertBg,
+      toggleOff, glassTop, glassBottom, glassBorder, glassHighlight;
+  final List<Color> blobs;
+  // constructor, copyWith, lerp...
+
+  static const light = RondoColors(
+    bg: Color(0xFFEAF1F0), text: Color(0xFF0E1A19), textSecondary: Color(0xFF3B4D4A),
+    accent: Color(0xFF0B7A6E), accentLink: Color(0xFF0B6B60), onAccent: Colors.white,
+    hairline: Color(0x1A0E1A19), error: Color(0xFFD9442F), errorText: Color(0xFFB5321F),
+    errorSurface: Color(0x17D9442F), alert: Color(0xFFF59E0B), alertText: Color(0xFF92400E),
+    alertBg: Color(0xFFFBF3E4), toggleOff: Color(0x240E1A19),
+    glassTop: Color(0xA8FFFFFF), glassBottom: Color(0x66FFFFFF),
+    glassBorder: Color(0xBFFFFFFF), glassHighlight: Color(0xF2FFFFFF),
+    blobs: [Color(0xFF5EEAD4), Color(0xFF93C5FD), Color(0xFFA7F3D0)],
+  );
+
+  static const dark = RondoColors(
+    bg: Color(0xFF06110F), text: Color(0xFFEEF5F4), textSecondary: Color(0xFFA3B5B2),
+    accent: Color(0xFF2DD4BF), accentLink: Color(0xFF5EEAD4), onAccent: Color(0xFF032A25),
+    hairline: Color(0x1AFFFFFF), error: Color(0xFFFF7A66), errorText: Color(0xFFFF9A89),
+    errorSurface: Color(0x1AFF7A66), alert: Color(0xFFFBBF24), alertText: Color(0xFFFCD34D),
+    alertBg: Color(0xFF140E05), toggleOff: Color(0x2EFFFFFF),
+    glassTop: Color(0x1CFFFFFF), glassBottom: Color(0x0AFFFFFF),
+    glassBorder: Color(0x29FFFFFF), glassHighlight: Color(0x38FFFFFF),
+    blobs: [Color(0xFF0F766E), Color(0xFF1E40AF), Color(0xFF065F46)],
+  );
 }
 ```
 
-### Tailwind v4
+`MaterialApp(theme: ..., darkTheme: ..., themeMode: ThemeMode.system)`, con un ajuste en la app para forzar claro/oscuro.
 
-```css
-@theme {
-  /* Colors */
-  --color-paper-white: #ffffff;
-  --color-charcoal: #1f2025;
-  --color-ink: #222326;
-  --color-cloud-card: #ebf0f8;
-  --color-body-gray: #747679;
-  --color-signal-gold: #ffca00;
-  --color-coral-signal: #ffab94;
-  --color-recovery-green: #31ce01;
-  --color-metric-blue: #415eee;
-  --color-sleep-lilac: #b9a6ff;
-  --color-hero-sky: #d2e5ff;
+### 6.2 Vidrio
 
-  /* Typography */
-  --font-apple-system-blinkmacsystemfont-inter-segoe-ui-sans-serif: '-apple-system, BlinkMacSystemFont, Inter, "Segoe UI", sans-serif', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+```dart
+class Glass extends StatelessWidget {
+  const Glass({super.key, required this.child, this.radius = 24, this.padding});
+  final Widget child; final double radius; final EdgeInsets? padding;
 
-  /* Typography — Scale */
-  --text-caption: 12px;
-  --leading-caption: 1.1;
-  --tracking-caption: 0px;
-  --text-nav: 16px;
-  --leading-nav: 1.4;
-  --tracking-nav: 0px;
-  --text-brand-nav: 18px;
-  --leading-brand-nav: 1.4;
-  --tracking-brand-nav: 0.162px;
-  --text-body: 24px;
-  --leading-body: 1.3;
-  --tracking-body: 0px;
-  --text-section-label: 24px;
-  --leading-section-label: 0.9;
-  --tracking-section-label: -0.24px;
-  --text-card-heading: 40px;
-  --leading-card-heading: 1;
-  --tracking-card-heading: -1.2px;
-  --text-display: 64px;
-  --leading-display: 1;
-  --tracking-display: -1.92px;
-  --text-hero-display: 80px;
-  --leading-hero-display: 1;
-  --tracking-hero-display: -2.4px;
-
-  /* Spacing */
-  --spacing-8: 8px;
-  --spacing-16: 16px;
-  --spacing-24: 24px;
-  --spacing-32: 32px;
-  --spacing-40: 40px;
-  --spacing-48: 48px;
-  --spacing-80: 80px;
-  --spacing-96: 96px;
-  --spacing-160: 160px;
-
-  /* Border Radius */
-  --radius-2xl: 16px;
-  --radius-3xl: 24px;
-  --radius-3xl-2: 32px;
-  --radius-full: 128px;
-  --radius-full-2: 9999px;
-
-  /* Shadows */
-  --shadow-md: rgba(0, 0, 0, 0.25) 0px 0px 16px -8px;
-  --shadow-subtle: rgb(255, 255, 255) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.25) 0px 0px 4px 0px inset;
-  --shadow-lg: rgb(255, 255, 255) 0px 0px 24px 0px inset;
-  --shadow-md-2: rgba(0, 0, 0, 0.15) 0px 2px 16px 0px;
-  --shadow-subtle-2: rgba(255, 255, 255, 0.36) 0px 1px 0px 0px inset;
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<RondoColors>()!;
+    final r = BorderRadius.circular(radius);
+    final reduce = MediaQuery.of(context).highContrast || RondoPerf.reduceGlass;
+    final body = DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: r,
+        gradient: reduce ? null : LinearGradient(
+          begin: Alignment.topCenter, end: Alignment.bottomCenter,
+          colors: [c.glassTop, c.glassBottom]),
+        color: reduce ? c.bg.withOpacity(.96) : null,
+        border: Border.all(color: c.glassBorder),
+      ),
+      child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+    );
+    if (reduce) return body;
+    return ClipRRect(
+      borderRadius: r,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: body,
+      ),
+    );
+  }
 }
 ```
+
+- El brillo superior (1 px) se puede simular con un `Positioned` de 1 px con `glassHighlight` dentro del `Stack` de la tarjeta, o con un borde superior de color distinto.
+- La sombra va **fuera** del `ClipRRect` (un `Container` padre con `boxShadow`).
+- Las manchas: `ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), child: Stack(...círculos...))` detrás de todo; se pintan **una vez** por pantalla (envolver en `RepaintBoundary`).
+
+### 6.3 Rendimiento y batería (requisito, no opcional)
+
+- `BackdropFilter` es costoso. Límite: **≤ 6 superficies de vidrio visibles a la vez** por pantalla. Las filas dentro de una lista NO llevan su propio filtro: el filtro va en la tarjeta contenedora.
+- Modo **"vidrio reducido"** (`RondoPerf.reduceGlass = true`) cuando:
+  - el sistema pide reducir transparencias o hay alto contraste,
+  - ahorro de batería activo o batería < 20%,
+  - el dispositivo es de gama baja (medir FPS en las primeras pantallas).
+  En ese modo: sin blur, superficies sólidas al 96%, manchas estáticas.
+- Nada de animar las manchas en Inicio mientras la ronda corre en segundo plano.
+
+### 6.4 Accesibilidad
+- Contraste verificado: texto ≥ 4.5:1 sobre vidrio en ambos modos (los valores de la tabla ya cumplen sobre los fondos indicados; vuelve a revisar si cambias las manchas).
+- `Semantics` en botones de solo icono (Atrás, Perfil, Agregar contacto, Face ID).
+- Toggles con `Semantics(toggled: ...)` y etiqueta del permiso.
+- Respetar `MediaQuery.textScaler` hasta 1.3 sin cortar textos (las tarjetas crecen en alto).
+- La alerta anuncia "Posible caída detectada. Avisaremos en 30 segundos." con `SemanticsService.announce`.
+
+### 6.5 Estructura sugerida
+
+```
+lib/
+  core/theme/      rondo_colors.dart, rondo_text.dart, rondo_theme.dart
+  core/widgets/    glass.dart, blob_background.dart, primary_button.dart,
+                   secondary_button.dart, back_button.dart, step_pill.dart,
+                   glass_field.dart, code_input.dart, error_banner.dart,
+                   contact_row.dart, permission_row.dart, rondo_toggle.dart,
+                   status_chip.dart, status_ring.dart, countdown_ring.dart,
+                   glass_tab_bar.dart
+  features/auth/       login_page.dart, code_page.dart
+  features/onboarding/ profile_page.dart, contacts_page.dart
+  features/home/       home_page.dart
+  features/alert/      fall_alert_page.dart
+```
+
+---
+
+## 7. Criterios de aceptación visual
+
+- [ ] Las 6 pantallas existen en claro y oscuro y cambian con el tema del sistema.
+- [ ] Coral aparece únicamente en estados de error.
+- [ ] Ámbar aparece únicamente en la alerta de caída y el chip "Alerta".
+- [ ] Cada pantalla tiene exactamente un botón tintado.
+- [ ] Ningún objetivo táctil mide menos de 44×44.
+- [ ] Con "vidrio reducido" activo, la app se ve completa y legible sin blur.
+- [ ] Máximo 6 `BackdropFilter` simultáneos por pantalla (verificar con Flutter DevTools).
+- [ ] Inicio mantiene 60 fps en scroll en un dispositivo Android de gama media.
+
+## 8. Pendientes de diseño
+- Vista del cuidador (recibir la alerta de otra persona).
+- Ruta segura, Historial, Ajustes, Contactos.
+- Estados: ronda en pausa, sin conexión, permiso denegado.
+- Confirmar pestañas de la tab bar y duración real de la cuenta regresiva con la especificación técnica.

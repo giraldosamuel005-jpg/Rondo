@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'theme/app_theme.dart';
-
-import 'screens/login_screen.dart';
-
+import 'core/state/app_state.dart';
+import 'core/theme/rondo_theme.dart';
+import 'features/auth/login_page.dart';
 
 void main() {
-  runApp(const RondoApp());
+  runApp(
+    // Crea UN solo AppState y lo pone a disposición de todas las pantallas.
+    ChangeNotifierProvider(
+      create: (_) => AppState(),
+      child: const RondoApp(),
+    ),
+  );
 }
 
 class RondoApp extends StatelessWidget {
@@ -17,9 +23,10 @@ class RondoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Rondó',
       debugShowCheckedModeBanner: false, // Quita la cinta roja "DEBUG"
-      theme: AppTheme.light, // ← aquí se aplica el tema a toda la app
-      home: const LoginScreen(),
-
+      theme: RondoTheme.light(),
+      darkTheme: RondoTheme.dark(),
+      themeMode: ThemeMode.system, // Claro u oscuro según el celular
+      home: const LoginPage(),
     );
   }
 }
