@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "co.edu.usc.rondo"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android 14 exige compilar con el SDK 37.
+    // Solo afecta la compilación: targetSdk y minSdk siguen siendo los de Flutter.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

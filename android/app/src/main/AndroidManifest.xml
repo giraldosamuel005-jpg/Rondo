@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- RF-30: ubicación para enviarla dentro de una alerta. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- RF-30 / sección 4: actividad física, para filtrar falsos positivos. -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+
     <application
         android:label="Rondó"
         android:name="${applicationName}"
