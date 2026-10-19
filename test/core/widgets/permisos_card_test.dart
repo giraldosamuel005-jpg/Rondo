@@ -21,6 +21,9 @@ class _SistemaFalso implements PermisosSistema {
   }
 
   @override
+  Future<EstadoPermiso> consultar(PermisoSistema permiso) async => respuesta;
+
+  @override
   Future<bool> abrirAjustes() async {
     ajustesAbiertos++;
     return true;

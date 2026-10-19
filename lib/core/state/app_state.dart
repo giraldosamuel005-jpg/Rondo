@@ -4,6 +4,7 @@ import '../models/consentimiento.dart';
 import '../models/contacto.dart';
 import '../models/evento.dart';
 import '../models/tipo_cuenta.dart';
+import '../permisos/permisos_sistema.dart';
 
 /// "Cerebro" de la app: guarda los datos de la persona y avisa a las
 /// pantallas cuando algo cambia.
@@ -43,6 +44,10 @@ class AppState extends ChangeNotifier {
   List<Contacto> get contactos => List.unmodifiable(_contactos);
   bool get permisoUbicacion => _permisoUbicacion;
   bool get permisoSensores => _permisoSensores;
+  bool tienePermiso(PermisoSistema permiso) => switch (permiso) {
+        PermisoSistema.ubicacion => _permisoUbicacion,
+        PermisoSistema.sensores => _permisoSensores,
+      };
   bool tieneConsentimiento(TipoConsentimiento tipo) => _consentimientos.containsKey(tipo);
 
   /// `null` si no lo ha dado.
@@ -86,6 +91,26 @@ class AppState extends ChangeNotifier {
   void cambiarPermisoUbicacion(bool valor) {
     _permisoUbicacion = valor;
     _marcarConsentimiento(TipoConsentimiento.ubicacion, valor);
+    notifyListeners();
+  }
+
+  /// Lo que la persona decide con el interruptor.
+  void cambiarPermiso(PermisoSistema permiso, bool valor) => switch (permiso) {
+        PermisoSistema.ubicacion => cambiarPermisoUbicacion(valor),
+        PermisoSistema.sensores => cambiarPermisoSensores(valor),
+      };
+
+  /// La persona quitó el permiso desde los ajustes del celular (RF-32).
+  /// Se apaga el interruptor, pero el consentimiento que dio en Rondó se
+  /// conserva: no lo retiró aquí, y si vuelve a activar el permiso sigue
+  /// valiendo la fecha original.
+  void permisoRevocadoPorSistema(PermisoSistema permiso) {
+    switch (permiso) {
+      case PermisoSistema.ubicacion:
+        _permisoUbicacion = false;
+      case PermisoSistema.sensores:
+        _permisoSensores = false;
+    }
     notifyListeners();
   }
 

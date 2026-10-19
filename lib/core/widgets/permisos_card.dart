@@ -31,15 +31,8 @@ class _PermisosCardState extends State<PermisosCard> {
     PermisoSistema.sensores: 'Activa el permiso de sensores de movimiento para usar la detección de caídas.',
   };
 
-  void _guardar(PermisoSistema permiso, bool valor) {
-    final estado = context.read<AppState>();
-    switch (permiso) {
-      case PermisoSistema.ubicacion:
-        estado.cambiarPermisoUbicacion(valor);
-      case PermisoSistema.sensores:
-        estado.cambiarPermisoSensores(valor);
-    }
-  }
+  void _guardar(PermisoSistema permiso, bool valor) =>
+      context.read<AppState>().cambiarPermiso(permiso, valor);
 
   Future<void> _cambiar(PermisoSistema permiso, bool encender) async {
     // Apagar no le quita el permiso a Android (eso solo lo hace la persona en
@@ -76,14 +69,14 @@ class _PermisosCardState extends State<PermisosCard> {
               PermissionRow(
                 title: 'Ubicación siempre',
                 reason: 'Solo se envía dentro de una alerta.',
-                value: estado.permisoUbicacion,
+                value: estado.tienePermiso(PermisoSistema.ubicacion),
                 onChanged: (v) => _cambiar(PermisoSistema.ubicacion, v),
               ),
               const GlassDivider(indent: 18),
               PermissionRow(
                 title: 'Sensores de movimiento',
                 reason: 'Detectan la caída en el teléfono.',
-                value: estado.permisoSensores,
+                value: estado.tienePermiso(PermisoSistema.sensores),
                 onChanged: (v) => _cambiar(PermisoSistema.sensores, v),
               ),
             ],

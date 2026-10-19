@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'core/permisos/vigilante_permisos.dart';
 import 'core/state/app_state.dart';
 import 'core/theme/rondo_theme.dart';
 import 'features/auth/login_page.dart';
@@ -28,6 +29,8 @@ class RondoApp extends StatelessWidget {
       // Automático (según el celular), claro u oscuro: se elige en Ajustes.
       themeMode: context.watch<AppState>().modoTema,
       home: const LoginPage(),
+      // Revisa en todas las pantallas si quitaron un permiso (RF-32).
+      builder: (context, child) => VigilantePermisos(child: child!),
     );
   }
 }
