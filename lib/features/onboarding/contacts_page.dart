@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/contacto.dart';
 import '../../core/state/app_state.dart';
-import '../../core/theme/rondo_colors.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/contact_row.dart';
+import '../../core/widgets/contact_sheets.dart';
 import '../../core/widgets/glass.dart';
-import '../../core/widgets/glass_field.dart';
 import '../../core/widgets/permission_row.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/rondo_back_button.dart';
 import '../../core/widgets/step_pill.dart';
-import '../home/home_page.dart';
+import '../../core/widgets/tab_page.dart';
+import '../shell/main_shell.dart';
 
 /// 03 · ¿A quién avisamos? — Paso 2 de 2.
 /// RF-04 (contactos de emergencia) y RF-30 (permisos con su razón).
@@ -23,49 +22,27 @@ class ContactsPage extends StatelessWidget {
 
   Future<void> _agregarContacto(BuildContext context) async {
     final estado = context.read<AppState>();
-
-    // El formulario se abre desde abajo y devuelve el contacto nuevo (o null).
-    final nuevo = await showModalBottomSheet<Contacto>(
-      context: context,
-      isScrollControlled: true, // Para que suba con el teclado
-      builder: (_) => _NuevoContactoSheet(
-        celularesRegistrados: estado.contactos.map((k) => k.celular).toList(),
-      ),
+    final nuevo = await mostrarFormularioContacto(
+      context,
+      celularesRegistrados: estado.contactos.map((k) => k.celular).toList(),
     );
     if (nuevo != null) estado.agregarContacto(nuevo);
   }
 
   Future<void> _quitarContacto(BuildContext context, Contacto contacto) async {
     final estado = context.read<AppState>();
-
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('¿Quitar a ${contacto.nombre}?'),
-        content: const Text('Dejará de recibir tus alertas.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: context.rondo.errorText),
-            child: const Text('Quitar'),
-          ),
-        ],
-      ),
-    );
-    if (confirmar == true) estado.quitarContacto(contacto);
+    if (await confirmarQuitarContacto(context, contacto)) {
+      estado.quitarContacto(contacto);
+    }
   }
 
   void _activarRonda(BuildContext context) {
     context.read<AppState>().activarRonda();
 
-    // Entra a Inicio y borra todo el registro del historial:
+    // Entra a la app (pestañas) y borra todo el registro del historial:
     // "atrás" ya no vuelve a estas pantallas.
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomePage()),
+      MaterialPageRoute(builder: (_) => const MainShell()),
       (ruta) => false,
     );
   }
@@ -130,13 +107,7 @@ class ContactsPage extends StatelessWidget {
                       // ---------- Permisos (RF-30) ----------
                       // Por ahora solo visuales: más adelante cada interruptor
                       // pedirá el permiso real de Android.
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 8),
-                        child: Text(
-                          'Lo que Rondó necesita',
-                          style: t.bodySmall!.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                      ),
+                      const SectionLabel('Lo que Rondó necesita'),
                       Glass(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -185,130 +156,6 @@ class ContactsPage extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Formulario para agregar un contacto (se abre desde abajo).
-class _NuevoContactoSheet extends StatefulWidget {
-  const _NuevoContactoSheet({required this.celularesRegistrados});
-
-  final List<String> celularesRegistrados;
-
-  @override
-  State<_NuevoContactoSheet> createState() => _NuevoContactoSheetState();
-}
-
-class _NuevoContactoSheetState extends State<_NuevoContactoSheet> {
-  final _nombreController = TextEditingController();
-  final _relacionController = TextEditingController();
-  final _celularController = TextEditingController();
-  String? _error;
-
-  @override
-  void dispose() {
-    _nombreController.dispose();
-    _relacionController.dispose();
-    _celularController.dispose();
-    super.dispose();
-  }
-
-  void _guardar() {
-    final nombre = _nombreController.text.trim();
-    final celular = _celularController.text;
-
-    if (nombre.isEmpty || celular.length != 10) {
-      setState(() => _error = 'Ingresa un nombre y un número de celular válidos.');
-      return;
-    }
-    if (widget.celularesRegistrados.contains(celular)) {
-      setState(() => _error = 'Este contacto ya está registrado.');
-      return;
-    }
-
-    // Cierra el formulario y le entrega el contacto a la pantalla anterior.
-    Navigator.of(context).pop(
-      Contacto(
-        nombre: nombre,
-        relacion: _relacionController.text.trim(),
-        celular: celular,
-      ),
-    );
-  }
-
-  void _limpiarError(String _) {
-    if (_error != null) setState(() => _error = null);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.rondo;
-    final t = Theme.of(context).textTheme;
-    // Espacio del teclado, para que no tape el botón.
-    final teclado = MediaQuery.viewInsetsOf(context).bottom;
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + teclado),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Agregar contacto', style: t.titleLarge),
-            const SizedBox(height: 6),
-            Text('Recibirá tus alertas si algo te pasa.', style: t.bodyMedium),
-            const SizedBox(height: 18),
-            Glass(
-              blur: false,
-              shadow: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  GlassField(
-                    label: 'Nombre',
-                    controller: _nombreController,
-                    hint: 'Ej. Ana Gómez',
-                    textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.next,
-                    onChanged: _limpiarError,
-                  ),
-                  const GlassDivider(indent: 18),
-                  GlassField(
-                    label: 'Relación (opcional)',
-                    controller: _relacionController,
-                    hint: 'Ej. Hija',
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const GlassDivider(indent: 18),
-                  GlassField(
-                    label: 'Celular',
-                    controller: _celularController,
-                    hint: '300 123 4567',
-                    keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.done,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                    onChanged: _limpiarError,
-                    onSubmitted: (_) => _guardar(),
-                  ),
-                ],
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Semantics(
-                liveRegion: true,
-                child: Text(_error!, style: t.labelLarge!.copyWith(color: c.errorText)),
-              ),
-            ],
-            const SizedBox(height: 18),
-            PrimaryButton(label: 'Guardar contacto', onPressed: _guardar),
-          ],
         ),
       ),
     );

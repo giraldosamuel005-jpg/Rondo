@@ -28,6 +28,16 @@ const _meses = [
 String fechaLarga(DateTime fecha) =>
     '${_dias[fecha.weekday - 1]}, ${fecha.day} de ${_meses[fecha.month - 1]}';
 
+/// "Hoy", "Ayer" o "6 de octubre".
+String diaRelativo(DateTime fecha, {DateTime? ahora}) {
+  final hoy = ahora ?? DateTime.now();
+  final dia = DateTime(fecha.year, fecha.month, fecha.day);
+  final diferencia = DateTime(hoy.year, hoy.month, hoy.day).difference(dia).inDays;
+  if (diferencia == 0) return 'Hoy';
+  if (diferencia == 1) return 'Ayer';
+  return '${fecha.day} de ${_meses[fecha.month - 1]}';
+}
+
 /// "7:02 a. m.", "3:45 p. m.".
 String horaCorta(DateTime fecha) {
   final hora = fecha.hour % 12 == 0 ? 12 : fecha.hour % 12;

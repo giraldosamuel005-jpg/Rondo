@@ -25,7 +25,8 @@ class RondoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false, // Quita la cinta roja "DEBUG"
       theme: RondoTheme.light(),
       darkTheme: RondoTheme.dark(),
-      themeMode: ThemeMode.system, // Claro u oscuro según el celular
+      // Automático (según el celular), claro u oscuro: se elige en Ajustes.
+      themeMode: context.watch<AppState>().modoTema,
       home: const LoginPage(),
     );
   }

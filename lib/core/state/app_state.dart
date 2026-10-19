@@ -1,6 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show ChangeNotifier, ThemeMode;
 
 import '../models/contacto.dart';
+import '../models/evento.dart';
 import '../models/tipo_cuenta.dart';
 
 /// "Cerebro" de la app: guarda los datos de la persona y avisa a las
@@ -22,6 +23,10 @@ class AppState extends ChangeNotifier {
   bool _permisoSensores = false;
   DateTime? _rondaActivaDesde;
   bool _rondaEnPausa = false;
+  final List<Evento> _eventos = [];
+
+  /// Preferencia de la persona; no se borra al cerrar sesión.
+  ThemeMode _modoTema = ThemeMode.system;
 
   // ---------- Lectura (las pantallas leen por aquí) ----------
   String? get celular => _celular;
@@ -32,6 +37,10 @@ class AppState extends ChangeNotifier {
   bool get permisoSensores => _permisoSensores;
   DateTime? get rondaActivaDesde => _rondaActivaDesde;
   bool get rondaEnPausa => _rondaEnPausa;
+  ThemeMode get modoTema => _modoTema;
+
+  /// Del más reciente al más antiguo.
+  List<Evento> get eventos => List.unmodifiable(_eventos.reversed);
 
   // ---------- Acciones (las pantallas cambian datos por aquí) ----------
 
@@ -72,15 +81,24 @@ class AppState extends ChangeNotifier {
   void activarRonda() {
     _rondaActivaDesde = DateTime.now();
     _rondaEnPausa = false;
+    _registrar(TipoEvento.rondaActivada);
     notifyListeners();
   }
 
   void alternarPausa() {
     _rondaEnPausa = !_rondaEnPausa;
+    _registrar(_rondaEnPausa ? TipoEvento.rondaPausada : TipoEvento.rondaReanudada);
     notifyListeners();
   }
 
-  /// Borra todo y vuelve al estado inicial.
+  /// Ajustes → Apariencia: automático, claro u oscuro.
+  void cambiarModoTema(ThemeMode modo) {
+    _modoTema = modo;
+    notifyListeners();
+  }
+
+  /// Borra los datos de la cuenta y vuelve al estado inicial.
+  /// La preferencia de apariencia se conserva.
   void cerrarSesion() {
     _celular = null;
     _nombre = '';
@@ -90,6 +108,11 @@ class AppState extends ChangeNotifier {
     _permisoSensores = false;
     _rondaActivaDesde = null;
     _rondaEnPausa = false;
+    _eventos.clear();
     notifyListeners();
+  }
+
+  void _registrar(TipoEvento tipo) {
+    _eventos.add(Evento(tipo: tipo, fecha: DateTime.now()));
   }
 }
