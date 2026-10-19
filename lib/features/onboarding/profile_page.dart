@@ -58,8 +58,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
     if (_errorTipo != null || _errorNombre != null || _errorAviso != null) return;
 
-    // Más adelante (Firebase): guardar el tipo de cuenta y la aceptación
-    // del aviso con su fecha (RF-34).
+    // Guarda el perfil y la fecha en que se aceptó el aviso (RF-34).
     context.read<AppState>().guardarPerfil(nombre: nombre, tipo: _tipo!);
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const ContactsPage()),
