@@ -31,6 +31,10 @@ class PermisosSistema {
   Future<EstadoPermiso> pedir(PermisoSistema permiso) async =>
       _resumir(await _delSistema(permiso).request());
 
+  /// Revisa el estado actual sin mostrarle nada a la persona (RF-32).
+  Future<EstadoPermiso> consultar(PermisoSistema permiso) async =>
+      _resumir(await _delSistema(permiso).status);
+
   /// Abre los ajustes de Rondó en el celular, para un permiso [EstadoPermiso.bloqueado].
   Future<bool> abrirAjustes() => openAppSettings();
 
