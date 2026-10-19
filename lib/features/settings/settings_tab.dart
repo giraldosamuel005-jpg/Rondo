@@ -14,9 +14,10 @@ import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/tab_page.dart';
 import '../alert/fall_alert_page.dart';
 import '../auth/login_page.dart';
+import '../ficha/ficha_medica_card.dart';
 
-/// Pestaña Ajustes: perfil, apariencia, permisos (RF-31), aviso del 123 (RF-34)
-/// y cerrar sesión.
+/// Pestaña Ajustes: perfil, ficha médica (RF-23), apariencia, permisos (RF-31),
+/// aviso del 123 (RF-34) y cerrar sesión.
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
 
@@ -107,6 +108,13 @@ class SettingsTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
+
+        // ---------- Salud (RF-23): solo quien se cuida a sí mismo ----------
+        if (estado.usaFichaMedica) ...[
+          const SectionLabel('Salud'),
+          const FichaMedicaCard(),
+          const SizedBox(height: 22),
+        ],
 
         // ---------- Apariencia ----------
         const SectionLabel('Apariencia'),
