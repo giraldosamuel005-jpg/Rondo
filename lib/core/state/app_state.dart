@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' show ChangeNotifier, ThemeMode;
 
+import '../models/codigo_qr.dart';
 import '../models/consentimiento.dart';
 import '../models/contacto.dart';
 import '../models/evento.dart';
@@ -56,6 +57,9 @@ class AppState extends ChangeNotifier {
 
   /// RF-23. Por ahora en memoria; al guardarla en el celular, cifrada (7.1).
   FichaMedica? _fichaMedica;
+
+  /// RF-24. Existe solo si hay ficha; se crea al guardarla por primera vez.
+  CodigoQr? _codigoQr;
 
   final List<Medicamento> _medicamentos = [];
   final List<TomaMedicamento> _tomas = [];
@@ -117,6 +121,9 @@ class AppState extends ChangeNotifier {
 
   /// `null` si todavía no la ha llenado.
   FichaMedica? get fichaMedica => _fichaMedica;
+
+  /// `null` mientras no haya ficha.
+  CodigoQr? get codigoQr => _codigoQr;
 
   /// La ficha es de quien se cuida, no del cuidador.
   bool get usaFichaMedica => _tipo == TipoCuenta.paraMi;
@@ -238,20 +245,32 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Retirar el consentimiento de datos médicos borra la ficha (Ley 1581).
+  /// Retirar el consentimiento de datos médicos borra la ficha y su QR
+  /// (Ley 1581).
   void retirarConsentimiento(TipoConsentimiento tipo) {
     _marcarConsentimiento(tipo, false);
-    if (tipo == TipoConsentimiento.datosMedicos) _fichaMedica = null;
+    if (tipo == TipoConsentimiento.datosMedicos) {
+      _fichaMedica = null;
+      _codigoQr = null;
+    }
     notifyListeners();
   }
 
   /// Sin consentimiento de datos médicos no se guarda nada (RF-30): la
-  /// pantalla debe pedirlo antes.
+  /// pantalla debe pedirlo antes. Editar la ficha conserva el mismo QR.
   void guardarFichaMedica(FichaMedica ficha) {
     if (!tieneConsentimiento(TipoConsentimiento.datosMedicos)) {
       throw StateError('Falta el consentimiento de datos médicos.');
     }
     _fichaMedica = ficha;
+    _codigoQr ??= CodigoQr.nuevo();
+    notifyListeners();
+  }
+
+  /// RF-25: crea un token nuevo y el QR anterior deja de servir.
+  void regenerarCodigoQr() {
+    if (_fichaMedica == null) throw StateError('No hay ficha médica.');
+    _codigoQr = CodigoQr.nuevo();
     notifyListeners();
   }
 
@@ -402,6 +421,7 @@ class AppState extends ChangeNotifier {
     _consentimientos.clear();
     _avisoAceptadoEn = null;
     _fichaMedica = null;
+    _codigoQr = null;
     _medicamentos.clear();
     _tomas.clear();
     _personas.clear();
@@ -420,7 +440,12 @@ class AppState extends ChangeNotifier {
     final almacen = _almacen;
     if (almacen == null) return;
     final datos = aJson();
-    final ficha = _fichaMedica == null ? null : fichaAJson(_fichaMedica!);
+    final ficha = _fichaMedica == null
+        ? null
+        : {
+            ...fichaAJson(_fichaMedica!),
+            if (_codigoQr != null) 'codigoQr': codigoQrAJson(_codigoQr!),
+          };
     _guardado = _guardado.then((_) async {
       await almacen.guardarDatos(datos);
       await almacen.guardarFicha(ficha);
@@ -475,6 +500,8 @@ class AppState extends ChangeNotifier {
     // La ficha solo se carga si sigue el consentimiento de datos médicos.
     if (ficha != null && tieneConsentimiento(TipoConsentimiento.datosMedicos)) {
       _fichaMedica = fichaDeJson(ficha);
+      // Fichas guardadas antes de que existiera el QR reciben uno nuevo.
+      if (_fichaMedica != null) _codigoQr = codigoQrDeJson(ficha['codigoQr']) ?? CodigoQr.nuevo();
     }
   }
 

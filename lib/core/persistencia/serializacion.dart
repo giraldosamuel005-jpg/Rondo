@@ -5,6 +5,7 @@
 /// una versión vieja de la app), ese elemento se ignora en vez de fallar.
 library;
 
+import '../models/codigo_qr.dart';
 import '../models/contacto.dart';
 import '../models/evento.dart';
 import '../models/ficha_medica.dart';
@@ -119,6 +120,19 @@ FichaMedica? fichaDeJson(Map<String, Object?> j) {
     celularContactoEmergencia: celular,
     alergias: [for (final a in (j['alergias'] as List? ?? const [])) if (a is String) a],
   );
+}
+
+/// El token del QR va con la ficha (cifrado): quien lo tenga puede verla.
+Map<String, Object?> codigoQrAJson(CodigoQr q) => {
+      'token': q.token,
+      'creadoEn': q.creadoEn.toIso8601String(),
+    };
+
+CodigoQr? codigoQrDeJson(Object? j) {
+  if (j is! Map) return null;
+  final creado = fechaDe(j['creadoEn']);
+  if (!CodigoQr.tokenValido(j['token']) || creado == null) return null;
+  return CodigoQr(token: j['token'] as String, creadoEn: creado);
 }
 
 /// Convierte una lista JSON en modelos, saltándose los que no se entiendan.
