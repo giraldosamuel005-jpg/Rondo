@@ -8,6 +8,7 @@ import '../../core/models/contacto.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
+import '../../core/widgets/alert_button.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/contact_row.dart';
 import '../../core/widgets/countdown_ring.dart';
@@ -232,7 +233,11 @@ class _FallAlertPageState extends State<FallAlertPage> with SingleTickerProvider
           onPressed: _estoyBien,
         ),
         const SizedBox(height: 12),
-        _BotonAyuda(onPressed: _avisarContactos),
+        AlertButton(
+          label: 'Pedir ayuda ahora',
+          icon: Icons.phone_in_talk_rounded,
+          onPressed: _avisarContactos,
+        ),
         const SizedBox(height: 12),
         Text(
           'Se enviará un SMS a ${_nombres(contactos)}.',
@@ -305,60 +310,6 @@ class _FallAlertPageState extends State<FallAlertPage> with SingleTickerProvider
         ),
         const SizedBox(height: 12),
       ],
-    );
-  }
-}
-
-/// Botón ámbar "Pedir ayuda ahora": avisa de inmediato, sin esperar.
-class _BotonAyuda extends StatelessWidget {
-  const _BotonAyuda({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.rondo;
-    const alto = 64.0;
-
-    return Container(
-      height: alto,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(alto),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color.lerp(c.alert, Colors.white, 0.18)!, c.alert],
-        ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: c.alert.withValues(alpha: 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onPressed,
-          customBorder: const StadiumBorder(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.phone_in_talk_rounded, size: 24, color: c.onAlert),
-              const SizedBox(width: 10),
-              Text(
-                'Pedir ayuda ahora',
-                style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                      color: c.onAlert,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

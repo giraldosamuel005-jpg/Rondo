@@ -47,6 +47,16 @@ String horaCorta(DateTime fecha) {
   return '$hora:$minutos $sufijo';
 }
 
+/// "hace un momento", "hace 15 min", "hace 2 h", "ayer, 3:45 p. m.".
+String haceCuanto(DateTime fecha, {DateTime? ahora}) {
+  final hoy = ahora ?? DateTime.now();
+  final minutos = hoy.difference(fecha).inMinutes;
+  if (minutos < 1) return 'hace un momento';
+  if (minutos < 60) return 'hace $minutos min';
+  if (minutos < 6 * 60) return 'hace ${minutos ~/ 60} h';
+  return '${diaRelativo(fecha, ahora: hoy).toLowerCase()}, ${horaCorta(fecha)}';
+}
+
 /// ["Ana"] → "Ana"; ["Ana", "Luis"] → "Ana y Luis"; ["Ana", "Luis", "Marta"] → "Ana, Luis y Marta".
 String listaNatural(List<String> partes) {
   if (partes.isEmpty) return '';

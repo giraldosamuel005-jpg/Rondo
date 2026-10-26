@@ -9,6 +9,7 @@ import '../models/contacto.dart';
 import '../models/evento.dart';
 import '../models/ficha_medica.dart';
 import '../models/medicamento.dart';
+import '../models/persona_a_cargo.dart';
 
 /// Busca un valor de un enum por su nombre; `null` si no existe.
 T? enumPorNombre<T extends Enum>(List<T> valores, Object? nombre) {
@@ -126,3 +127,68 @@ List<T> listaDe<T>(Object? json, T? Function(Map<String, Object?>) convertir) =>
         for (final item in json)
           if (item is Map) ?convertir(item.cast<String, Object?>()),
     ];
+
+// ---------- Personas a cargo (cuenta de cuidador) ----------
+
+Map<String, Object?> personaAJson(PersonaACargo p) => {
+      'id': p.id,
+      'nombre': p.nombre,
+      'celular': p.celular,
+      'relacion': p.relacion,
+      'estado': p.estado.name,
+      'ubicacion': p.ubicacion == null
+          ? null
+          : {
+              'latitud': p.ubicacion!.latitud,
+              'longitud': p.ubicacion!.longitud,
+              'descripcion': p.ubicacion!.descripcion,
+              'fecha': p.ubicacion!.fecha.toIso8601String(),
+            },
+      'ultimoEstoyBien': p.ultimoEstoyBien?.toIso8601String(),
+      'cumplimiento': p.cumplimiento,
+      'alertas': [
+        for (final a in p.alertas)
+          {'fecha': a.fecha.toIso8601String(), 'atendida': a.atendida, 'estabaBien': a.estabaBien},
+      ],
+    };
+
+PersonaACargo? personaDeJson(Map<String, Object?> j) {
+  final estado = enumPorNombre(EstadoPersona.values, j['estado']);
+  if (j['id'] is! String || j['nombre'] is! String || j['celular'] is! String || estado == null) {
+    return null;
+  }
+  Ubicacion? ubicacion;
+  final u = j['ubicacion'];
+  if (u is Map) {
+    final fecha = fechaDe(u['fecha']);
+    final lat = u['latitud'], lng = u['longitud'];
+    if (fecha != null && lat is num && lng is num) {
+      ubicacion = Ubicacion(
+        latitud: lat.toDouble(),
+        longitud: lng.toDouble(),
+        descripcion: u['descripcion'] as String? ?? '',
+        fecha: fecha,
+      );
+    }
+  }
+  return PersonaACargo(
+    id: j['id'] as String,
+    nombre: j['nombre'] as String,
+    celular: j['celular'] as String,
+    relacion: j['relacion'] as String? ?? '',
+    estado: estado,
+    ubicacion: ubicacion,
+    ultimoEstoyBien: fechaDe(j['ultimoEstoyBien']),
+    cumplimiento: j['cumplimiento'] as int?,
+    alertas: listaDe(j['alertas'], (a) {
+      final fecha = fechaDe(a['fecha']);
+      return fecha == null
+          ? null
+          : AlertaPersona(
+              fecha: fecha,
+              atendida: a['atendida'] as bool? ?? true,
+              estabaBien: a['estabaBien'] as bool? ?? false,
+            );
+    }),
+  );
+}

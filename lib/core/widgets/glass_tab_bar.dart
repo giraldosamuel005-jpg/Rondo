@@ -4,19 +4,15 @@ import '../theme/rondo_colors.dart';
 import 'glass.dart';
 
 /// Barra de pestañas flotante de vidrio.
-/// Pestañas: Inicio · Contactos · Historial · Ajustes (pendiente confirmar).
+/// Quien se cuida: Inicio · Contactos · Historial · Ajustes.
+/// Cuidador: Personas · Alertas · Ajustes.
 class GlassTabBar extends StatelessWidget {
-  const GlassTabBar({super.key, required this.actual, required this.onTap});
+  const GlassTabBar({super.key, required this.pestanas, required this.actual, required this.onTap});
 
+  /// Ícono y etiqueta de cada pestaña.
+  final List<(IconData, String)> pestanas;
   final int actual;
   final ValueChanged<int> onTap;
-
-  static const pestanas = [
-    (Icons.home_rounded, 'Inicio'),
-    (Icons.people_alt_rounded, 'Contactos'),
-    (Icons.history_rounded, 'Historial'),
-    (Icons.settings_rounded, 'Ajustes'),
-  ];
 
   @override
   Widget build(BuildContext context) {

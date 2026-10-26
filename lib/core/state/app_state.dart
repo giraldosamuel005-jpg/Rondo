@@ -5,6 +5,7 @@ import '../models/contacto.dart';
 import '../models/evento.dart';
 import '../models/ficha_medica.dart';
 import '../models/medicamento.dart';
+import '../models/persona_a_cargo.dart';
 import '../models/tipo_cuenta.dart';
 import '../permisos/permisos_sistema.dart';
 import '../persistencia/almacen.dart';
@@ -59,6 +60,9 @@ class AppState extends ChangeNotifier {
   final List<Medicamento> _medicamentos = [];
   final List<TomaMedicamento> _tomas = [];
 
+  /// Solo en cuentas de cuidador: quienes lo invitaron (RF-26).
+  final List<PersonaACargo> _personas = [];
+
   DateTime? _rondaActivaDesde;
   bool _rondaEnPausa = false;
   final List<Evento> _eventos = [];
@@ -68,8 +72,32 @@ class AppState extends ChangeNotifier {
 
   // ---------- Lectura (las pantallas leen por aquí) ----------
 
-  /// Ya terminó el registro (activó su ronda): al abrir la app va a Inicio.
-  bool get registroCompleto => _celular != null && _tipo != null && _rondaActivaDesde != null;
+  /// Ya terminó el registro: al abrir la app va a Inicio. Quien se cuida
+  /// termina al activar su ronda; el cuidador, al elegir su tipo de cuenta.
+  bool get registroCompleto =>
+      _celular != null && _tipo != null && (esCuidador || _rondaActivaDesde != null);
+
+  bool get esCuidador => _tipo == TipoCuenta.cuidador;
+
+  // ---------- Cuidador (RF-26) ----------
+  List<PersonaACargo> get personasACargo => List.unmodifiable(_personas);
+
+  PersonaACargo? personaACargo(String id) {
+    for (final p in _personas) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  /// Todas las alertas de las personas a cargo, de la más nueva a la más vieja.
+  List<({PersonaACargo persona, AlertaPersona alerta})> get alertasDePersonas {
+    final todas = [
+      for (final p in _personas)
+        for (final a in p.alertas) (persona: p, alerta: a),
+    ];
+    todas.sort((x, y) => y.alerta.fecha.compareTo(x.alerta.fecha));
+    return todas;
+  }
 
   String? get celular => _celular;
   String get nombre => _nombre;
@@ -253,6 +281,43 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---------- Cuidador ----------
+
+  /// Modo de pruebas: carga personas de ejemplo (mientras no hay servidor).
+  void cargarPersonasDeEjemplo() {
+    _personas
+      ..clear()
+      ..addAll(PersonaACargo.ejemplos(DateTime.now()));
+    notifyListeners();
+  }
+
+  /// Modo de pruebas: a esa persona "se le detecta una caída" (llega la alerta).
+  void simularAlertaDe(String id) {
+    final i = _personas.indexWhere((p) => p.id == id);
+    if (i == -1) return;
+    final p = _personas[i];
+    _personas[i] = p.copyWith(
+      estado: EstadoPersona.alerta,
+      alertas: [AlertaPersona(fecha: DateTime.now(), atendida: false), ...p.alertas],
+    );
+    notifyListeners();
+  }
+
+  /// El cuidador marca que ya atendió la alerta de esa persona.
+  void marcarAlertaAtendida(String id) {
+    final i = _personas.indexWhere((p) => p.id == id);
+    if (i == -1) return;
+    final p = _personas[i];
+    _personas[i] = p.copyWith(
+      estado: EstadoPersona.activa,
+      alertas: [
+        for (final a in p.alertas)
+          a.atendida ? a : AlertaPersona(fecha: a.fecha, atendida: true, estabaBien: a.estabaBien),
+      ],
+    );
+    notifyListeners();
+  }
+
   // ---------- Medicamentos ----------
 
   /// Crea un identificador local único (más adelante lo dará Firebase).
@@ -339,6 +404,7 @@ class AppState extends ChangeNotifier {
     _fichaMedica = null;
     _medicamentos.clear();
     _tomas.clear();
+    _personas.clear();
     _rondaActivaDesde = null;
     _rondaEnPausa = false;
     _eventos.clear();
@@ -376,6 +442,7 @@ class AppState extends ChangeNotifier {
         'avisoAceptadoEn': _avisoAceptadoEn?.toIso8601String(),
         'medicamentos': [for (final m in _medicamentos) medicamentoAJson(m)],
         'tomas': [for (final t in _tomas) tomaAJson(t)],
+        'personasACargo': [for (final p in _personas) personaAJson(p)],
         'rondaActivaDesde': _rondaActivaDesde?.toIso8601String(),
         'rondaEnPausa': _rondaEnPausa,
         'eventos': [for (final e in _eventos) eventoAJson(e)],
@@ -400,6 +467,7 @@ class AppState extends ChangeNotifier {
     _avisoAceptadoEn = fechaDe(j['avisoAceptadoEn']);
     _medicamentos.addAll(listaDe(j['medicamentos'], medicamentoDeJson));
     _tomas.addAll(listaDe(j['tomas'], tomaDeJson));
+    _personas.addAll(listaDe(j['personasACargo'], personaDeJson));
     _rondaActivaDesde = fechaDe(j['rondaActivaDesde']);
     _rondaEnPausa = j['rondaEnPausa'] as bool? ?? false;
     _eventos.addAll(listaDe(j['eventos'], eventoDeJson));

@@ -12,10 +12,13 @@ import '../../core/widgets/glass_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/rondo_back_button.dart';
 import '../../core/widgets/step_pill.dart';
+import '../shell/main_shell.dart';
 import 'contacts_page.dart';
 
 /// 02 · ¿Para quién es la cuenta? — Paso 1 de 2.
 /// RF-03 (tipo de cuenta) y RF-34 (aviso "no reemplaza al 123").
+/// El cuidador no tiene paso 2: no necesita contactos ni sensores, entra
+/// directo a su panel.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -60,9 +63,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // Guarda el perfil y la fecha en que se aceptó el aviso (RF-34).
     context.read<AppState>().guardarPerfil(nombre: nombre, tipo: _tipo!);
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ContactsPage()),
-    );
+    if (_tipo == TipoCuenta.cuidador) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (ruta) => false,
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ContactsPage()),
+      );
+    }
   }
 
   void _verTratamientoDeDatos() {
@@ -117,11 +127,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 8),
-                      const Row(
+                      Row(
                         children: [
-                          RondoBackButton(),
-                          Expanded(child: Center(child: StepPill(actual: 1, total: 2))),
-                          SizedBox(width: 44), // Equilibra el botón Atrás
+                          const RondoBackButton(),
+                          Expanded(
+                            child: Center(
+                              // El cuidador termina en este paso.
+                              child: StepPill(actual: 1, total: _tipo == TipoCuenta.cuidador ? 1 : 2),
+                            ),
+                          ),
+                          const SizedBox(width: 44), // Equilibra el botón Atrás
                         ],
                       ),
                       const SizedBox(height: 22),
@@ -191,7 +206,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
                       const Spacer(),
                       const SizedBox(height: 24),
-                      PrimaryButton(label: 'Continuar', onPressed: _continuar),
+                      PrimaryButton(
+                        label: _tipo == TipoCuenta.cuidador ? 'Entrar a mi panel' : 'Continuar',
+                        onPressed: _continuar,
+                      ),
                       const SizedBox(height: 6),
                       _NotaLegal(onTap: _verTratamientoDeDatos),
                       const SizedBox(height: 8),

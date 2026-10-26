@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/models/tipo_cuenta.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
@@ -14,6 +13,7 @@ import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/tab_page.dart';
 import '../alert/fall_alert_page.dart';
 import '../auth/login_page.dart';
+import '../cuidador/alerta_entrante_page.dart';
 import '../ficha/ficha_medica_card.dart';
 
 /// Pestaña Ajustes: perfil, ficha médica (RF-23), apariencia, permisos (RF-31),
@@ -69,6 +69,20 @@ class SettingsTab extends StatelessWidget {
     );
   }
 
+  /// Cuidador: a la primera persona "se le detecta una caída" y le llega la alerta.
+  void _simularAlertaDePersona(BuildContext context) {
+    final estado = context.read<AppState>();
+    if (estado.personasACargo.isEmpty) estado.cargarPersonasDeEjemplo();
+    final persona = estado.personasACargo.first;
+    estado.simularAlertaDe(persona.id);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => AlertaEntrantePage(personaId: persona.id),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.rondo;
@@ -98,7 +112,7 @@ class SettingsTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      estado.tipo == TipoCuenta.cuidador ? 'Cuido a alguien' : 'Me cuido a mí',
+                      estado.esCuidador ? 'Cuido a alguien' : 'Me cuido a mí',
                       style: t.labelLarge!.copyWith(color: c.accent),
                     ),
                   ],
@@ -127,10 +141,12 @@ class SettingsTab extends StatelessWidget {
         ),
         const SizedBox(height: 22),
 
-        // ---------- Permisos (RF-31) ----------
-        const SectionLabel('Permisos'),
-        const PermisosCard(),
-        const SizedBox(height: 22),
+        // ---------- Permisos (RF-31): el cuidador no usa sensores ----------
+        if (!estado.esCuidador) ...[
+          const SectionLabel('Permisos'),
+          const PermisosCard(),
+          const SizedBox(height: 22),
+        ],
 
         // ---------- Aviso (RF-34) ----------
         const SectionLabel('Importante'),
@@ -173,12 +189,27 @@ class SettingsTab extends StatelessWidget {
         if (kDebugMode) ...[
           const SizedBox(height: 22),
           const SectionLabel('Modo de pruebas'),
-          SecondaryButton(
-            label: 'Simular caída',
-            icon: Icons.warning_amber_rounded,
-            blur: false,
-            onPressed: () => _simularCaida(context),
-          ),
+          if (estado.esCuidador) ...[
+            SecondaryButton(
+              label: 'Cargar personas de ejemplo',
+              icon: Icons.group_add_rounded,
+              blur: false,
+              onPressed: estado.cargarPersonasDeEjemplo,
+            ),
+            const SizedBox(height: 10),
+            SecondaryButton(
+              label: 'Simular alerta',
+              icon: Icons.warning_amber_rounded,
+              blur: false,
+              onPressed: () => _simularAlertaDePersona(context),
+            ),
+          ] else
+            SecondaryButton(
+              label: 'Simular caída',
+              icon: Icons.warning_amber_rounded,
+              blur: false,
+              onPressed: () => _simularCaida(context),
+            ),
           const SizedBox(height: 6),
           Text(
             'Solo aparece mientras desarrollamos la app.',
