@@ -6,7 +6,4 @@ enum TipoConsentimiento {
 
   /// Guardar la ficha médica (datos sensibles).
   datosMedicos,
-
-  /// Usar la cámara en el modo conductor (microsueños).
-  camara,
 }

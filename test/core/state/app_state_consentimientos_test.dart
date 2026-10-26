@@ -29,14 +29,13 @@ void main() {
   test('los consentimientos son independientes entre sí', () {
     estado.darConsentimiento(TipoConsentimiento.datosMedicos);
     expect(estado.tieneConsentimiento(TipoConsentimiento.ubicacion), isFalse);
-    expect(estado.tieneConsentimiento(TipoConsentimiento.camara), isFalse);
   });
 
   test('retirar un consentimiento borra su fecha', () {
-    estado.darConsentimiento(TipoConsentimiento.camara);
-    estado.retirarConsentimiento(TipoConsentimiento.camara);
-    expect(estado.tieneConsentimiento(TipoConsentimiento.camara), isFalse);
-    expect(estado.fechaConsentimiento(TipoConsentimiento.camara), isNull);
+    estado.darConsentimiento(TipoConsentimiento.ubicacion);
+    estado.retirarConsentimiento(TipoConsentimiento.ubicacion);
+    expect(estado.tieneConsentimiento(TipoConsentimiento.ubicacion), isFalse);
+    expect(estado.fechaConsentimiento(TipoConsentimiento.ubicacion), isNull);
   });
 
   test('el interruptor de ubicación da y retira el consentimiento de ubicación', () {

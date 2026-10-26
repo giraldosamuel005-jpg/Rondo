@@ -1,5 +1,4 @@
 /// Tipos de cosas que quedan registradas en el Historial.
-/// Más adelante: "Estoy bien", tomas de medicamentos...
 enum TipoEvento {
   rondaActivada,
   rondaPausada,
@@ -10,6 +9,15 @@ enum TipoEvento {
 
   /// Se avisó a los contactos: se acabó el tiempo o pidió ayuda (RF-15).
   alertaEnviada,
+
+  /// La persona tocó "Estoy bien" en Inicio para decir que está sin novedad (RF-12).
+  estoyBien,
+
+  /// Marcó que tomó una dosis (RF-22).
+  tomaRegistrada,
+
+  /// Marcó que no tomó una dosis (RF-22).
+  tomaOmitida,
 }
 
 /// Algo que pasó, con su hora.

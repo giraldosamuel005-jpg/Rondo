@@ -4,19 +4,41 @@ import '../models/consentimiento.dart';
 import '../models/contacto.dart';
 import '../models/evento.dart';
 import '../models/ficha_medica.dart';
+import '../models/medicamento.dart';
 import '../models/tipo_cuenta.dart';
 import '../permisos/permisos_sistema.dart';
+import '../persistencia/almacen.dart';
+import '../persistencia/serializacion.dart';
 
 /// "Cerebro" de la app: guarda los datos de la persona y avisa a las
 /// pantallas cuando algo cambia.
 ///
-/// Por ahora todo vive en memoria (se pierde al cerrar la app). Cuando
-/// conectemos Firebase, solo cambia lo de adentro de esta clase; las
-/// pantallas siguen igual.
+/// Si recibe un [Almacen], se guarda solo cada vez que algo cambia (en el
+/// celular con `AlmacenLocal`). Sin almacén (como en las pruebas) vive solo
+/// en memoria. Con Firebase se cambia el almacén; las pantallas siguen igual.
 ///
 /// En `build()` se lee con `context.watch<AppState>()` (se redibuja al cambiar);
 /// en acciones (botones) se usa `context.read<AppState>()`.
 class AppState extends ChangeNotifier {
+  AppState({this._almacen});
+
+  /// Crea el estado con lo que había guardado en [almacen].
+  static Future<AppState> cargar(Almacen almacen) async {
+    final estado = AppState(almacen: almacen);
+    final datos = await almacen.leerDatos();
+    final ficha = await almacen.leerFicha();
+    if (datos != null) estado._cargarDesde(datos, ficha);
+    return estado;
+  }
+
+  final Almacen? _almacen;
+
+  /// Cadena de guardados: cada uno espera al anterior, así nunca se pisan.
+  Future<void> _guardado = Future.value();
+
+  /// Espera a que termine de guardar (útil en pruebas).
+  Future<void> get guardadoPendiente => _guardado;
+
   // ---------- Datos (privados: solo esta clase los cambia) ----------
   String? _celular;
   String _nombre = '';
@@ -34,6 +56,9 @@ class AppState extends ChangeNotifier {
   /// RF-23. Por ahora en memoria; al guardarla en el celular, cifrada (7.1).
   FichaMedica? _fichaMedica;
 
+  final List<Medicamento> _medicamentos = [];
+  final List<TomaMedicamento> _tomas = [];
+
   DateTime? _rondaActivaDesde;
   bool _rondaEnPausa = false;
   final List<Evento> _eventos = [];
@@ -42,6 +67,10 @@ class AppState extends ChangeNotifier {
   ThemeMode _modoTema = ThemeMode.system;
 
   // ---------- Lectura (las pantallas leen por aquí) ----------
+
+  /// Ya terminó el registro (activó su ronda): al abrir la app va a Inicio.
+  bool get registroCompleto => _celular != null && _tipo != null && _rondaActivaDesde != null;
+
   String? get celular => _celular;
   String get nombre => _nombre;
   TipoCuenta? get tipo => _tipo;
@@ -69,6 +98,58 @@ class AppState extends ChangeNotifier {
 
   /// Del más reciente al más antiguo.
   List<Evento> get eventos => List.unmodifiable(_eventos.reversed);
+
+  // ---------- Medicamentos (RF-20 a RF-22) ----------
+  List<Medicamento> get medicamentos => List.unmodifiable(_medicamentos);
+
+  Medicamento? medicamento(String id) {
+    for (final m in _medicamentos) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
+
+  /// Registros de tomas, del más reciente al más antiguo.
+  List<TomaMedicamento> get tomas => List.unmodifiable(_tomas.reversed);
+
+  /// Porcentaje de tomas cumplidas (0 a 100). `null` si aún no hay registros.
+  int? get cumplimiento {
+    if (_tomas.isEmpty) return null;
+    final tomadas = _tomas.where((t) => t.tomada).length;
+    return (tomadas * 100 / _tomas.length).round();
+  }
+
+  /// Próxima toma de un medicamento que todavía no se ha registrado: si ya
+  /// marcó la de las 4:00, la próxima es la siguiente.
+  DateTime proximaPendiente(Medicamento m, DateTime ahora) {
+    var hora = m.proximaToma(ahora);
+    while (tomaYaRegistrada(m.id, hora)) {
+      hora = hora.add(Duration(hours: m.frecuenciaHoras));
+    }
+    return hora;
+  }
+
+  /// La toma pendiente más cercana de todos los medicamentos, o `null` si no hay.
+  ({Medicamento medicamento, DateTime hora})? proximaToma(DateTime ahora) {
+    ({Medicamento medicamento, DateTime hora})? mejor;
+    for (final m in _medicamentos) {
+      final hora = proximaPendiente(m, ahora);
+      if (mejor == null || hora.isBefore(mejor.hora)) mejor = (medicamento: m, hora: hora);
+    }
+    return mejor;
+  }
+
+  /// ¿Ya se registró (tomada o no) la dosis de esa hora?
+  bool tomaYaRegistrada(String medicamentoId, DateTime horaProgramada) =>
+      _tomas.any((t) => t.medicamentoId == medicamentoId && t.horaProgramada == horaProgramada);
+
+  /// Última vez que tocó "Estoy bien" en Inicio (RF-12). `null` si nunca.
+  DateTime? get ultimoEstoyBien {
+    for (final evento in _eventos.reversed) {
+      if (evento.tipo == TipoEvento.estoyBien) return evento.fecha;
+    }
+    return null;
+  }
 
   // ---------- Acciones (las pantallas cambian datos por aquí) ----------
 
@@ -165,6 +246,69 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// RF-12: la persona confirma que está sin novedad. Queda con su hora en
+  /// el Historial; más adelante también la verá su cuidador.
+  void confirmarEstoyBien() {
+    _registrar(TipoEvento.estoyBien);
+    notifyListeners();
+  }
+
+  // ---------- Medicamentos ----------
+
+  /// Crea un identificador local único (más adelante lo dará Firebase).
+  String nuevoIdMedicamento() => 'med-${DateTime.now().microsecondsSinceEpoch}';
+
+  void agregarMedicamento(Medicamento medicamento) {
+    _medicamentos.add(medicamento);
+    notifyListeners();
+  }
+
+  void actualizarMedicamento(Medicamento medicamento) {
+    final i = _medicamentos.indexWhere((m) => m.id == medicamento.id);
+    if (i == -1) return;
+    _medicamentos[i] = medicamento;
+    notifyListeners();
+  }
+
+  /// Quita el medicamento y sus registros de tomas.
+  void eliminarMedicamento(String id) {
+    _medicamentos.removeWhere((m) => m.id == id);
+    _tomas.removeWhere((t) => t.medicamentoId == id);
+    notifyListeners();
+  }
+
+  /// RF-22: registra la dosis que toca ahora. Si la tomó, descuenta las
+  /// unidades (RF-21). Devuelve `false` si esa dosis ya estaba registrada.
+  bool registrarToma(String medicamentoId, {required bool tomada, DateTime? ahora}) {
+    final m = medicamento(medicamentoId);
+    if (m == null) return false;
+    final momento = ahora ?? DateTime.now();
+    final hora = m.dosisActual(momento);
+    if (tomaYaRegistrada(m.id, hora)) return false;
+
+    _tomas.add(TomaMedicamento(
+      medicamentoId: m.id,
+      horaProgramada: hora,
+      tomada: tomada,
+      horaReal: tomada ? momento : null,
+    ));
+    if (tomada) {
+      final quedan = (m.unidadesDisponibles - m.unidadesPorToma).clamp(0, m.unidadesDisponibles);
+      _reemplazarSinAviso(m.copyWith(unidadesDisponibles: quedan));
+    }
+    _registrar(
+      tomada ? TipoEvento.tomaRegistrada : TipoEvento.tomaOmitida,
+      detalle: '${m.nombre} ${m.dosis}',
+    );
+    notifyListeners();
+    return true;
+  }
+
+  void _reemplazarSinAviso(Medicamento medicamento) {
+    final i = _medicamentos.indexWhere((m) => m.id == medicamento.id);
+    if (i != -1) _medicamentos[i] = medicamento;
+  }
+
   /// Resultado de una alerta de caída (RF-13 a RF-15).
   /// `enviada`: se avisó a los contactos; si no, la persona dijo "Estoy bien".
   void registrarAlerta({required bool enviada, String? detalle}) {
@@ -193,10 +337,77 @@ class AppState extends ChangeNotifier {
     _consentimientos.clear();
     _avisoAceptadoEn = null;
     _fichaMedica = null;
+    _medicamentos.clear();
+    _tomas.clear();
     _rondaActivaDesde = null;
     _rondaEnPausa = false;
     _eventos.clear();
     notifyListeners();
+  }
+
+  // ---------- Guardar y cargar ----------
+
+  /// Cada cambio avisa a las pantallas y, además, se guarda.
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    final almacen = _almacen;
+    if (almacen == null) return;
+    final datos = aJson();
+    final ficha = _fichaMedica == null ? null : fichaAJson(_fichaMedica!);
+    _guardado = _guardado.then((_) async {
+      await almacen.guardarDatos(datos);
+      await almacen.guardarFicha(ficha);
+    });
+  }
+
+  /// Todo menos la ficha médica (que va aparte y cifrada).
+  Map<String, Object?> aJson() => {
+        'version': 1,
+        'celular': _celular,
+        'nombre': _nombre,
+        'tipo': _tipo?.name,
+        'contactos': [for (final c in _contactos) contactoAJson(c)],
+        'permisoUbicacion': _permisoUbicacion,
+        'permisoSensores': _permisoSensores,
+        'consentimientos': {
+          for (final e in _consentimientos.entries) e.key.name: e.value.toIso8601String(),
+        },
+        'avisoAceptadoEn': _avisoAceptadoEn?.toIso8601String(),
+        'medicamentos': [for (final m in _medicamentos) medicamentoAJson(m)],
+        'tomas': [for (final t in _tomas) tomaAJson(t)],
+        'rondaActivaDesde': _rondaActivaDesde?.toIso8601String(),
+        'rondaEnPausa': _rondaEnPausa,
+        'eventos': [for (final e in _eventos) eventoAJson(e)],
+        'modoTema': _modoTema.name,
+      };
+
+  void _cargarDesde(Map<String, Object?> j, Map<String, Object?>? ficha) {
+    _celular = j['celular'] as String?;
+    _nombre = j['nombre'] as String? ?? '';
+    _tipo = enumPorNombre(TipoCuenta.values, j['tipo']);
+    _contactos.addAll(listaDe(j['contactos'], contactoDeJson));
+    _permisoUbicacion = j['permisoUbicacion'] as bool? ?? false;
+    _permisoSensores = j['permisoSensores'] as bool? ?? false;
+    final consentimientos = j['consentimientos'];
+    if (consentimientos is Map) {
+      for (final e in consentimientos.entries) {
+        final tipo = enumPorNombre(TipoConsentimiento.values, e.key);
+        final fecha = fechaDe(e.value);
+        if (tipo != null && fecha != null) _consentimientos[tipo] = fecha;
+      }
+    }
+    _avisoAceptadoEn = fechaDe(j['avisoAceptadoEn']);
+    _medicamentos.addAll(listaDe(j['medicamentos'], medicamentoDeJson));
+    _tomas.addAll(listaDe(j['tomas'], tomaDeJson));
+    _rondaActivaDesde = fechaDe(j['rondaActivaDesde']);
+    _rondaEnPausa = j['rondaEnPausa'] as bool? ?? false;
+    _eventos.addAll(listaDe(j['eventos'], eventoDeJson));
+    _modoTema = enumPorNombre(ThemeMode.values, j['modoTema']) ?? ThemeMode.system;
+    // La ficha solo se carga si sigue el consentimiento de datos médicos.
+    if (ficha != null && tieneConsentimiento(TipoConsentimiento.datosMedicos)) {
+      _fichaMedica = fichaDeJson(ficha);
+    }
   }
 
   /// Guarda la fecha solo la primera vez que se da; al retirarlo se borra.

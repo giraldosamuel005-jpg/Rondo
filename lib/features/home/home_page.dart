@@ -10,6 +10,7 @@ import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/status_ring.dart';
+import '../medicamentos/medicamentos_page.dart';
 
 /// 05 · Inicio (pestaña 1): estado de la ronda (activa o en pausa).
 /// La barra de pestañas la pone [MainShell]; esta pantalla solo es el contenido.
@@ -34,9 +35,14 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  void _proximamente(BuildContext context) {
+  /// RF-12: confirma que está sin novedad.
+  void _estoyBien(BuildContext context) {
+    final estado = context.read<AppState>();
+    estado.confirmarEstoyBien();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Esta sección llega pronto.')),
+      SnackBar(
+        content: Text('Listo. Quedó registrado que estás bien (${horaCorta(DateTime.now())}).'),
+      ),
     );
   }
 
@@ -52,6 +58,7 @@ class HomePage extends StatelessWidget {
     final contactos = estado.contactos;
     final cuantos = contactos.length;
     final activaDesde = estado.rondaActivaDesde ?? DateTime.now();
+    final ultimoEstoyBien = estado.ultimoEstoyBien;
 
     return BlobBackground(
       blobs: BlobBackground.inicio,
@@ -115,24 +122,32 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 12),
 
             // ---------- Atajos ----------
-            Row(
-              children: [
-                Expanded(
-                  child: _Atajo(
-                    icono: enPausa ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                    etiqueta: enPausa ? 'Reanudar ronda' : 'Pausar ronda',
-                    onTap: () => _alternarPausa(context),
+            // IntrinsicHeight + stretch: las dos tarjetas miden lo mismo aunque
+            // "Estoy bien" tenga una línea más.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _Atajo(
+                      icono: enPausa ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                      etiqueta: enPausa ? 'Reanudar ronda' : 'Pausar ronda',
+                      onTap: () => _alternarPausa(context),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _Atajo(
-                    icono: Icons.route_rounded,
-                    etiqueta: 'Ruta segura',
-                    onTap: () => _proximamente(context),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _Atajo(
+                      icono: Icons.favorite_rounded,
+                      etiqueta: 'Estoy bien',
+                      detalle: ultimoEstoyBien == null
+                          ? null
+                          : '${diaRelativo(ultimoEstoyBien)}, ${horaCorta(ultimoEstoyBien)}',
+                      onTap: () => _estoyBien(context),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -162,6 +177,12 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ),
+
+            // ---------- Medicamentos (solo quien se cuida a sí mismo) ----------
+            if (estado.usaFichaMedica) ...[
+              const SizedBox(height: 12),
+              const _TarjetaMedicamentos(),
+            ],
           ],
         ),
       ),
@@ -169,13 +190,21 @@ class HomePage extends StatelessWidget {
   }
 }
 
-/// Botón cuadrado de vidrio con ícono y texto ("Pausar ronda", "Ruta segura").
+/// Botón cuadrado de vidrio con ícono y texto ("Pausar ronda", "Estoy bien").
 class _Atajo extends StatelessWidget {
-  const _Atajo({required this.icono, required this.etiqueta, required this.onTap});
+  const _Atajo({
+    required this.icono,
+    required this.etiqueta,
+    required this.onTap,
+    this.detalle,
+  });
 
   final IconData icono;
   final String etiqueta;
   final VoidCallback onTap;
+
+  /// Texto pequeño debajo, por ejemplo "Hoy, 3:45 p. m.".
+  final String? detalle;
 
   @override
   Widget build(BuildContext context) {
@@ -203,6 +232,13 @@ class _Atajo extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(etiqueta, style: Theme.of(context).textTheme.titleMedium),
+                if (detalle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    detalle!,
+                    style: Theme.of(context).textTheme.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                  ),
+                ],
               ],
             ),
           ),
@@ -241,6 +277,69 @@ class _AvataresApilados extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Medicamentos · Próxima: Losartán, hoy a las 8:00 p. m." → abre la lista.
+class _TarjetaMedicamentos extends StatelessWidget {
+  const _TarjetaMedicamentos();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.rondo;
+    final t = Theme.of(context).textTheme;
+    final estado = context.watch<AppState>();
+    final proxima = estado.proximaToma(DateTime.now());
+    final acabandose = estado.medicamentos.where((m) => m.seEstaAcabando).toList();
+
+    final resumen = proxima == null
+        ? 'Agrega tus medicamentos'
+        : 'Próxima: ${proxima.medicamento.nombre}, '
+            '${diaRelativo(proxima.hora).toLowerCase()} a las ${horaCorta(proxima.hora)}';
+
+    return Glass(
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const MedicamentosPage()),
+          ),
+          customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(color: c.accentSoft, borderRadius: BorderRadius.circular(14)),
+                  child: Icon(Icons.medication_rounded, color: c.accent),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Medicamentos',
+                        style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(resumen, style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400)),
+                      if (acabandose.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(acabandose.first.avisoReponer, style: t.labelLarge!.copyWith(color: c.text)),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: c.textSecondary),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

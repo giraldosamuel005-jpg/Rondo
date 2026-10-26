@@ -109,7 +109,7 @@ void main() {
       estado.darConsentimiento(TipoConsentimiento.datosMedicos);
       estado.guardarFichaMedica(ficha);
 
-      estado.retirarConsentimiento(TipoConsentimiento.camara);
+      estado.retirarConsentimiento(TipoConsentimiento.ubicacion);
 
       expect(estado.fichaMedica, isNotNull);
     });

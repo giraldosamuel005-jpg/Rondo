@@ -157,7 +157,7 @@ Familia: **Geist** (paquete `google_fonts`), con la del sistema como respaldo. E
 
 **CountdownRing** (Alerta): círculo de vidrio 220 → anillo cónico `alert` (proporción = tiempo restante) → centro sólido con "0:24" y "para avisar".
 
-**GlassTabBar**: cápsula de vidrio flotante, 4 pestañas iguales (icono 22 + etiqueta 11). Activa: fondo `accentSoft` en cápsula, color `accentLink`, peso 700. Pestañas: **Inicio · Contactos · Historial · Ajustes** (pendiente confirmar con la especificación).
+**GlassTabBar**: cápsula de vidrio flotante, 4 pestañas iguales (icono 22 + etiqueta 11). Activa: fondo `accentSoft` en cápsula, color `accentLink`, peso 700. Pestañas: **Inicio · Contactos · Historial · Ajustes**.
 
 **Logo**: arco circular abierto (gap arriba-izquierda) + línea de pulso cardiaco, trazo redondeado `accent`. En Inicio solo se usa la línea de pulso.
 
@@ -199,15 +199,16 @@ Iconografía: trazo 1.8–2.2, extremos redondeados, 18–24 px. Sugerido: `luci
 ### 05 · Inicio (ronda activa)
 - Fecha (15, secundario) + "Hola, {nombre}" (`title`) | avatar de perfil 44 con iniciales.
 - Tarjeta héroe (radio 32): StatusRing → chip "Ronda activa" → "Todo en orden" → "Desde las 7:02 a. m. · sin novedades".
-- Grid 2 columnas: **Pausar ronda** / **Ruta segura** (vidrio, icono + etiqueta).
+- Grid 2 columnas: **Pausar ronda** / **Estoy bien** (vidrio, icono + etiqueta). "Estoy bien" (RF-12) muestra debajo la última confirmación (`label`, ej. "Hoy, 3:45 p. m.").
+- Tarjeta **Medicamentos** (solo cuenta "para mí"): icono en `accentSoft` | "Próxima toma" + "{medicamento} · {hora}" | chevron. Sin medicamentos: "Agrega tus medicamentos".
 - Fila "Te cuidan 2 personas" con avatares apilados + chevron.
 - GlassTabBar flotante. Dejar ~100 px de padding inferior en el scroll para que el contenido pase por debajo del vidrio.
-- Estados a diseñar luego: *En pausa* (anillo gris, chip neutro, botón "Reanudar"), *Sin conexión*.
+- *En pausa* (implementado): anillo gris, chip neutro "En pausa", atajo "Reanudar ronda". Por diseñar: *Sin conexión*.
 
 ### 06 · Alerta de caída
 - Fondo `alertBg` + manchas ámbar. Pantalla completa, sin navegación, debe mostrarse sobre la pantalla de bloqueo (full-screen intent en Android).
 - Chip "Posible caída · {hora}" → "¿Estás bien?" (`alertTitle`) → "Si no respondes, avisamos a {contacto 1} con tu ubicación."
-- CountdownRing (30 s sugeridos; el valor real lo define la especificación).
+- CountdownRing de **10 s** (lo que define RF-13).
 - SecondaryButton grande **"Estoy bien"** (vidrio, 64) y botón ámbar **"Pedir ayuda ahora"** (icono de teléfono, texto `#3B2300`).
 - Nota: "Se enviará un SMS a {contactos}."
 - Vibración + sonido + anuncio de accesibilidad al aparecer.
@@ -341,6 +342,9 @@ lib/
 
 ## 8. Pendientes de diseño
 - Vista del cuidador (recibir la alerta de otra persona).
-- Ruta segura, Historial, Ajustes, Contactos.
-- Estados: ronda en pausa, sin conexión, permiso denegado.
-- Confirmar pestañas de la tab bar y duración real de la cuenta regresiva con la especificación técnica.
+- Estados: sin conexión.
+- Implementadas siguiendo los componentes de este documento (sin pantalla propia en el canvas): Contactos, Historial, Ajustes, Medicamentos y ficha médica.
+- Pestañas confirmadas: **Inicio · Contactos · Historial · Ajustes**. Cuenta regresiva: 10 s.
+
+## 9. Fuera de alcance (2026-10-25)
+No se diseñan ni se implementan: **Ruta segura / Acompáñame**, geocercas, detección de accidentes de tránsito, microsueños con cámara y cancelar la alerta con PIN, huella o voz (ver `requisitos.md`).

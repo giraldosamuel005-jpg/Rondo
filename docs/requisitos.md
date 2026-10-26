@@ -4,18 +4,18 @@
 
 ## 1. Descripción del proyecto
 
-Rondó es una app móvil que detecta emergencias personales (caídas, accidentes de tránsito, microsueños y desmayos) con los sensores del celular y avisa automáticamente a los contactos de la persona con su ubicación. Además pone la información médica al alcance de quien atienda la emergencia y ayuda a controlar los medicamentos. Funciona con o sin internet y se adapta a quién la usa: adulto mayor, conductor, persona en ruta de riesgo o cuidador.
+Rondó es una app móvil que detecta emergencias personales (caídas y posibles desmayos) con los sensores del celular y avisa automáticamente a los contactos de la persona con su ubicación. Además pone la información médica al alcance de quien atienda la emergencia y ayuda a controlar los medicamentos. Funciona con o sin internet y se adapta a quién la usa: la persona que se cuida (pensada sobre todo para adultos mayores) o su cuidador.
 
 ## 2. Perfiles de usuario
 
 | Perfil | Módulos activos |
 |---|---|
-| Adulto mayor | Detección de caídas, medicamentos, ficha médica QR, botón "Estoy bien" |
-| Conductor | Detección de accidentes, microsueños, ficha médica QR |
-| Persona en ruta de riesgo | Modo "Acompáñame", geocercas, ficha médica QR |
-| Cuidador / contacto | Dashboard de alertas, ubicación, adherencia a medicamentos |
+| Adulto mayor (cuenta "para mí") | Detección de caídas, medicamentos, ficha médica QR, botón "Estoy bien" |
+| Cuidador / contacto (cuenta "para cuidar a alguien") | Dashboard de alertas, ubicación, adherencia a medicamentos |
 
 *Los perfiles no son excluyentes: un usuario puede combinar roles.*
+
+*Los perfiles **Conductor** (detección de accidentes y microsueños) y **Persona en ruta de riesgo** (modo "Acompáñame" y geocercas) quedaron **fuera de alcance** el 2026-10-25.*
 
 ## 3. Requerimientos funcionales
 
@@ -55,7 +55,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Cómo funciona:** Al terminar el registro, la persona elige "para mí" o "para cuidar a alguien". Esto define qué módulos se activan y si se muestra el dashboard de cuidador.
 - **Datos:**
   - tipo de cuenta: `enum` (paraMi, cuidador)
-  - perfiles activos: `List<enum>` (adultoMayor, conductor, rutaRiesgo, cuidador)
+  - perfiles activos: `List<enum>` (adultoMayor, cuidador)
 - **Errores:**
   - "Selecciona si la cuenta es para ti o para cuidar a alguien para continuar."
 
@@ -107,6 +107,8 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "Activa el permiso de sensores de movimiento para usar esta función."
 
 #### RF-08 — Detectar accidentes de tránsito: impacto seguido de una caída anómala de velocidad
+> ⛔ **Fuera de alcance** (decisión del 2026-10-25). Se conserva solo como referencia; no se implementa.
+
 - **Cómo funciona:** Se combina un impacto fuerte (acelerómetro) con una caída brusca de velocidad medida por GPS. Un frenazo sin impacto no cuenta como accidente.
 - **Datos:**
   - velocidad: `double` (m/s, del GPS)
@@ -115,8 +117,8 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "Activa la ubicación para detectar accidentes de tránsito."
   - "No pudimos medir la velocidad. La detección de accidentes está limitada."
 
-#### RF-09 — Reducir falsos positivos: distinguir si cayó el celular o la persona, y descartar ejercicio y frenazos bruscos
-- **Cómo funciona:** Antes de lanzar la alerta se revisa el patrón de movimiento. Se descarta si solo cayó el celular y la persona sigue en movimiento, si el patrón es de ejercicio o si es un frenazo sin impacto.
+#### RF-09 — Reducir falsos positivos: distinguir si cayó el celular o la persona, y descartar ejercicio
+- **Cómo funciona:** Antes de lanzar la alerta se revisa el patrón de movimiento. Se descarta si solo cayó el celular y la persona sigue en movimiento, o si el patrón es de ejercicio.
 - **Datos:**
   - No pide datos al usuario; usa las lecturas de los sensores.
   - confianza del evento: `double` (0 a 1)
@@ -134,6 +136,8 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - Proceso interno, no muestra mensaje al usuario. El evento omitido queda en el registro interno.
 
 #### RF-11 — Detectar microsueños del conductor con la cámara durante el viaje
+> ⛔ **Fuera de alcance** (decisión del 2026-10-25). Se conserva solo como referencia; no se implementa.
+
 - **Cómo funciona:** Mientras el viaje está activo, la app analiza la imagen de la cámara y busca ojos cerrados por más tiempo del normal. Las imágenes se procesan en el celular y no se guardan.
 - **Datos:**
   - viaje activo: `bool`
@@ -164,16 +168,13 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se pudo reproducir la alarma sonora. Revisa el volumen de tu celular."
   - "No se pudo mostrar la alerta. Se avisará directamente a tus contactos."
 
-#### RF-14 — Permitir cancelar la alerta durante la cuenta regresiva con botón, PIN, biometría o voz
-- **Cómo funciona:** Durante los 10 s se puede cancelar con botón, PIN, biometría o voz. Al cancelar, la alarma se detiene y la alerta queda como cancelada.
+#### RF-14 — Permitir cancelar la alerta durante la cuenta regresiva con el botón "Estoy bien"
+- **Cómo funciona:** Durante los 10 s se puede cancelar con el botón "Estoy bien". Al cancelar, la alarma se detiene y la alerta queda como cancelada. El botón "Pedir ayuda ahora" hace lo contrario: avisa de inmediato, sin esperar.
 - **Datos:**
-  - PIN: `String` (se guarda como hash, nunca en texto plano)
-  - palabra de cancelación por voz: `String`
+  - estado de la alerta: `enum` (cancelada, enviada; ver RF-13)
 - **Errores:**
-  - "PIN incorrecto. Intenta de nuevo."
-  - "No se reconoció tu huella. Intenta de nuevo o usa tu PIN."
-  - "No te escuchamos bien. Repite la palabra de cancelación o usa el botón."
-  - "Demasiados intentos fallidos. La alerta continuará."
+  - No muestra errores: el botón siempre está disponible durante la cuenta regresiva.
+- *Cancelar con PIN, huella o voz quedó **fuera de alcance** el 2026-10-25.*
 
 #### RF-15 — Si la alerta no se cancela, notificar por push a todos los contactos con la ubicación
 - **Cómo funciona:** Cuando la cuenta regresiva termina sin cancelar, la app envía un push a todos los contactos al mismo tiempo, con el tipo de evento, la hora y la ubicación.
@@ -207,7 +208,11 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 
 ### 3.4 Ubicación
 
+*Toda esta sección quedó fuera de alcance el 2026-10-25. La ubicación se sigue usando, pero solo dentro de una alerta (RF-15, RF-16).*
+
 #### RF-18 — Crear y editar geocercas, y avisar cuando la persona entre o salga de ellas
+> ⛔ **Fuera de alcance** (decisión del 2026-10-25). Se conserva solo como referencia; no se implementa.
+
 - **Cómo funciona:** El usuario marca un punto en el mapa, elige un radio y un nombre. La app compara su ubicación actual con el centro y avisa cuando cruza el borde hacia dentro o hacia fuera.
 - **Datos:**
   - nombre: `String`
@@ -222,6 +227,8 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "Se alcanzó el máximo de geocercas permitidas."
 
 #### RF-19 — Modo "Acompáñame": compartir la ubicación periódicamente con un contacto hasta confirmar la llegada segura con PIN o biometría
+> ⛔ **Fuera de alcance** (decisión del 2026-10-25). Se conserva solo como referencia; no se implementa.
+
 - **Cómo funciona:** El usuario elige un contacto e inicia el modo. La app envía su ubicación cada cierto intervalo hasta que confirma la llegada con PIN o biometría.
 - **Datos:**
   - contacto elegido: `String` (ID)
@@ -354,15 +361,14 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 
 ### 3.8 Privacidad y permisos
 
-#### RF-30 — Pedir consentimiento explícito y por separado para ubicación, datos médicos y cámara
+#### RF-30 — Pedir consentimiento explícito y por separado para ubicación y datos médicos
 - **Cómo funciona:** Cada permiso se solicita por separado, con una explicación de para qué se usa. Sin consentimiento, las funciones que dependen de ese permiso no se activan.
 - **Datos:**
-  - consentimiento de ubicación, datos médicos y cámara: 3 `bool`
+  - consentimiento de ubicación y de datos médicos: 2 `bool`
   - fecha de cada consentimiento: `DateTime`
 - **Errores:**
   - "Necesitamos tu permiso de ubicación para enviar alertas con tu posición."
   - "Necesitamos tu consentimiento para guardar tus datos médicos."
-  - "Necesitamos acceso a la cámara para detectar microsueños."
   - "Sin este permiso no podemos activar esta función."
 
 #### RF-31 — Ofrecer un panel central de permisos y gestión de contactos
@@ -378,10 +384,12 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Datos:**
   - estado del permiso: `enum` (concedido, denegado)
 - **Errores:**
-  - "Desactivaste el permiso de [ubicación / cámara / sensores]. Esta función funcionará de forma limitada."
+  - "Desactivaste el permiso de [ubicación / sensores]. Esta función funcionará de forma limitada."
   - "Las alertas se enviarán sin tu ubicación. Actívala de nuevo en ajustes."
 
 #### RF-33 — Borrar las ubicaciones de "Acompáñame" una vez confirmada la llegada segura
+> ⛔ **Fuera de alcance** (decisión del 2026-10-25). Se conserva solo como referencia; no se implementa.
+
 - **Cómo funciona:** Al confirmar la llegada segura, se borran del servidor y del celular las ubicaciones guardadas del trayecto.
 - **Datos:**
   - ubicaciones del trayecto: `List` (se eliminan al confirmar)
@@ -411,3 +419,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-10-04 | RF-23 | El contacto de emergencia de la ficha se elige de los contactos de RF-04 en vez de escribirse otra vez. |
 | 2026-10-05 | RF-01 | El error de código incorrecto indica los intentos restantes. Se agrega un límite de 3 intentos por código, con el mensaje "Demasiados intentos fallidos. Pide un código nuevo.", y una espera de 30 s para pedir otro código. |
 | 2026-10-06 | RF-03 / RF-34 | El aviso "no reemplaza al 123" se acepta en el paso 1 del registro, junto con el tipo de cuenta y el nombre. Se agrega el mensaje "Escribe tu nombre para continuar." |
+| 2026-10-25 | Alcance | **Fuera de alcance:** accidentes de tránsito (RF-08), microsueños (RF-11), geocercas (RF-18), modo "Acompáñame" (RF-19, RF-33) y cancelar la alerta con PIN, huella o voz (RF-14 queda solo con botón). Desaparecen los perfiles Conductor y Persona en ruta de riesgo. RF-09 ya no descarta frenazos y RF-30 ya no pide consentimiento de cámara. RF-07 (desmayo/inactividad) sigue en duda. |

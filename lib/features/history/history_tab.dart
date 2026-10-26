@@ -39,7 +39,7 @@ class HistoryTab extends StatelessWidget {
           ),
         const SizedBox(height: 14),
         Text(
-          'Aquí también aparecerán tus alertas y tus confirmaciones de "Estoy bien".',
+          'Aquí quedan tus alertas, tus confirmaciones de "Estoy bien", tus tomas de medicamentos y cuándo pausas la ronda.',
           textAlign: TextAlign.center,
           style: t.bodySmall,
         ),
@@ -64,6 +64,9 @@ class _FilaEvento extends StatelessWidget {
       TipoEvento.rondaPausada => (Icons.pause_rounded, 'Ronda en pausa', c.neutralSoft, c.textSecondary),
       TipoEvento.rondaReanudada => (Icons.play_arrow_rounded, 'Ronda reanudada', c.accentSoft, c.accent),
       TipoEvento.alertaCancelada => (Icons.check_rounded, 'Posible caída: estabas bien', c.accentSoft, c.accent),
+      TipoEvento.estoyBien => (Icons.favorite_rounded, 'Confirmaste que estás bien', c.accentSoft, c.accent),
+      TipoEvento.tomaRegistrada => (Icons.medication_rounded, 'Tomaste tu medicamento', c.accentSoft, c.accent),
+      TipoEvento.tomaOmitida => (Icons.medication_outlined, 'No tomaste tu medicamento', c.neutralSoft, c.textSecondary),
       TipoEvento.alertaEnviada => (
           Icons.notifications_active_rounded,
           'Alerta enviada',
