@@ -4,7 +4,8 @@
 /// (en el celular) y en las pruebas [AlmacenMemoria]. Con Firebase se agrega
 /// otra implementación y las pantallas no cambian.
 abstract class Almacen {
-  /// Datos generales (perfil, contactos, medicamentos, historial...).
+  /// Datos generales (perfil, contactos, medicamentos, historial...). También
+  /// tienen datos de salud: el almacén real los guarda cifrados.
   /// `null` si nunca se ha guardado nada.
   Future<Map<String, Object?>?> leerDatos();
   Future<void> guardarDatos(Map<String, Object?> datos);

@@ -5,10 +5,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'almacen.dart';
 
-/// Guarda los datos en el celular.
-/// - Datos generales: `shared_preferences` (archivo privado de la app).
-/// - Ficha médica: `flutter_secure_storage`, cifrada con el almacén de llaves
-///   de Android (Keystore), porque son datos de salud (Ley 1581).
+/// Guarda los datos en el celular, todo cifrado con `flutter_secure_storage`
+/// (almacén de llaves de Android / Keychain de iOS). Los datos generales
+/// también llevan datos de salud (medicamentos, tomas, alertas), así que van
+/// cifrados igual que la ficha (sección 7.1, Ley 1581).
+///
+/// Versiones anteriores guardaban los datos generales sin cifrar en
+/// `shared_preferences`: si están ahí, se leen y en el siguiente guardado se
+/// pasan a lo cifrado y se borra la copia vieja.
 class AlmacenLocal implements Almacen {
   AlmacenLocal({FlutterSecureStorage? seguro}) : _seguro = seguro ?? const FlutterSecureStorage();
 
@@ -19,14 +23,19 @@ class AlmacenLocal implements Almacen {
 
   @override
   Future<Map<String, Object?>?> leerDatos() async {
+    final cifrados = await _seguro.read(key: _claveDatos);
+    if (cifrados != null) return _decodificar(cifrados);
     final prefs = await SharedPreferences.getInstance();
     return _decodificar(prefs.getString(_claveDatos));
   }
 
   @override
   Future<void> guardarDatos(Map<String, Object?> datos) async {
+    await _seguro.write(key: _claveDatos, value: jsonEncode(datos));
+    // Primero se escribe lo cifrado y luego se borra la copia vieja, para no
+    // perder nada si la app se cierra en medio.
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_claveDatos, jsonEncode(datos));
+    await prefs.remove(_claveDatos);
   }
 
   @override
