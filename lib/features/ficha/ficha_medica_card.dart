@@ -6,6 +6,8 @@ import '../../core/models/ficha_medica.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/widgets/glass.dart';
+import '../../core/widgets/secondary_button.dart';
+import 'codigo_qr_page.dart';
 import 'ficha_medica_page.dart';
 
 /// Sección "Salud" de Ajustes: resumen de la ficha médica (RF-23).
@@ -31,8 +33,8 @@ class FichaMedicaCard extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('¿Borrar tu ficha médica?'),
         content: const Text(
-          'Se borran tu tipo de sangre, tus alergias y tu contacto de emergencia, '
-          'y retiras tu consentimiento de datos médicos.',
+          'Se borran tu tipo de sangre, tus alergias, tu contacto de emergencia '
+          'y tu código QR, y retiras tu consentimiento de datos médicos.',
         ),
         actions: [
           TextButton(
@@ -98,6 +100,16 @@ class FichaMedicaCard extends StatelessWidget {
             ),
           ),
         ),
+        if (ficha != null) ...[
+          const SizedBox(height: 10),
+          SecondaryButton(
+            label: 'Ver mi código QR',
+            icon: Icons.qr_code_2_rounded,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CodigoQrPage()),
+            ),
+          ),
+        ],
         if (estado.tieneConsentimiento(TipoConsentimiento.datosMedicos))
           Align(
             alignment: Alignment.centerRight,
