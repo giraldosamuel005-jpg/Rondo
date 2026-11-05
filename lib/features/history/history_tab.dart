@@ -9,14 +9,26 @@ import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/tab_page.dart';
 
-/// Pestaña Historial: lo que ha pasado con la ronda, del más reciente al más antiguo.
-class HistoryTab extends StatelessWidget {
+/// Pestaña Historial: lo que ha pasado con la ronda, por días y del más
+/// reciente al más antiguo. Se puede filtrar por alertas o medicamentos.
+class HistoryTab extends StatefulWidget {
   const HistoryTab({super.key});
+
+  @override
+  State<HistoryTab> createState() => _HistoryTabState();
+}
+
+class _HistoryTabState extends State<HistoryTab> {
+  FiltroHistorial _filtro = FiltroHistorial.todo;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final eventos = context.watch<AppState>().eventos;
+    final grupos = agruparPorDia([
+      for (final evento in eventos)
+        if (_filtro.incluye(evento.tipo)) evento,
+    ]);
 
     return TabPage(
       title: 'Historial',
@@ -25,24 +37,100 @@ class HistoryTab extends StatelessWidget {
       children: [
         if (eventos.isEmpty)
           const _SinEventos()
-        else
+        else ...[
           Glass(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < eventos.length; i++) ...[
-                  if (i > 0) const GlassDivider(indent: 74),
-                  _FilaEvento(evento: eventos[i]),
-                ],
-              ],
+            padding: const EdgeInsets.all(6),
+            child: _SelectorFiltro(
+              actual: _filtro,
+              onChanged: (filtro) => setState(() => _filtro = filtro),
             ),
           ),
+          const SizedBox(height: 18),
+          if (grupos.isEmpty)
+            _SinResultados(filtro: _filtro)
+          else
+            for (final grupo in grupos) ...[
+              SectionLabel(diaRelativo(grupo.dia)),
+              Glass(
+                blur: false, // Puede haber muchos días: sin desenfoque
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < grupo.eventos.length; i++) ...[
+                      if (i > 0) const GlassDivider(indent: 74),
+                      _FilaEvento(evento: grupo.eventos[i]),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+        ],
         const SizedBox(height: 14),
         Text(
           'Aquí quedan tus alertas, tus confirmaciones de "Estoy bien", tus tomas de medicamentos y cuándo pausas la ronda.',
           textAlign: TextAlign.center,
           style: t.bodySmall,
         ),
+      ],
+    );
+  }
+}
+
+/// Tres opciones en fila: Todo · Alertas · Medicamentos.
+class _SelectorFiltro extends StatelessWidget {
+  const _SelectorFiltro({required this.actual, required this.onChanged});
+
+  final FiltroHistorial actual;
+  final ValueChanged<FiltroHistorial> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.rondo;
+
+    return Row(
+      children: [
+        for (final filtro in FiltroHistorial.values)
+          Expanded(
+            // "Medicamentos" es más largo: le toca más ancho.
+            flex: filtro == FiltroHistorial.medicamentos ? 3 : 2,
+            child: Semantics(
+              selected: filtro == actual,
+              inMutuallyExclusiveGroup: true,
+              button: true,
+              label: filtro.etiqueta,
+              excludeSemantics: true,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: () => onChanged(filtro),
+                  borderRadius: BorderRadius.circular(18),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    decoration: BoxDecoration(
+                      color: filtro == actual ? c.accentSoft : null,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Center(
+                      // Con letra grande se encoge en vez de desbordarse.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          filtro.etiqueta,
+                          style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                                fontWeight: filtro == actual ? FontWeight.w700 : FontWeight.w500,
+                                color: filtro == actual ? c.accentLink : c.textSecondary,
+                              ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -74,7 +162,8 @@ class _FilaEvento extends StatelessWidget {
           c.alertText,
         ),
     };
-    final cuando = '${diaRelativo(evento.fecha)} · ${horaCorta(evento.fecha)}';
+    // El día ya está en el título del grupo.
+    final cuando = horaCorta(evento.fecha);
 
     return Semantics(
       label: '$titulo, ${diaRelativo(evento.fecha)} a las ${horaCorta(evento.fecha)}'
@@ -112,6 +201,44 @@ class _FilaEvento extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Hay eventos, pero ninguno del filtro elegido.
+class _SinResultados extends StatelessWidget {
+  const _SinResultados({required this.filtro});
+
+  final FiltroHistorial filtro;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.rondo;
+    final t = Theme.of(context).textTheme;
+    final (icono, titulo, texto) = switch (filtro) {
+      FiltroHistorial.medicamentos => (
+          Icons.medication_outlined,
+          'Sin tomas registradas',
+          'Cuando marques una toma de tus medicamentos, la verás aquí.',
+        ),
+      _ => (
+          Icons.shield_outlined,
+          'Sin alertas',
+          'Si alguna vez detectamos una posible caída, la verás aquí.',
+        ),
+    };
+
+    return Glass(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(icono, size: 32, color: c.textSecondary),
+          const SizedBox(height: 12),
+          Text(titulo, style: t.titleMedium),
+          const SizedBox(height: 4),
+          Text(texto, textAlign: TextAlign.center, style: t.bodyMedium),
+        ],
       ),
     );
   }
