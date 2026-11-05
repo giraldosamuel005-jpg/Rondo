@@ -9,6 +9,7 @@ import '../../core/widgets/contact_row.dart';
 import '../../core/widgets/contact_sheets.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/tab_page.dart';
+import '../cuidador/abrir_enlace.dart';
 
 /// Pestaña Contactos (RF-04, RF-31): ver, agregar y quitar contactos de emergencia.
 class ContactsTab extends StatelessWidget {
@@ -47,7 +48,7 @@ class ContactsTab extends StatelessWidget {
 
     return TabPage(
       title: 'Contactos',
-      subtitle: 'Reciben tus alertas si algo te pasa. Toca uno para quitarlo.',
+      subtitle: 'Reciben tus alertas si algo te pasa. Toca el teléfono para llamar, o el nombre para quitarlo.',
       blobs: BlobBackground.paso,
       children: [
         Glass(
@@ -60,6 +61,7 @@ class ContactsTab extends StatelessWidget {
                   contacto: contactos[i],
                   orden: i + 1,
                   onTap: () => _quitar(context, contactos[i]),
+                  onLlamar: () => llamarAContacto(context, contactos[i]),
                 ),
               ],
               if (contactos.isNotEmpty) const GlassDivider(indent: 68),

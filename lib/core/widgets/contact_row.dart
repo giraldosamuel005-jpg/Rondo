@@ -7,12 +7,14 @@ import '../theme/rondo_colors.dart';
 import 'avatar.dart';
 
 /// Fila de un contacto de emergencia: avatar | nombre + detalle | "1.º".
+/// Con [onLlamar] muestra además un botón de teléfono.
 class ContactRow extends StatelessWidget {
   const ContactRow({
     super.key,
     required this.contacto,
     required this.orden,
     this.onTap,
+    this.onLlamar,
   });
 
   final Contacto contacto;
@@ -20,6 +22,7 @@ class ContactRow extends StatelessWidget {
   /// 1 para el primero, 2 para el segundo...
   final int orden;
   final VoidCallback? onTap;
+  final VoidCallback? onLlamar;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +53,8 @@ class ContactRow extends StatelessWidget {
                     Text(
                       contacto.detalle,
                       style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                      // Con el botón de teléfono hay menos ancho: que no se corte el número.
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -70,6 +75,14 @@ class ContactRow extends StatelessWidget {
                   ),
                 ),
               ),
+              if (onLlamar != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: onLlamar,
+                  tooltip: 'Llamar a ${contacto.nombre}',
+                  icon: Icon(Icons.phone_rounded, size: 22, color: c.accent),
+                ),
+              ],
             ],
           ),
         ),
@@ -110,12 +123,14 @@ class AddContactRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'Agregar contacto',
-                  style: t.bodyLarge!.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: c.accentLink,
+                Expanded(
+                  child: Text(
+                    'Agregar contacto',
+                    style: t.bodyLarge!.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: c.accentLink,
+                    ),
                   ),
                 ),
               ],

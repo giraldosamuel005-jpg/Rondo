@@ -21,6 +21,8 @@ class Contacto {
 
   String get iniciales => inicialesDe(nombre);
 
+  Uri get enlaceLlamada => Uri(scheme: 'tel', path: '+57$celular');
+
   /// "Hija · +57 320 652 3232", o solo el número si no hay relación.
   String get detalle {
     final numero = formatearCelular(celular);
