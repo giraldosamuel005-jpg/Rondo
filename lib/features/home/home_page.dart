@@ -10,6 +10,7 @@ import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/status_ring.dart';
+import '../cuidador/abrir_enlace.dart';
 import '../medicamentos/medicamentos_page.dart';
 
 /// 05 · Inicio (pestaña 1): estado de la ronda (activa o en pausa).
@@ -151,6 +152,10 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
+            // ---------- Emergencias (RF-34) ----------
+            const _LlamarAl123(),
+            const SizedBox(height: 12),
+
             // ---------- Quiénes te cuidan ----------
             Glass(
               child: Material(
@@ -239,6 +244,58 @@ class _Atajo extends StatelessWidget {
                     style: Theme.of(context).textTheme.labelLarge!.copyWith(fontWeight: FontWeight.w400),
                   ),
                 ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Abre el marcador con el 123; la persona solo confirma tocando "llamar".
+class _LlamarAl123 extends StatelessWidget {
+  const _LlamarAl123();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.rondo;
+    final t = Theme.of(context).textTheme;
+
+    return Glass(
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => llamarAl123(context),
+          customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(color: c.accentSoft, borderRadius: BorderRadius.circular(14)),
+                  child: Icon(Icons.phone_rounded, color: c.accent),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Llamar al 123',
+                        style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Línea de emergencias de Colombia',
+                        style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: c.textSecondary),
               ],
             ),
           ),
