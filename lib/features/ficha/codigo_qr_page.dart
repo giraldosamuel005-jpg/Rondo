@@ -10,6 +10,7 @@ import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/rondo_back_button.dart';
 import '../../core/widgets/secondary_button.dart';
+import 'ficha_vista_page.dart';
 
 /// QR de la ficha médica (RF-24) y botón para cambiarlo (RF-25).
 /// Se abre desde la sección "Salud" de Ajustes, solo si hay ficha.
@@ -127,13 +128,23 @@ class CodigoQrPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 22),
-              if (codigo != null)
+              if (codigo != null) ...[
+                SecondaryButton(
+                  label: 'Ver cómo se ve',
+                  icon: Icons.visibility_outlined,
+                  blur: false,
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const FichaVistaPage()),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 SecondaryButton(
                   label: 'Crear un código nuevo',
                   icon: Icons.refresh_rounded,
                   blur: false,
                   onPressed: () => _regenerar(context),
                 ),
+              ],
               const SizedBox(height: 24),
             ],
           ),
