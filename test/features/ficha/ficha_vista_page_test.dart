@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:rondo/core/models/consentimiento.dart';
 import 'package:rondo/core/models/contacto.dart';
 import 'package:rondo/core/models/ficha_medica.dart';
+import 'package:rondo/core/models/medicamento.dart';
 import 'package:rondo/core/models/tipo_cuenta.dart';
 import 'package:rondo/core/state/app_state.dart';
 import 'package:rondo/core/theme/rondo_colors.dart';
@@ -69,6 +70,56 @@ void main() {
     await mostrar(tester, estado, const FichaVistaPage());
 
     expect(find.textContaining('Sin contacto'), findsOneWidget);
+  });
+
+  group('datos opcionales', () {
+    final losartan = Medicamento(
+      id: 'm1',
+      nombre: 'Losartán',
+      dosis: '50 mg',
+      unidadesPorToma: 1,
+      frecuenciaHoras: 8,
+      unidadesDisponibles: 30,
+      primeraToma: DateTime(2026, 10, 25, 8),
+    );
+
+    AppState estadoCon({required bool mostrarMedicamentos}) => estadoConFicha()
+      ..agregarMedicamento(losartan)
+      ..guardarFichaMedica(FichaMedica(
+        tipoSangre: TipoSangre.oNegativo,
+        celularContactoEmergencia: ana.celular,
+        enfermedades: ['Diabetes'],
+        fechaNacimiento: DateTime(1950, 3, 15),
+        notas: 'Uso marcapasos',
+        mostrarMedicamentos: mostrarMedicamentos,
+      ));
+
+    testWidgets('se muestran cuando están', (tester) async {
+      await mostrar(tester, estadoCon(mostrarMedicamentos: true), const FichaVistaPage());
+
+      expect(find.textContaining('años · 15 de marzo de 1950'), findsOneWidget);
+      expect(find.text('Diabetes'), findsOneWidget);
+
+      await tester.scrollUntilVisible(find.text('Uso marcapasos'), 200);
+      expect(find.text('Losartán · 50 mg · Cada 8 horas'), findsOneWidget);
+    });
+
+    testWidgets('los medicamentos solo salen si la persona lo marcó', (tester) async {
+      await mostrar(tester, estadoCon(mostrarMedicamentos: false), const FichaVistaPage());
+
+      await tester.scrollUntilVisible(find.text('Uso marcapasos'), 200);
+      expect(find.text('Medicamentos'), findsNothing);
+      expect(find.textContaining('Losartán'), findsNothing);
+    });
+
+    testWidgets('si están vacíos, no aparecen sus secciones', (tester) async {
+      await mostrar(tester, estadoConFicha(), const FichaVistaPage());
+
+      expect(find.text('Enfermedades'), findsNothing);
+      expect(find.text('Medicamentos'), findsNothing);
+      expect(find.text('Notas'), findsNothing);
+      expect(find.textContaining('años'), findsNothing);
+    });
   });
 
   testWidgets('sin ficha no falla', (tester) async {

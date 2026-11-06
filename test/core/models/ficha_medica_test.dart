@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rondo/core/models/consentimiento.dart';
 import 'package:rondo/core/models/contacto.dart';
 import 'package:rondo/core/models/ficha_medica.dart';
 import 'package:rondo/core/models/tipo_cuenta.dart';
+import 'package:rondo/core/persistencia/serializacion.dart';
 import 'package:rondo/core/state/app_state.dart';
 
 void main() {
@@ -22,7 +25,7 @@ void main() {
   group('alergias', () {
     test('quita espacios, vacías y repetidas sin importar mayúsculas', () {
       expect(
-        FichaMedica.limpiarAlergias([' Penicilina ', '', 'maní', 'PENICILINA', '   ']),
+        FichaMedica.limpiarLista([' Penicilina ', '', 'maní', 'PENICILINA', '   ']),
         ['Penicilina', 'maní'],
       );
     });
@@ -40,6 +43,76 @@ void main() {
     test('sin alergias es válido', () {
       final ficha = FichaMedica(tipoSangre: TipoSangre.aNegativo, celularContactoEmergencia: ana.celular);
       expect(ficha.alergias, isEmpty);
+    });
+  });
+
+  group('datos opcionales', () {
+    FichaMedica fichaCon({DateTime? nacio, String notas = '', List<String> enfermedades = const []}) => FichaMedica(
+          tipoSangre: TipoSangre.oPositivo,
+          celularContactoEmergencia: ana.celular,
+          fechaNacimiento: nacio,
+          notas: notas,
+          enfermedades: enfermedades,
+        );
+
+    test('la edad cambia justo el día del cumpleaños', () {
+      final ficha = fichaCon(nacio: DateTime(1950, 3, 15));
+      expect(ficha.edad(DateTime(2026, 3, 14)), 75);
+      expect(ficha.edad(DateTime(2026, 3, 15)), 76);
+      expect(ficha.edad(DateTime(2026, 2, 28)), 75);
+      expect(ficha.edad(DateTime(2026, 11, 5)), 76);
+    });
+
+    test('sin fecha de nacimiento no hay edad', () {
+      expect(fichaCon().edad(DateTime(2026)), isNull);
+    });
+
+    test('limpia las notas y las enfermedades', () {
+      final ficha = fichaCon(notas: '  Uso marcapasos \n', enfermedades: ['Asma', ' asma ', '']);
+      expect(ficha.notas, 'Uso marcapasos');
+      expect(ficha.enfermedades, ['Asma']);
+    });
+
+    test('una enfermedad común escrita a mano queda como en la lista', () {
+      expect(FichaMedica.conEnfermedad(const [], ' diabetes '), ['Diabetes']);
+      expect(FichaMedica.conEnfermedad(['Diabetes'], 'DIABETES'), ['Diabetes']);
+      expect(FichaMedica.conEnfermedad(['Asma'], 'Artritis'), ['Asma', 'Artritis']);
+    });
+
+    test('por defecto no muestra los medicamentos', () {
+      expect(fichaCon().mostrarMedicamentos, isFalse);
+    });
+
+    test('todo sobrevive a guardar y cargar', () {
+      final ficha = FichaMedica(
+        tipoSangre: TipoSangre.aPositivo,
+        celularContactoEmergencia: ana.celular,
+        enfermedades: ['Asma'],
+        fechaNacimiento: DateTime(1950, 3, 15),
+        notas: 'Uso audífonos',
+        mostrarMedicamentos: true,
+      );
+
+      final cargada = fichaDeJson(jsonDecode(jsonEncode(fichaAJson(ficha))) as Map<String, Object?>)!;
+
+      expect(cargada.enfermedades, ['Asma']);
+      expect(cargada.fechaNacimiento, DateTime(1950, 3, 15));
+      expect(cargada.notas, 'Uso audífonos');
+      expect(cargada.mostrarMedicamentos, isTrue);
+    });
+
+    test('una ficha guardada antes de estos datos sigue cargando', () {
+      final cargada = fichaDeJson({
+        'tipoSangre': 'oPositivo',
+        'alergias': ['Polen'],
+        'celularContactoEmergencia': ana.celular,
+      })!;
+
+      expect(cargada.alergias, ['Polen']);
+      expect(cargada.enfermedades, isEmpty);
+      expect(cargada.fechaNacimiento, isNull);
+      expect(cargada.notas, isEmpty);
+      expect(cargada.mostrarMedicamentos, isFalse);
     });
   });
 

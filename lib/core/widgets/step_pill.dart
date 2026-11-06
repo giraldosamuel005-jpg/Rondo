@@ -28,7 +28,7 @@ class StepPill extends StatelessWidget {
             children: [
               for (var i = 1; i <= total; i++) ...[
                 Container(
-                  width: 18,
+                  width: total > 4 ? 10 : 18, // Con muchos pasos, que quepan
                   height: 5,
                   decoration: BoxDecoration(
                     color: i <= actual ? c.accent : c.toggleOff,

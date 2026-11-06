@@ -44,8 +44,17 @@ void main() {
   }
 
   Future<void> tocar(WidgetTester tester, String texto) async {
+    await tester.ensureVisible(find.text(texto));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(texto));
     await tester.pumpAndSettle();
+  }
+
+  /// Pasa de largo enfermedades, medicamentos, fecha de nacimiento y notas.
+  Future<void> saltarOpcionales(WidgetTester tester) async {
+    for (var i = 0; i < 4; i++) {
+      await tocar(tester, 'Continuar');
+    }
   }
 
   setUp(() {
@@ -74,6 +83,31 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Maní');
     await tocar(tester, 'Continuar');
 
+    // Enfermedades: una de la lista y otra escrita sin tocar "Agregar"
+    expect(find.text('¿Tienes alguna enfermedad?'), findsOneWidget);
+    await tocar(tester, 'Diabetes');
+    await tester.enterText(find.byType(TextField), 'Artritis');
+    await tocar(tester, 'Continuar');
+
+    // Medicamentos
+    expect(find.text('¿Mostramos tus medicamentos?'), findsOneWidget);
+    await tocar(tester, 'Mostrar mis medicamentos en la ficha');
+    await tocar(tester, 'Continuar');
+
+    // Fecha de nacimiento
+    expect(find.text('¿Cuándo naciste?'), findsOneWidget);
+    await tocar(tester, 'Elegir fecha');
+    await tocar(tester, '1960');
+    await tocar(tester, '15');
+    await tocar(tester, 'OK');
+    expect(find.text('15 de enero de 1960'), findsOneWidget);
+    await tocar(tester, 'Continuar');
+
+    // Notas
+    expect(find.text('¿Algo más que deban saber?'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Uso marcapasos');
+    await tocar(tester, 'Continuar');
+
     // Contacto
     await tocar(tester, 'Luis');
     await tocar(tester, 'Guardar ficha');
@@ -81,8 +115,49 @@ void main() {
     final ficha = estado.fichaMedica!;
     expect(ficha.tipoSangre, TipoSangre.oPositivo);
     expect(ficha.alergias, ['Penicilina', 'Maní']);
+    expect(ficha.enfermedades, ['Diabetes', 'Artritis']);
+    expect(ficha.mostrarMedicamentos, isTrue);
+    expect(ficha.fechaNacimiento, DateTime(1960, 1, 15));
+    expect(ficha.notas, 'Uso marcapasos');
     expect(ficha.celularContactoEmergencia, '3104445566');
     expect(resultado, isTrue);
+  });
+
+  testWidgets('lo opcional se puede saltar', (tester) async {
+    estado.darConsentimiento(TipoConsentimiento.datosMedicos);
+    await abrirFicha(tester);
+
+    await tocar(tester, 'O-');
+    await tocar(tester, 'Continuar');
+    await tocar(tester, 'Continuar'); // Sin alergias
+    await saltarOpcionales(tester);
+    await tocar(tester, 'Ana');
+    await tocar(tester, 'Guardar ficha');
+
+    final ficha = estado.fichaMedica!;
+    expect(ficha.enfermedades, isEmpty);
+    expect(ficha.mostrarMedicamentos, isFalse);
+    expect(ficha.fechaNacimiento, isNull);
+    expect(ficha.notas, isEmpty);
+  });
+
+  testWidgets('marcar una enfermedad dos veces la desmarca', (tester) async {
+    estado.darConsentimiento(TipoConsentimiento.datosMedicos);
+    await abrirFicha(tester);
+
+    await tocar(tester, 'O-');
+    await tocar(tester, 'Continuar');
+    await tocar(tester, 'Continuar');
+    await tocar(tester, 'Asma');
+    await tocar(tester, 'Asma');
+    await tocar(tester, 'Continuar');
+    await tocar(tester, 'Continuar');
+    await tocar(tester, 'Continuar');
+    await tocar(tester, 'Continuar');
+    await tocar(tester, 'Ana');
+    await tocar(tester, 'Guardar ficha');
+
+    expect(estado.fichaMedica!.enfermedades, isEmpty);
   });
 
   testWidgets('sin aceptar el consentimiento no avanza', (tester) async {
@@ -111,6 +186,7 @@ void main() {
     await tocar(tester, 'A-');
     await tocar(tester, 'Continuar');
     await tocar(tester, 'Continuar'); // Sin alergias
+    await saltarOpcionales(tester);
     await tocar(tester, 'Guardar ficha');
 
     expect(find.text('Elige un contacto de emergencia de tu lista.'), findsOneWidget);
@@ -131,15 +207,26 @@ void main() {
         tipoSangre: TipoSangre.bNegativo,
         celularContactoEmergencia: '3001112233',
         alergias: ['Polen'],
+        enfermedades: ['Asma', 'Artritis'],
+        fechaNacimiento: DateTime(1950, 3, 15),
+        notas: 'Uso audífonos',
+        mostrarMedicamentos: true,
       ));
     await abrirFicha(tester);
 
     await tocar(tester, 'Continuar'); // Ya tiene B-
     expect(find.text('Polen'), findsOneWidget);
     await tocar(tester, 'Continuar');
+    expect(find.text('Artritis'), findsOneWidget); // La escrita a mano sigue ahí
+    await saltarOpcionales(tester);
     await tocar(tester, 'Guardar ficha'); // Ya tiene a Ana
 
-    expect(estado.fichaMedica!.tipoSangre, TipoSangre.bNegativo);
+    final ficha = estado.fichaMedica!;
+    expect(ficha.tipoSangre, TipoSangre.bNegativo);
+    expect(ficha.enfermedades, ['Asma', 'Artritis']);
+    expect(ficha.fechaNacimiento, DateTime(1950, 3, 15));
+    expect(ficha.notas, 'Uso audífonos');
+    expect(ficha.mostrarMedicamentos, isTrue);
     expect(resultado, isTrue);
   });
 

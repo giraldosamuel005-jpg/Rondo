@@ -64,6 +64,13 @@ class FichaVistaPage extends StatelessWidget {
                             Text('Ficha médica de', style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400)),
                             const SizedBox(height: 2),
                             Text(estado.nombre, style: t.titleLarge),
+                            if (ficha.fechaNacimiento != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                '${ficha.edad(DateTime.now())} años · ${fechaCompleta(ficha.fechaNacimiento!)}',
+                                style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -112,25 +119,47 @@ class FichaVistaPage extends StatelessWidget {
                       if (ficha.alergias.isEmpty)
                         Text('Sin alergias conocidas.', style: t.bodyLarge)
                       else
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final alergia in ficha.alergias)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: c.neutralSoft,
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(alergia, style: t.bodyLarge),
-                              ),
-                          ],
-                        ),
+                        _Etiquetas(ficha.alergias),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
+
+                // ---------- Lo opcional: si está vacío, no se muestra ----------
+                // Sin desenfoque: la pantalla no puede pasar de 6.
+                if (ficha.enfermedades.isNotEmpty) ...[
+                  _SeccionOpcional(
+                    titulo: 'Enfermedades',
+                    child: _Etiquetas(ficha.enfermedades),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (ficha.mostrarMedicamentos && estado.medicamentos.isNotEmpty) ...[
+                  _SeccionOpcional(
+                    titulo: 'Medicamentos',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final medicamento in estado.medicamentos)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              '${medicamento.nombre} · ${medicamento.dosis} · ${medicamento.frecuenciaTexto}',
+                              style: t.bodyLarge,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (ficha.notas.isNotEmpty) ...[
+                  _SeccionOpcional(
+                    titulo: 'Notas',
+                    child: Text(ficha.notas, style: t.bodyLarge),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // ---------- Contacto de emergencia ----------
                 Glass(
@@ -174,6 +203,54 @@ class FichaVistaPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SeccionOpcional extends StatelessWidget {
+  const _SeccionOpcional({required this.titulo, required this.child});
+
+  final String titulo;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Glass(
+      blur: false,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titulo, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _Etiquetas extends StatelessWidget {
+  const _Etiquetas(this.textos);
+
+  final List<String> textos;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final texto in textos)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: context.rondo.neutralSoft,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(texto, style: Theme.of(context).textTheme.bodyLarge),
+          ),
+      ],
     );
   }
 }

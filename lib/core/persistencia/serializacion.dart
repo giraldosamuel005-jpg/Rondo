@@ -108,6 +108,10 @@ TomaMedicamento? tomaDeJson(Map<String, Object?> j) {
 Map<String, Object?> fichaAJson(FichaMedica f) => {
       'tipoSangre': f.tipoSangre.name,
       'alergias': f.alergias,
+      'enfermedades': f.enfermedades,
+      'fechaNacimiento': f.fechaNacimiento?.toIso8601String(),
+      'notas': f.notas,
+      'mostrarMedicamentos': f.mostrarMedicamentos,
       'celularContactoEmergencia': f.celularContactoEmergencia,
     };
 
@@ -119,6 +123,11 @@ FichaMedica? fichaDeJson(Map<String, Object?> j) {
     tipoSangre: tipo,
     celularContactoEmergencia: celular,
     alergias: [for (final a in (j['alergias'] as List? ?? const [])) if (a is String) a],
+    // Las fichas guardadas antes no traen estos datos: quedan vacíos.
+    enfermedades: [for (final e in (j['enfermedades'] as List? ?? const [])) if (e is String) e],
+    fechaNacimiento: fechaDe(j['fechaNacimiento']),
+    notas: j['notas'] as String? ?? '',
+    mostrarMedicamentos: j['mostrarMedicamentos'] as bool? ?? false,
   );
 }
 

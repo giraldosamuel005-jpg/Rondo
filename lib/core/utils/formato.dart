@@ -28,6 +28,9 @@ const _meses = [
 String fechaLarga(DateTime fecha) =>
     '${_dias[fecha.weekday - 1]}, ${fecha.day} de ${_meses[fecha.month - 1]}';
 
+/// "15 de marzo de 1950".
+String fechaCompleta(DateTime fecha) => '${fecha.day} de ${_meses[fecha.month - 1]} de ${fecha.year}';
+
 /// "Hoy", "Ayer", "Mañana" o "6 de octubre".
 String diaRelativo(DateTime fecha, {DateTime? ahora}) {
   final hoy = ahora ?? DateTime.now();

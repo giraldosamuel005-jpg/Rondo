@@ -33,8 +33,8 @@ class FichaMedicaCard extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('¿Borrar tu ficha médica?'),
         content: const Text(
-          'Se borran tu tipo de sangre, tus alergias, tu contacto de emergencia '
-          'y tu código QR, y retiras tu consentimiento de datos médicos.',
+          'Se borran los datos de tu ficha y tu código QR, y retiras tu '
+          'consentimiento de datos médicos. Tu lista de medicamentos no se borra.',
         ),
         actions: [
           TextButton(
@@ -124,7 +124,7 @@ class FichaMedicaCard extends StatelessWidget {
 
   /// "O+ · 2 alergias · Llamar a Ana", o la invitación a llenarla.
   String _resumen(FichaMedica? ficha, AppState estado) {
-    if (ficha == null) return 'Agrega tu tipo de sangre, alergias y a quién llamar.';
+    if (ficha == null) return 'Agrega tus datos de salud y a quién llamar.';
 
     final alergias = switch (ficha.alergias.length) {
       0 => 'Sin alergias',

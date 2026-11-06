@@ -23,11 +23,15 @@ class GlassField extends StatefulWidget {
     this.textCapitalization = TextCapitalization.none,
     this.textInputAction,
     this.autofillHints,
+    this.minLines,
+    this.maxLines = 1,
     this.onChanged,
     this.onSubmitted,
   });
 
   final String label;
+  final int? minLines;
+  final int maxLines;
   final TextEditingController? controller;
   final String? value;
   final String? hint;
@@ -88,6 +92,8 @@ class _GlassFieldState extends State<GlassField> {
                 textCapitalization: widget.textCapitalization,
                 textInputAction: widget.textInputAction,
                 autofillHints: widget.autofillHints,
+                minLines: widget.minLines,
+                maxLines: widget.maxLines,
                 onChanged: widget.onChanged,
                 onSubmitted: widget.onSubmitted,
                 style: t.bodyLarge,

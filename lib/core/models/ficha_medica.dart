@@ -25,16 +25,57 @@ class FichaMedica {
     required this.tipoSangre,
     required this.celularContactoEmergencia,
     Iterable<String> alergias = const [],
-  }) : alergias = List.unmodifiable(limpiarAlergias(alergias));
+    Iterable<String> enfermedades = const [],
+    this.fechaNacimiento,
+    String notas = '',
+    this.mostrarMedicamentos = false,
+  })  : alergias = List.unmodifiable(limpiarLista(alergias)),
+        enfermedades = List.unmodifiable(limpiarLista(enfermedades)),
+        notas = notas.trim();
 
   final TipoSangre tipoSangre;
 
   /// Vacía = sin alergias conocidas.
   final List<String> alergias;
 
+  /// Opcional. Vacía = no registró ninguna (no significa que no tenga).
+  final List<String> enfermedades;
+
+  /// Opcional: de aquí sale la edad.
+  final DateTime? fechaNacimiento;
+
+  /// Opcional: lo demás que deba saber quien atiende (marcapasos, audífonos...).
+  final String notas;
+
+  /// Si la ficha muestra la lista de medicamentos (RF-20). Hay que marcarlo:
+  /// quien escanee el QR la vería. Los medicamentos no se copian aquí.
+  final bool mostrarMedicamentos;
+
   /// Celular de uno de los contactos de RF-04: se elige de la lista, no se
   /// escribe otra vez. El celular sirve de ID porque no se repite.
   final String celularContactoEmergencia;
+
+  /// Las más frecuentes, para marcar con un toque sin escribir.
+  static const enfermedadesComunes = [
+    'Diabetes',
+    'Hipertensión',
+    'Problemas del corazón',
+    'Asma',
+    'EPOC',
+    'Epilepsia',
+    'Párkinson',
+    'Alzheimer',
+  ];
+
+  static const limiteNotas = 300;
+
+  /// Años cumplidos en [ahora]. `null` si no puso su fecha de nacimiento.
+  int? edad(DateTime ahora) {
+    final nacio = fechaNacimiento;
+    if (nacio == null) return null;
+    final yaCumplio = ahora.month > nacio.month || (ahora.month == nacio.month && ahora.day >= nacio.day);
+    return ahora.year - nacio.year - (yaCumplio ? 0 : 1);
+  }
 
   /// Busca el contacto en la lista actual. `null` si ya no está (lo quitaron).
   Contacto? contactoEmergenciaEn(List<Contacto> contactos) {
@@ -69,11 +110,19 @@ class FichaMedica {
 
   /// Quita espacios, vacías y repetidas (sin importar mayúsculas),
   /// conservando como la escribió la primera vez.
-  static List<String> limpiarAlergias(Iterable<String> alergias) {
+  static List<String> limpiarLista(Iterable<String> textos) {
     final vistas = <String>{};
     return [
-      for (final alergia in alergias.map((a) => a.trim()))
-        if (alergia.isNotEmpty && vistas.add(alergia.toLowerCase())) alergia,
+      for (final texto in textos.map((t) => t.trim()))
+        if (texto.isNotEmpty && vistas.add(texto.toLowerCase())) texto,
     ];
+  }
+
+  /// Agrega una enfermedad escrita a mano. Si es una de las comunes, la deja
+  /// como aparece en la lista ("diabetes" marca "Diabetes").
+  static List<String> conEnfermedad(Iterable<String> actuales, String nueva) {
+    final escrita = nueva.trim().toLowerCase();
+    final comun = enfermedadesComunes.where((e) => e.toLowerCase() == escrita).firstOrNull;
+    return limpiarLista([...actuales, comun ?? nueva]);
   }
 }

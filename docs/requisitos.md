@@ -283,6 +283,10 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - alergias: `List<String>`
   - tipo de sangre: `enum` (A+, A-, B+, B-, AB+, AB-, O+, O-)
   - contacto de emergencia: `String` (ID de uno de los contactos registrados en RF-04; no se escribe de nuevo)
+  - enfermedades (opcional): `List<String>`
+  - fecha de nacimiento (opcional): `DateTime`; la edad se calcula a partir de ella
+  - notas (opcional): `String`, máximo 300 caracteres
+  - mostrar medicamentos (opcional): `bool`, desmarcado por defecto; si se marca, la ficha muestra los medicamentos de RF-20, sin copiarlos
 - **Errores:**
   - "Completa los campos obligatorios de la ficha médica."
   - "Elige un contacto de emergencia de tu lista."
@@ -420,3 +424,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-10-05 | RF-01 | El error de código incorrecto indica los intentos restantes. Se agrega un límite de 3 intentos por código, con el mensaje "Demasiados intentos fallidos. Pide un código nuevo.", y una espera de 30 s para pedir otro código. |
 | 2026-10-06 | RF-03 / RF-34 | El aviso "no reemplaza al 123" se acepta en el paso 1 del registro, junto con el tipo de cuenta y el nombre. Se agrega el mensaje "Escribe tu nombre para continuar." |
 | 2026-10-25 | Alcance | **Fuera de alcance:** accidentes de tránsito (RF-08), microsueños (RF-11), geocercas (RF-18), modo "Acompáñame" (RF-19, RF-33) y cancelar la alerta con PIN, huella o voz (RF-14 queda solo con botón). Desaparecen los perfiles Conductor y Persona en ruta de riesgo. RF-09 ya no descarta frenazos y RF-30 ya no pide consentimiento de cámara. RF-07 (desmayo/inactividad) sigue en duda. |
+| 2026-11-05 | RF-23 | Se agregan a la ficha, como opcionales, enfermedades, fecha de nacimiento, notas y la opción de mostrar los medicamentos de RF-20. |
