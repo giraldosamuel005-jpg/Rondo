@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "948956367344",
+    "project_id": "rondo-fb405",
+    "storage_bucket": "rondo-fb405.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:948956367344:android:1d44d9bc47f6e36cf6f535",
+        "android_client_info": {
+          "package_name": "co.edu.usc.rondo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdSa1G3j_5DYn1qsW1ZV4xqsV8ZqsSOH0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
