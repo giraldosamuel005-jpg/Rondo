@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-
 import 'core/permisos/vigilante_permisos.dart';
 import 'core/persistencia/almacen_local.dart';
 import 'core/state/app_state.dart';
 import 'core/theme/rondo_theme.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/main_shell.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   // Necesario para leer lo guardado antes de mostrar la app.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Conecta la app con el proyecto de Firebase (rondo-fb405).
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   final estado = await AppState.cargar(AlmacenLocal());
 
   runApp(
