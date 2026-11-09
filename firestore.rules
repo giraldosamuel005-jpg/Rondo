@@ -1,0 +1,89 @@
+rules_version = '2';
+
+// Reglas de Firestore de Rondó: el servidor decide quién ve qué (RF-27).
+// Se publican copiándolas en la consola de Firebase:
+// Firestore Database → Reglas → pegar → Publicar.
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function conSesion() {
+      return request.auth != null;
+    }
+
+    function soyYo(uid) {
+      return conSesion() && request.auth.uid == uid;
+    }
+
+    function cambiaSolo(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
+    }
+
+    function invitacion(codigo) {
+      return /databases/$(db)/documents/invitaciones/$(codigo);
+    }
+
+    // ¿El que pregunta cuida a esta persona, con el vínculo activo?
+    function laCuido(personaUid) {
+      let vinculo = /databases/$(db)/documents/vinculos/$(personaUid + '_' + request.auth.uid);
+      return conSesion() && exists(vinculo) && get(vinculo).data.activo == true;
+    }
+
+    // ---------- Invitaciones (RF-05) ----------
+    // El código es el secreto: con él se lee una, pero nadie puede listarlas
+    // todas, salvo la persona las suyas.
+    match /invitaciones/{codigo} {
+      allow get: if conSesion();
+      allow list: if conSesion() && resource.data.personaUid == request.auth.uid;
+
+      allow create: if soyYo(request.resource.data.personaUid)
+        && request.resource.data.estado == 'pendiente'
+        && !('cuidadorUid' in request.resource.data)
+        && request.resource.data.expiraEn is timestamp
+        && request.resource.data.expiraEn <= request.time + duration.value(49, 'h');
+
+      allow update: if conSesion() && (
+        // La persona la anula (también al cortar el vínculo).
+        (resource.data.personaUid == request.auth.uid
+          && cambiaSolo(['estado'])
+          && request.resource.data.estado == 'revocada')
+        ||
+        // Otra persona la acepta, una sola vez y antes de que venza.
+        (resource.data.personaUid != request.auth.uid
+          && resource.data.estado == 'pendiente'
+          && resource.data.expiraEn > request.time
+          && cambiaSolo(['estado', 'cuidadorUid'])
+          && request.resource.data.estado == 'aceptada'
+          && request.resource.data.cuidadorUid == request.auth.uid)
+      );
+    }
+
+    // ---------- Vínculos (RF-27): {personaUid}_{cuidadorUid} ----------
+    match /vinculos/{id} {
+      allow read: if conSesion()
+        && (resource.data.personaUid == request.auth.uid || resource.data.cuidadorUid == request.auth.uid);
+
+      // El cuidador lo crea (o lo reactiva) solo en la MISMA operación en que
+      // acepta una invitación pendiente de esa persona.
+      allow create, update: if conSesion()
+        && request.resource.data.cuidadorUid == request.auth.uid
+        && id == request.resource.data.personaUid + '_' + request.auth.uid
+        && request.resource.data.activo == true
+        && get(invitacion(request.resource.data.codigo)).data.estado == 'pendiente'
+        && getAfter(invitacion(request.resource.data.codigo)).data.estado == 'aceptada'
+        && getAfter(invitacion(request.resource.data.codigo)).data.cuidadorUid == request.auth.uid
+        && getAfter(invitacion(request.resource.data.codigo)).data.personaUid == request.resource.data.personaUid;
+
+      // Solo la persona lo corta.
+      allow update: if conSesion()
+        && resource.data.personaUid == request.auth.uid
+        && cambiaSolo(['activo'])
+        && request.resource.data.activo == false;
+    }
+
+    // ---------- Lo que la persona comparte (RF-26) ----------
+    match /personas/{uid} {
+      allow write: if soyYo(uid);
+      allow read: if soyYo(uid) || laCuido(uid);
+    }
+  }
+}

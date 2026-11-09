@@ -310,6 +310,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Las personas que lo vincularon de verdad (RF-26), tal como llegan del
+  /// servidor. Reemplaza a las anteriores; las de ejemplo se quedan.
+  void ponerPersonasVinculadas(List<PersonaACargo> vinculadas) {
+    _personas
+      ..removeWhere((p) => !p.id.startsWith(PersonaACargo.prefijoEjemplo))
+      ..addAll(vinculadas);
+    notifyListeners();
+  }
+
   /// Modo de pruebas: a esa persona "se le detecta una caída" (llega la alerta).
   void simularAlertaDe(String id) {
     final i = _personas.indexWhere((p) => p.id == id);

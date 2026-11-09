@@ -6,12 +6,14 @@ import '../../core/models/persona_a_cargo.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
+import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/tab_page.dart';
+import 'aceptar_invitacion_page.dart';
 import 'alerta_entrante_page.dart';
 import 'persona_detalle_page.dart';
 
@@ -23,11 +25,23 @@ class PersonasTab extends StatelessWidget {
   /// Lleva a la pestaña Ajustes (avatar de perfil).
   final VoidCallback onVerAjustes;
 
+  Future<void> _escribirCodigo(BuildContext context) async {
+    final mensajero = ScaffoldMessenger.of(context);
+    final nombre = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const AceptarInvitacionPage()),
+    );
+    if (nombre != null) {
+      mensajero.showSnackBar(SnackBar(content: Text('Listo. Ahora cuidas a $nombre.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final abajo = MediaQuery.paddingOf(context).bottom;
     final estado = context.watch<AppState>();
+    // Sin servidor (pruebas, o plataformas sin Firebase) no hay códigos.
+    final vinculos = context.watch<Vinculos?>();
     final personas = estado.personasACargo;
     final conAlerta = [for (final p in personas) if (p.estado == EstadoPersona.alerta) p];
 
@@ -71,6 +85,13 @@ class PersonasTab extends StatelessWidget {
               const SizedBox(height: 12),
             ],
 
+            // RF-27: alguien dejó de compartir con este cuidador.
+            if (vinculos != null)
+              for (final nombre in vinculos.retirados) ...[
+                _AvisoRetirado(nombre: nombre, onCerrar: vinculos.descartarRetirados),
+                const SizedBox(height: 12),
+              ],
+
             if (personas.isEmpty)
               const _SinPersonas()
             else ...[
@@ -80,6 +101,16 @@ class PersonasTab extends StatelessWidget {
                 // Máximo 6 desenfoques por pantalla: a partir de la 3.ª, sin blur.
                 _TarjetaPersona(persona: personas[i], orden: i, blur: i < 2),
               ],
+            ],
+
+            if (vinculos != null) ...[
+              const SizedBox(height: 16),
+              SecondaryButton(
+                label: 'Tengo un código de invitación',
+                icon: Icons.key_rounded,
+                blur: false,
+                onPressed: () => _escribirCodigo(context),
+              ),
             ],
           ],
         ),
@@ -177,6 +208,7 @@ class EstadoPersonaChip extends StatelessWidget {
       EstadoPersona.activa => const StatusChip(label: 'Ronda activa', variant: StatusChipVariant.activa),
       EstadoPersona.enPausa => const StatusChip(label: 'En pausa', variant: StatusChipVariant.pausa),
       EstadoPersona.alerta => const StatusChip(label: 'Alerta', variant: StatusChipVariant.alerta),
+      EstadoPersona.sinDatos => const StatusChip(label: 'Sin datos aún', variant: StatusChipVariant.pausa),
     };
   }
 }
@@ -283,6 +315,44 @@ class AvisoAlertaPersona extends StatelessWidget {
   }
 }
 
+/// RF-27: "[Nombre] ya no comparte su información contigo."
+class _AvisoRetirado extends StatelessWidget {
+  const _AvisoRetirado({required this.nombre, required this.onCerrar});
+
+  final String nombre;
+  final VoidCallback onCerrar;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.rondo;
+
+    return Semantics(
+      liveRegion: true,
+      child: Glass(
+        blur: false,
+        padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
+        child: Row(
+          children: [
+            Icon(Icons.link_off_rounded, size: 22, color: c.textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '$nombre ya no comparte su información contigo.',
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: c.text),
+              ),
+            ),
+            IconButton(
+              onPressed: onCerrar,
+              tooltip: 'Cerrar aviso',
+              icon: Icon(Icons.close_rounded, size: 20, color: c.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// RF-26: "Aún no tienes personas a tu cargo." + cómo llegan.
 class _SinPersonas extends StatelessWidget {
   const _SinPersonas();
@@ -313,8 +383,8 @@ class _SinPersonas extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Cuando alguien te agregue como contacto en su Rondó, te llegará un SMS '
-                'con una invitación. Al aceptarla, verás aquí su estado y su ubicación.',
+                'Cuando alguien te invite desde su Rondó, te llegará un SMS con un código. '
+                'Escríbelo aquí y verás su estado.',
                 textAlign: TextAlign.center,
                 style: t.bodyMedium,
               ),

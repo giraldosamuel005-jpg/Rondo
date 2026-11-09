@@ -81,6 +81,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se pudo enviar la invitación. Verifica el número e intenta de nuevo."
   - "Ya invitaste a esta persona."
   - "La invitación expiró. Envía una nueva."
+- **Cómo está hecho (2026-11-09):** La app abre la app de mensajes de la persona con el SMS ya escrito y un código de 6 caracteres que vence en 48 horas. El cuidador escribe el código en Personas → "Tengo un código de invitación". Todavía no hay enlace que lleve a instalar la app. Errores añadidos: "Escribe el código de 6 letras y números que te llegó por SMS.", "La invitación expiró. Pide una nueva." (lo ve el cuidador) y "Esta invitación la creaste tú. Debe usarla tu cuidador en su celular."
 
 ---
 
@@ -336,6 +337,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No tienes permiso para ver esta información."
   - "[Nombre] ya no comparte su información contigo."
   - "Esta invitación ya no es válida."
+- **Cómo está hecho (2026-11-09):** Firebase con sesión anónima y Firestore. Las reglas de `firestore.rules` solo dejan leer lo que la persona comparte a quien tenga un vínculo activo con ella. La persona corta el vínculo desde Contactos → "Quién te cuida", y también al quitar ese contacto o al cerrar sesión. Por ahora se comparte el estado de la ronda, el último "Estoy bien" y el cumplimiento de medicamentos; la ubicación y las alertas todavía no.
 
 ---
 
@@ -425,3 +427,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-10-06 | RF-03 / RF-34 | El aviso "no reemplaza al 123" se acepta en el paso 1 del registro, junto con el tipo de cuenta y el nombre. Se agrega el mensaje "Escribe tu nombre para continuar." |
 | 2026-10-25 | Alcance | **Fuera de alcance:** accidentes de tránsito (RF-08), microsueños (RF-11), geocercas (RF-18), modo "Acompáñame" (RF-19, RF-33) y cancelar la alerta con PIN, huella o voz (RF-14 queda solo con botón). Desaparecen los perfiles Conductor y Persona en ruta de riesgo. RF-09 ya no descarta frenazos y RF-30 ya no pide consentimiento de cámara. RF-07 (desmayo/inactividad) sigue en duda. |
 | 2026-11-05 | RF-23 | Se agregan a la ficha, como opcionales, enfermedades, fecha de nacimiento, notas y la opción de mostrar los medicamentos de RF-20. |
+| 2026-11-09 | RF-05 / RF-27 | La invitación se envía con un código que el cuidador escribe en la app, y se agregan los errores de código inválido, invitación vencida para el cuidador e invitación propia. |

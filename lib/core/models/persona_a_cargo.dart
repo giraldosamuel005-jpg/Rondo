@@ -8,6 +8,9 @@ enum EstadoPersona {
 
   /// Tiene una alerta sin atender.
   alerta,
+
+  /// Ya está vinculada, pero su celular todavía no ha compartido su estado.
+  sinDatos,
 }
 
 /// Última ubicación conocida.
@@ -90,11 +93,14 @@ class PersonaACargo {
         alertas: alertas ?? this.alertas,
       );
 
+  /// Así empiezan los ID de las personas de ejemplo.
+  static const prefijoEjemplo = 'ejemplo-';
+
   /// Dos personas de ejemplo para probar y para la demo, mientras no hay
   /// servidor. Las fechas se calculan desde [ahora] para que se vean recientes.
   static List<PersonaACargo> ejemplos(DateTime ahora) => [
         PersonaACargo(
-          id: 'ejemplo-rosa',
+          id: '${prefijoEjemplo}rosa',
           nombre: 'Rosa Gómez',
           celular: '3104567890',
           relacion: 'Mamá',
@@ -116,7 +122,7 @@ class PersonaACargo {
           ],
         ),
         PersonaACargo(
-          id: 'ejemplo-jorge',
+          id: '${prefijoEjemplo}jorge',
           nombre: 'Jorge Ramírez',
           celular: '3157778899',
           relacion: 'Papá',

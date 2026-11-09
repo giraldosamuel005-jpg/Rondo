@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import '../../core/models/contacto.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
+import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/contact_row.dart';
 import '../../core/widgets/contact_sheets.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/tab_page.dart';
 import '../cuidador/abrir_enlace.dart';
+import 'quien_te_cuida.dart';
 
 /// Pestaña Contactos (RF-04, RF-31): ver, agregar y quitar contactos de emergencia.
 class ContactsTab extends StatelessWidget {
@@ -35,8 +37,11 @@ class ContactsTab extends StatelessWidget {
       return;
     }
 
+    final vinculos = context.read<Vinculos?>();
     if (await confirmarQuitarContacto(context, contacto)) {
       estado.quitarContacto(contacto);
+      // Si lo cuidaba, deja de ver sus datos (RF-27).
+      await vinculos?.olvidarContacto(contacto.celular);
     }
   }
 
@@ -45,6 +50,8 @@ class ContactsTab extends StatelessWidget {
     final c = context.rondo;
     final t = Theme.of(context).textTheme;
     final contactos = context.watch<AppState>().contactos;
+    // Sin servidor (pruebas, o plataformas sin Firebase) no hay invitaciones.
+    final hayVinculos = context.watch<Vinculos?>() != null;
 
     return TabPage(
       title: 'Contactos',
@@ -85,6 +92,10 @@ class ContactsTab extends StatelessWidget {
             ],
           ),
         ),
+        if (hayVinculos && contactos.isNotEmpty) ...[
+          const SizedBox(height: 22),
+          const QuienTeCuida(),
+        ],
       ],
     );
   }

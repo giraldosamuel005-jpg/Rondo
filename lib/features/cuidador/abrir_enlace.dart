@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/contacto.dart';
 import '../../core/models/persona_a_cargo.dart';
+import '../../core/vinculos/vinculo.dart';
 
 /// Abre el marcador del teléfono con el número ya escrito (la persona solo
 /// toca "llamar"). No necesita el permiso CALL_PHONE.
@@ -16,6 +17,15 @@ Future<void> llamarAContacto(BuildContext context, Contacto contacto) =>
 /// Marcador con el 123 (línea de emergencias de Colombia).
 Future<void> llamarAl123(BuildContext context) =>
     _abrir(context, Uri(scheme: 'tel', path: '123'), 'No se pudo abrir el marcador del teléfono.');
+
+/// Abre la app de mensajes con la invitación ya escrita (RF-05): la persona
+/// solo toca "enviar". Sale de su plan de SMS, como cualquier mensaje suyo.
+Future<void> enviarInvitacion(BuildContext context, Invitacion invitacion) => _abrir(
+      context,
+      // El texto va con %20 y no con +: algunas apps de mensajes muestran el +.
+      Uri.parse('sms:+57${invitacion.celularInvitado}?body=${Uri.encodeComponent(invitacion.mensajeSms)}'),
+      Invitacion.errorSms,
+    );
 
 /// Abre la ubicación en Google Maps (o en el navegador si no está instalada).
 Future<void> verEnMapa(BuildContext context, Ubicacion ubicacion) =>

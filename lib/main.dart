@@ -1,11 +1,15 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+
 import 'core/permisos/vigilante_permisos.dart';
 import 'core/persistencia/almacen_local.dart';
 import 'core/state/app_state.dart';
 import 'core/theme/rondo_theme.dart';
+import 'core/vinculos/servicio_vinculos_firebase.dart';
+import 'core/vinculos/vinculos.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/main_shell.dart';
 import 'firebase_options.dart';
@@ -14,15 +18,23 @@ Future<void> main() async {
   // Necesario para leer lo guardado antes de mostrar la app.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Conecta la app con el proyecto de Firebase (rondo-fb405).
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Firebase (proyecto rondo-fb405) solo está configurado para Android. En
+  // otras plataformas la app abre igual, sin vincular cuidadores.
+  final conFirebase = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  if (conFirebase) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
 
   final estado = await AppState.cargar(AlmacenLocal());
 
   runApp(
-    // UN solo AppState para todas las pantallas, ya con los datos guardados.
-    ChangeNotifierProvider.value(
-      value: estado,
+    MultiProvider(
+      providers: [
+        // UN solo AppState para todas las pantallas, ya con los datos guardados.
+        ChangeNotifierProvider.value(value: estado),
+        // Cuidador ↔ persona (RF-05, RF-26, RF-27).
+        if (conFirebase) ChangeNotifierProvider(create: (_) => Vinculos(ServicioVinculosFirebase(), estado)),
+      ],
       child: RondoApp(registrado: estado.registroCompleto),
     ),
   );
