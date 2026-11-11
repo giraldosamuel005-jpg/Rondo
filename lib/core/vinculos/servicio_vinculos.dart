@@ -1,3 +1,4 @@
+import '../alertas/alerta_compartida.dart';
 import 'ficha_publica.dart';
 import 'vinculo.dart';
 
@@ -67,4 +68,19 @@ abstract interface class ServicioVinculos {
 
   /// Cuándo abrieron la ficha de ese token, de la más reciente a la más vieja.
   Stream<List<DateTime>> consultasDe(String token);
+
+  // ---------- Alertas (RF-15, RF-26) ----------
+
+  /// La persona sube una alerta que no canceló. Termina cuando el servidor
+  /// la recibió (sin internet queda en cola y se envía después).
+  Future<void> publicarAlerta(String personaUid, AlertaCompartida alerta);
+
+  /// Las alertas recientes de esa persona, de la más nueva a la más vieja.
+  Stream<List<AlertaCompartida>> alertasDe(String personaUid);
+
+  /// Un cuidador marca la alerta como atendida.
+  Future<void> atenderAlerta(String personaUid, String alertaId, {required String cuidadorUid});
+
+  /// Al cerrar sesión la persona borra sus alertas del servidor.
+  Future<void> borrarAlertas(String personaUid);
 }

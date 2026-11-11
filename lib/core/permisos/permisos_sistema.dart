@@ -8,6 +8,10 @@ enum PermisoSistema {
 
   /// Movimiento/actividad física, para detectar caídas.
   sensores,
+
+  /// Enviar SMS, para avisar a los contactos sin que la persona toque nada
+  /// (RF-15, RF-16). Solo en Android.
+  sms,
 }
 
 /// Lo que respondió el sistema, resumido a lo que le importa a la app.
@@ -49,6 +53,7 @@ class PermisosSistema {
         PermisoSistema.sensores => defaultTargetPlatform == TargetPlatform.iOS
             ? Permission.sensors
             : Permission.activityRecognition,
+        PermisoSistema.sms => Permission.sms,
       };
 
   EstadoPermiso _resumir(PermissionStatus estado) => switch (estado) {

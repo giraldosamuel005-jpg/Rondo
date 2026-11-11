@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/state/app_state.dart';
+import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/glass_tab_bar.dart';
 import '../contacts/contacts_tab.dart';
+import '../cuidador/alerta_entrante_page.dart';
 import '../cuidador/alertas_tab.dart';
 import '../cuidador/personas_tab.dart';
 import '../history/history_tab.dart';
@@ -49,7 +53,37 @@ class _MainShellState extends State<MainShell> {
   // La primera pestaña (Inicio o Personas) es la 0 en los dos casos.
   int _actual = 0;
 
+  /// Cuidador: alertas nuevas de las personas que cuida (RF-15, RF-26).
+  StreamSubscription<String>? _alertas;
+
+  /// Personas con la pantalla de alerta ya abierta: no se abre dos veces.
+  final Set<String> _alertasAbiertas = {};
+
   void _irA(int pestana) => setState(() => _actual = pestana);
+
+  @override
+  void initState() {
+    super.initState();
+    // Sin servidor (web, Windows, pruebas) no hay Vinculos y no llega nada.
+    _alertas = context.read<Vinculos?>()?.alertasNuevas.listen(_abrirAlerta);
+  }
+
+  @override
+  void dispose() {
+    _alertas?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _abrirAlerta(String personaId) async {
+    if (!mounted || !_alertasAbiertas.add(personaId)) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => AlertaEntrantePage(personaId: personaId),
+      ),
+    );
+    _alertasAbiertas.remove(personaId);
+  }
 
   @override
   Widget build(BuildContext context) {

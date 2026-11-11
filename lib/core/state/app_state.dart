@@ -48,6 +48,7 @@ class AppState extends ChangeNotifier {
   final List<Contacto> _contactos = [];
   bool _permisoUbicacion = false;
   bool _permisoSensores = false;
+  bool _permisoSms = false;
 
   /// Cada consentimiento dado, con la fecha en que se dio (RF-30).
   final Map<TipoConsentimiento, DateTime> _consentimientos = {};
@@ -112,6 +113,7 @@ class AppState extends ChangeNotifier {
   bool tienePermiso(PermisoSistema permiso) => switch (permiso) {
         PermisoSistema.ubicacion => _permisoUbicacion,
         PermisoSistema.sensores => _permisoSensores,
+        PermisoSistema.sms => _permisoSms,
       };
   bool tieneConsentimiento(TipoConsentimiento tipo) => _consentimientos.containsKey(tipo);
 
@@ -224,6 +226,7 @@ class AppState extends ChangeNotifier {
   void cambiarPermiso(PermisoSistema permiso, bool valor) => switch (permiso) {
         PermisoSistema.ubicacion => cambiarPermisoUbicacion(valor),
         PermisoSistema.sensores => cambiarPermisoSensores(valor),
+        PermisoSistema.sms => cambiarPermisoSms(valor),
       };
 
   /// La persona quitó el permiso desde los ajustes del celular (RF-32).
@@ -236,6 +239,8 @@ class AppState extends ChangeNotifier {
         _permisoUbicacion = false;
       case PermisoSistema.sensores:
         _permisoSensores = false;
+      case PermisoSistema.sms:
+        _permisoSms = false;
     }
     notifyListeners();
   }
@@ -276,6 +281,11 @@ class AppState extends ChangeNotifier {
 
   void cambiarPermisoSensores(bool valor) {
     _permisoSensores = valor;
+    notifyListeners();
+  }
+
+  void cambiarPermisoSms(bool valor) {
+    _permisoSms = valor;
     notifyListeners();
   }
 
@@ -340,7 +350,7 @@ class AppState extends ChangeNotifier {
       estado: EstadoPersona.activa,
       alertas: [
         for (final a in p.alertas)
-          a.atendida ? a : AlertaPersona(fecha: a.fecha, atendida: true, estabaBien: a.estabaBien),
+          a.atendida ? a : AlertaPersona(id: a.id, fecha: a.fecha, atendida: true, estabaBien: a.estabaBien),
       ],
     );
     notifyListeners();
@@ -427,6 +437,7 @@ class AppState extends ChangeNotifier {
     _contactos.clear();
     _permisoUbicacion = false;
     _permisoSensores = false;
+    _permisoSms = false;
     _consentimientos.clear();
     _avisoAceptadoEn = null;
     _fichaMedica = null;
@@ -470,6 +481,7 @@ class AppState extends ChangeNotifier {
         'contactos': [for (final c in _contactos) contactoAJson(c)],
         'permisoUbicacion': _permisoUbicacion,
         'permisoSensores': _permisoSensores,
+        'permisoSms': _permisoSms,
         'consentimientos': {
           for (final e in _consentimientos.entries) e.key.name: e.value.toIso8601String(),
         },
@@ -490,6 +502,7 @@ class AppState extends ChangeNotifier {
     _contactos.addAll(listaDe(j['contactos'], contactoDeJson));
     _permisoUbicacion = j['permisoUbicacion'] as bool? ?? false;
     _permisoSensores = j['permisoSensores'] as bool? ?? false;
+    _permisoSms = j['permisoSms'] as bool? ?? false;
     final consentimientos = j['consentimientos'];
     if (consentimientos is Map) {
       for (final e in consentimientos.entries) {

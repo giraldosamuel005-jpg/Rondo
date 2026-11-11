@@ -35,7 +35,10 @@ class Ubicacion {
 
 /// Una alerta de la persona, como la ve el cuidador.
 class AlertaPersona {
-  const AlertaPersona({required this.fecha, required this.atendida, this.estabaBien = false});
+  const AlertaPersona({this.id, required this.fecha, required this.atendida, this.estabaBien = false});
+
+  /// La del servidor; `null` en las de ejemplo.
+  final String? id;
 
   final DateTime fecha;
 

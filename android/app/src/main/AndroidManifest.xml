@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- RF-30 / sección 4: actividad física, para filtrar falsos positivos. -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+    <!-- RF-15 / RF-16: la alerta se envía por SMS a los contactos sin tocar nada. -->
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-feature android:name="android.hardware.telephony" android:required="false"/>
 
     <application
         android:label="Rondó"

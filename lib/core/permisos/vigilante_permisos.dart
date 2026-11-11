@@ -36,6 +36,8 @@ class _VigilantePermisosState extends State<VigilantePermisos> {
         'Actívala de nuevo en ajustes.',
     PermisoSistema.sensores:
         'Desactivaste el permiso de sensores. La detección de caídas funcionará de forma limitada.',
+    PermisoSistema.sms:
+        'Desactivaste el permiso de SMS. Si hay una alerta, solo les llegará a tus cuidadores con Rondó.',
   };
 
   @override

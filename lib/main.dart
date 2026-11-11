@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
+import 'core/alertas/aviso_alerta.dart';
 import 'core/permisos/vigilante_permisos.dart';
 import 'core/persistencia/almacen_local.dart';
 import 'core/state/app_state.dart';
@@ -34,6 +35,10 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: estado),
         // Cuidador ↔ persona (RF-05, RF-26, RF-27).
         if (conFirebase) ChangeNotifierProvider(create: (_) => Vinculos(ServicioVinculosFirebase(), estado)),
+        // Alerta real: GPS + SMS + servidor (RF-15 a RF-17). Sin esto, la
+        // alerta solo queda en el Historial (en web, Windows y pruebas).
+        if (conFirebase)
+          Provider.value(value: const AvisoDeAlerta(ubicacion: LectorUbicacionGps(), sms: EnviadorSmsAndroid())),
       ],
       child: RondoApp(registrado: estado.registroCompleto),
     ),

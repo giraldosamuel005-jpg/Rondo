@@ -187,6 +187,12 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se pudo notificar a [nombre del contacto]. Reintentando…"
   - "No se pudo obtener tu ubicación. Se avisó a tus contactos sin ella."
   - "No se pudo notificar a ningún contacto. Se intentará por SMS."
+- **Cómo está hecho (2026-11-10):** Todavía no hay push (necesita el plan Blaze de Firebase). Al enviarse la alerta pasan tres cosas a la vez:
+  - La app lee el GPS; si no responde en 8 s, usa la última ubicación conocida.
+  - Le envía un SMS a cada contacto sin abrir la app de mensajes, con la hora y el enlace a Google Maps. Esto pide el permiso de SMS, que ahora está en el panel de permisos.
+  - Sube la alerta a Firestore, en `personas/{uid}/alertas`, solo si la persona tiene cuidadores vinculados.
+
+  Al cuidador se le abre la pantalla de alerta cuando la app está abierta o al abrirla. Su botón "Ya la atendí" la marca como atendida en el servidor, y eso lo ven los demás cuidadores. Si la persona cierra sesión, sus alertas se borran del servidor.
 
 #### RF-16 — Si no hay datos, enviar un SMS con enlace a Google Maps
 - **Cómo funciona:** Si el celular no tiene datos, la app envía un SMS a cada contacto con un enlace a Google Maps con la ubicación.
@@ -197,6 +203,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "Sin conexión de datos. Enviando alerta por SMS."
   - "No se pudo enviar el SMS. Verifica tu señal y tu saldo."
   - "La app no tiene permiso para enviar SMS. Actívalo en ajustes."
+- **Cómo está hecho (2026-11-10):** El SMS no espera a que se caigan los datos: siempre se envía, junto con la alerta al servidor (ver RF-15). Si a un contacto no le llega, la app le muestra a la persona "No se pudo enviar el SMS a [nombre]. Verifica tu señal y tu saldo.".
 
 #### RF-17 — Si no hay datos ni SMS, activar una alarma sonora local
 - **Cómo funciona:** Si tampoco se puede enviar SMS, se activa una alarma sonora local para llamar la atención de las personas cercanas.
@@ -204,6 +211,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - alarma activa: `bool`
 - **Errores:**
   - "Sin conexión ni señal. Activando alarma sonora para pedir ayuda cercana."
+- **Cómo está hecho (2026-11-10):** La alarma vuelve a sonar cuando no salió ningún SMS y el servidor no confirmó la alerta en 10 s. La pantalla muestra un botón para llamar al 123 y otro para apagar la alarma.
 
 ---
 
@@ -431,3 +439,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-11-05 | RF-23 | Se agregan a la ficha, como opcionales, enfermedades, fecha de nacimiento, notas y la opción de mostrar los medicamentos de RF-20. |
 | 2026-11-09 | RF-05 / RF-27 | La invitación se envía con un código que el cuidador escribe en la app, y se agregan los errores de código inválido, invitación vencida para el cuidador e invitación propia. |
 | 2026-11-10 | RF-24 / RF-25 | La ficha del QR se consulta en una página web pública. Cerrar sesión o retirar el consentimiento también revocan el QR, y se agrega el error "No pudimos cargar la ficha.". |
+| 2026-11-10 | RF-15 / RF-16 / RF-17 / RF-26 | Las alertas son reales: SMS automático a los contactos con la ubicación, y la alerta llega en Rondó a los cuidadores vinculados (sin push por ahora). Se agrega el permiso de SMS, con el aviso "Desactivaste el permiso de SMS. Si hay una alerta, solo les llegará a tus cuidadores con Rondó.". |

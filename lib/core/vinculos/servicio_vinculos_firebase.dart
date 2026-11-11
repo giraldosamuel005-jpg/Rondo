@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../alertas/alerta_compartida.dart';
 import '../persistencia/serializacion.dart' show enumPorNombre;
 import 'ficha_publica.dart';
 import 'servicio_vinculos.dart';
@@ -15,7 +16,8 @@ import 'vinculo.dart';
 /// Colecciones:
 /// - `invitaciones/{codigo}`
 /// - `vinculos/{personaUid}_{cuidadorUid}`
-/// - `personas/{uid}`: lo que la persona comparte con sus cuidadores.
+/// - `personas/{uid}`: lo que la persona comparte con sus cuidadores, y en
+///   `alertas` las alertas que no canceló.
 /// - `fichas/{token}`: la ficha médica pública del QR, y en `consultas` cada
 ///   vez que alguien la abrió.
 class ServicioVinculosFirebase implements ServicioVinculos {
@@ -178,6 +180,58 @@ class ServicioVinculosFirebase implements ServicioVinculos {
             for (final d in q.docs)
               if (d.data()['en'] case final Timestamp en) en.toDate(),
           ]);
+
+  // ---------- Alertas: personas/{uid}/alertas/{id} ----------
+
+  CollectionReference<Map<String, dynamic>> _alertas(String personaUid) =>
+      _personas.doc(personaUid).collection('alertas');
+
+  /// Cuántas alertas recientes ve el cuidador.
+  static const _alertasRecientes = 10;
+
+  @override
+  Future<void> publicarAlerta(String personaUid, AlertaCompartida alerta) =>
+      _alertas(personaUid).doc(alerta.id).set({
+        'fecha': Timestamp.fromDate(alerta.fecha),
+        'latitud': alerta.posicion?.latitud,
+        'longitud': alerta.posicion?.longitud,
+        'atendida': false,
+        'creadaEn': FieldValue.serverTimestamp(),
+      });
+
+  @override
+  Stream<List<AlertaCompartida>> alertasDe(String personaUid) => _alertas(personaUid)
+      .orderBy('fecha', descending: true)
+      .limit(_alertasRecientes)
+      .snapshots()
+      .map((q) => [for (final d in q.docs) ?_alertaDe(d.id, d.data())]);
+
+  @override
+  Future<void> atenderAlerta(String personaUid, String alertaId, {required String cuidadorUid}) =>
+      _alertas(personaUid).doc(alertaId).update({'atendida': true, 'atendidaPor': cuidadorUid});
+
+  @override
+  Future<void> borrarAlertas(String personaUid) async {
+    final todas = await _alertas(personaUid).get().timeout(_espera);
+    final lote = _db.batch();
+    for (final d in todas.docs) {
+      lote.delete(d.reference);
+    }
+    await lote.commit().timeout(_espera);
+  }
+
+  static AlertaCompartida? _alertaDe(String id, Map<String, dynamic> m) {
+    final fecha = m['fecha'];
+    if (fecha is! Timestamp) return null;
+    final lat = m['latitud'];
+    final lng = m['longitud'];
+    return AlertaCompartida(
+      id: id,
+      fecha: fecha.toDate(),
+      posicion: lat is num && lng is num ? Posicion(lat.toDouble(), lng.toDouble()) : null,
+      atendida: m['atendida'] == true,
+    );
+  }
 
   // ---------- Mapas de Firestore ----------
 

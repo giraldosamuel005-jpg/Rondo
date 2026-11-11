@@ -4,7 +4,9 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/models/persona_a_cargo.dart';
 import '../../core/state/app_state.dart';
+import '../../core/vinculos/vinculos.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
 import '../../core/widgets/alert_button.dart';
@@ -18,8 +20,9 @@ import 'abrir_enlace.dart';
 /// Alerta que le llega al cuidador cuando alguien que cuida no respondió a
 /// una posible caída (RF-15 visto desde el otro lado, RF-26).
 ///
-/// TODAVÍA ES SIMULADA: se abre desde Ajustes → Modo de pruebas. Con el
-/// servidor llegará como notificación push.
+/// Se abre sola cuando llega una alerta nueva (ver MainShell), desde la lista
+/// de alertas, o desde Ajustes → Modo de pruebas con personas de ejemplo.
+/// Sin notificación push todavía: llega con la app abierta o al abrirla.
 class AlertaEntrantePage extends StatefulWidget {
   const AlertaEntrantePage({super.key, required this.personaId});
 
@@ -84,6 +87,8 @@ class _AlertaEntrantePageState extends State<AlertaEntrantePage> {
 
   void _marcarAtendida(String nombre) {
     _silenciar();
+    // En el servidor primero (lo leen los otros cuidadores), y aquí de una.
+    context.read<Vinculos?>()?.atenderAlertas(widget.personaId);
     context.read<AppState>().marcarAlertaAtendida(widget.personaId);
 
     final mensajero = ScaffoldMessenger.of(context);
@@ -227,12 +232,14 @@ class _AlertaEntrantePageState extends State<AlertaEntrantePage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Simulación: con el servidor, esta alerta te llegará como notificación.',
-                        textAlign: TextAlign.center,
-                        style: t.bodySmall,
-                      ),
+                      if (persona.id.startsWith(PersonaACargo.prefijoEjemplo)) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Simulación: es una persona de ejemplo.',
+                          textAlign: TextAlign.center,
+                          style: t.bodySmall,
+                        ),
+                      ],
                       const SizedBox(height: 12),
                     ],
                   ),

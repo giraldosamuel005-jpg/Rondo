@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../alertas/alerta_compartida.dart';
 import '../models/persona_a_cargo.dart';
 import '../utils/formato.dart';
 
@@ -136,18 +137,37 @@ class EstadoCompartido {
   final int? cumplimiento;
 
   /// Cómo la ve su cuidador. Sin estado publicado todavía: "Sin datos aún".
-  static PersonaACargo comoPersona(Vinculo vinculo, EstadoCompartido? estado) => PersonaACargo(
-        id: vinculo.personaUid,
-        nombre: estado?.nombre ?? vinculo.personaNombre,
-        celular: estado?.celular ?? vinculo.personaCelular,
-        estado: switch (estado) {
-          null => EstadoPersona.sinDatos,
-          EstadoCompartido(enPausa: true) => EstadoPersona.enPausa,
-          _ => EstadoPersona.activa,
-        },
-        ultimoEstoyBien: estado?.ultimoEstoyBien,
-        cumplimiento: estado?.cumplimiento,
-      );
+  /// Con una alerta sin atender, está en alerta; su ubicación es la de la
+  /// última alerta que la tenía (RF-15: solo se comparte dentro de una alerta).
+  static PersonaACargo comoPersona(
+    Vinculo vinculo,
+    EstadoCompartido? estado, {
+    List<AlertaCompartida> alertas = const [],
+  }) {
+    final conPosicion = alertas.where((a) => a.posicion != null).firstOrNull;
+    return PersonaACargo(
+      id: vinculo.personaUid,
+      nombre: estado?.nombre ?? vinculo.personaNombre,
+      celular: estado?.celular ?? vinculo.personaCelular,
+      estado: switch (estado) {
+        _ when alertas.any((a) => !a.atendida) => EstadoPersona.alerta,
+        null => EstadoPersona.sinDatos,
+        EstadoCompartido(enPausa: true) => EstadoPersona.enPausa,
+        _ => EstadoPersona.activa,
+      },
+      ubicacion: conPosicion == null
+          ? null
+          : Ubicacion(
+              latitud: conPosicion.posicion!.latitud,
+              longitud: conPosicion.posicion!.longitud,
+              descripcion: 'Donde sonó la alerta',
+              fecha: conPosicion.fecha,
+            ),
+      ultimoEstoyBien: estado?.ultimoEstoyBien,
+      cumplimiento: estado?.cumplimiento,
+      alertas: [for (final a in alertas) AlertaPersona(id: a.id, fecha: a.fecha, atendida: a.atendida)],
+    );
+  }
 
   @override
   bool operator ==(Object other) =>

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../alertas/alerta_compartida.dart';
 import '../models/contacto.dart';
 import '../state/app_state.dart';
 import 'ficha_publica.dart';
@@ -15,8 +16,10 @@ import 'vinculo.dart';
 ///   su estado (ronda, "Estoy bien", medicamentos) solo mientras alguien la cuide;
 /// - a la persona le publica la ficha médica bajo el token de su QR (RF-24) y
 ///   le trae cuándo la abrieron (RF-25);
-/// - al cuidador le trae las personas que lo vincularon y las pone en el
-///   [AppState], así las pantallas de cuidador funcionan igual que antes.
+/// - a la persona le sube las alertas que no canceló (RF-15);
+/// - al cuidador le trae las personas que lo vincularon, con sus alertas, y
+///   las pone en el [AppState], así las pantallas de cuidador funcionan igual
+///   que antes. Cada alerta nueva sale por [alertasNuevas].
 class Vinculos extends ChangeNotifier {
   Vinculos(this._servicio, this._estado, {DateTime Function()? reloj}) : _reloj = reloj ?? DateTime.now {
     _estado.addListener(_alCambiarEstado);
@@ -52,7 +55,23 @@ class Vinculos extends ChangeNotifier {
   final Map<String, EstadoCompartido?> _estados = {};
   final List<String> _retirados = [];
 
+  // Cuidador: alertas de cada persona (RF-15, RF-26)
+  final Map<String, StreamSubscription<List<AlertaCompartida>>> _subsAlertas = {};
+  final Map<String, List<AlertaCompartida>> _alertas = {};
+
+  /// "{personaUid}/{alertaId}" de las que ya llegaron en esta sesión.
+  final Set<String> _alertasVistas = {};
+  final _alertasNuevas = StreamController<String>.broadcast();
+
+  /// Una alerta sin atender más vieja que esto no abre la pantalla de alerta
+  /// (sigue en la lista de Alertas).
+  static const alertaReciente = Duration(minutes: 30);
+
   // ---------- Lectura ----------
+
+  /// Cuidador: el ID de la persona cada vez que llega una alerta nueva sin
+  /// atender. La app abre con esto la pantalla de alerta.
+  Stream<String> get alertasNuevas => _alertasNuevas.stream;
 
   List<Vinculo> get cuidadoresActivos => [for (final v in _cuidadores) if (v.activo) v];
 
@@ -136,7 +155,31 @@ class Vinculos extends ChangeNotifier {
     }
   }
 
+  /// RF-15: sube la alerta que la persona no canceló, para sus cuidadores.
+  /// Devuelve `true` cuando el servidor la recibió. Sin cuidadores no sube nada.
+  Future<bool> publicarAlerta({required DateTime fecha, Posicion? posicion}) async {
+    final sesion = _sesion;
+    if (sesion == null || sesion.cuidador) return false;
+    final uid = await _conectar();
+    if (cuidadoresActivos.isEmpty) return false;
+    await _servicio.publicarAlerta(
+      uid,
+      AlertaCompartida(id: AlertaCompartida.nuevoId(_reloj()), fecha: fecha, posicion: posicion),
+    );
+    return true;
+  }
+
   // ---------- Acciones del cuidador ----------
+
+  /// El cuidador atendió las alertas de esa persona. Sin internet queda en
+  /// cola y se envía después; la pantalla no tiene que esperar.
+  void atenderAlertas(String personaUid) {
+    final uid = _uid;
+    if (uid == null) return;
+    for (final a in _alertas[personaUid] ?? const <AlertaCompartida>[]) {
+      if (!a.atendida) _servicio.atenderAlerta(personaUid, a.id, cuidadorUid: uid).ignore();
+    }
+  }
 
   /// Acepta con el código que le llegó por SMS. Devuelve el vínculo creado.
   Future<Vinculo> aceptar(String texto) async {
@@ -253,8 +296,14 @@ class Vinculos extends ChangeNotifier {
     for (final s in _subsEstado.values) {
       s.cancel();
     }
+    for (final s in _subsAlertas.values) {
+      s.cancel();
+    }
     _subs.clear();
     _subsEstado.clear();
+    _subsAlertas.clear();
+    _alertas.clear();
+    _alertasVistas.clear();
     _estados.clear();
     _invitaciones = const [];
     _cuidadores = const [];
@@ -277,6 +326,7 @@ class Vinculos extends ChangeNotifier {
           if (habiaPublicado) await _servicio.publicarEstado(uidAnterior, null).catchError((_) {});
           // Y el QR que tenga impreso ya no muestra nada.
           if (fichaToken != null) await _servicio.revocarFicha(uidAnterior, fichaToken).catchError((_) {});
+          await _servicio.borrarAlertas(uidAnterior).catchError((_) {});
         }
         await _servicio.cerrarSesion().catchError((_) {});
       }());
@@ -352,7 +402,9 @@ class Vinculos extends ChangeNotifier {
       if (siguen.contains(antes.personaUid)) continue;
       _retirados.add(_estados[antes.personaUid]?.nombre ?? antes.personaNombre);
       _subsEstado.remove(antes.personaUid)?.cancel();
+      _subsAlertas.remove(antes.personaUid)?.cancel();
       _estados.remove(antes.personaUid);
+      _alertas.remove(antes.personaUid);
     }
     for (final v in nuevos) {
       _subsEstado.putIfAbsent(
@@ -362,14 +414,37 @@ class Vinculos extends ChangeNotifier {
           _ponerPersonas();
         }, onError: _ignorar),
       );
+      _subsAlertas.putIfAbsent(
+        v.personaUid,
+        () => _servicio.alertasDe(v.personaUid).listen((lista) => _alCambiarAlertas(v.personaUid, lista),
+            onError: _ignorar),
+      );
     }
     _personas = nuevos;
     _ponerPersonas();
     notifyListeners();
   }
 
+  void _alCambiarAlertas(String personaUid, List<AlertaCompartida> lista) {
+    _alertas[personaUid] = lista;
+    final ahora = _reloj();
+    var hayNueva = false;
+    for (final a in lista) {
+      final primeraVez = _alertasVistas.add('$personaUid/${a.id}');
+      if (primeraVez && !a.atendida && ahora.difference(a.fecha) < alertaReciente) hayNueva = true;
+    }
+    // Primero la lista al día, después el aviso: la pantalla ya la encuentra.
+    _ponerPersonas();
+    if (hayNueva) _alertasNuevas.add(personaUid);
+  }
+
   void _ponerPersonas() => _estado.ponerPersonasVinculadas([
-        for (final v in _personas) EstadoCompartido.comoPersona(v, _estados[v.personaUid]),
+        for (final v in _personas)
+          EstadoCompartido.comoPersona(
+            v,
+            _estados[v.personaUid],
+            alertas: _alertas[v.personaUid] ?? const [],
+          ),
       ]);
 
   @override
@@ -382,7 +457,11 @@ class Vinculos extends ChangeNotifier {
     for (final s in _subsEstado.values) {
       s.cancel();
     }
+    for (final s in _subsAlertas.values) {
+      s.cancel();
+    }
     _subConsultas?.cancel();
+    _alertasNuevas.close();
     super.dispose();
   }
 }

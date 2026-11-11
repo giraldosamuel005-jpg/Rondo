@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:rondo/core/alertas/alerta_compartida.dart';
 import 'package:rondo/core/vinculos/ficha_publica.dart';
 import 'package:rondo/core/vinculos/servicio_vinculos.dart';
 import 'package:rondo/core/vinculos/vinculo.dart';
@@ -17,6 +18,9 @@ class ServidorFalso {
   /// fichas/{token}: el dueño y la ficha, o `null` si está revocada.
   final Map<String, ({String duenoUid, FichaPublica? ficha})> fichas = {};
   final Map<String, List<DateTime>> consultas = {};
+
+  /// personas/{uid}/alertas: por persona, en el orden en que llegaron.
+  final Map<String, List<AlertaCompartida>> alertas = {};
 
   /// Lo que haría la página web al abrir el QR.
   void abrirFicha(String token, DateTime en) {
@@ -181,6 +185,41 @@ class ServicioFalso implements ServicioVinculos {
         if (_servidor.fichas[token]?.duenoUid != _uid) throw StateError('permission-denied');
         return [...?_servidor.consultas[token]]..sort((a, b) => b.compareTo(a));
       });
+
+  bool _laCuido(String personaUid) => _servidor.vinculos[Vinculo.idPara(personaUid, _uid)]?.activo ?? false;
+
+  @override
+  Future<void> publicarAlerta(String personaUid, AlertaCompartida alerta) async {
+    _red();
+    if (personaUid != _uid) throw StateError('permission-denied');
+    (_servidor.alertas[personaUid] ??= []).add(alerta);
+    _servidor._avisar();
+  }
+
+  @override
+  /// Como en [estadoDe]: sin permiso no ve nada.
+  Stream<List<AlertaCompartida>> alertasDe(String personaUid) => _vigilar(() {
+        if (personaUid != _uid && !_laCuido(personaUid)) return const <AlertaCompartida>[];
+        final lista = [...?_servidor.alertas[personaUid]]..sort((a, b) => b.fecha.compareTo(a.fecha));
+        return lista;
+      });
+
+  @override
+  Future<void> atenderAlerta(String personaUid, String alertaId, {required String cuidadorUid}) async {
+    _red();
+    if (!_laCuido(personaUid) || cuidadorUid != _uid) throw StateError('permission-denied');
+    final lista = _servidor.alertas[personaUid]!;
+    final i = lista.indexWhere((a) => a.id == alertaId);
+    lista[i] = AlertaCompartida(id: lista[i].id, fecha: lista[i].fecha, posicion: lista[i].posicion, atendida: true);
+    _servidor._avisar();
+  }
+
+  @override
+  Future<void> borrarAlertas(String personaUid) async {
+    if (personaUid != _uid) throw StateError('permission-denied');
+    _servidor.alertas.remove(personaUid);
+    _servidor._avisar();
+  }
 
   static Invitacion _con(Invitacion i, EstadoInvitacion estado, {String? cuidadorUid}) => Invitacion(
         codigo: i.codigo,

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rondo/core/alertas/alerta_compartida.dart';
 import 'package:rondo/core/models/consentimiento.dart';
 import 'package:rondo/core/models/contacto.dart';
 import 'package:rondo/core/models/ficha_medica.dart';
@@ -240,6 +241,69 @@ void main() {
       await pumpEventQueue();
 
       expect(servidor.invitaciones[invitacion.codigo]!.estado, EstadoInvitacion.revocada);
+    });
+
+    group('alertas', () {
+      const casa = Posicion(3.4372, -76.5225);
+
+      test('la alerta de la persona le llega al cuidador con su ubicación', () async {
+        await invitarYAceptar();
+        final nuevas = <String>[];
+        final sub = deAndres.alertasNuevas.listen(nuevas.add);
+        addTearDown(sub.cancel);
+
+        final subio = await deRosa.publicarAlerta(fecha: DateTime.now(), posicion: casa);
+        await pumpEventQueue();
+
+        expect(subio, isTrue);
+        final persona = andres.personasACargo.single;
+        expect(persona.estado, EstadoPersona.alerta);
+        expect(persona.alertas.single.atendida, isFalse);
+        expect(persona.ubicacion!.latitud, casa.latitud);
+        expect(nuevas, ['uid-rosa']); // Abre la pantalla de alerta
+      });
+
+      test('sin cuidadores no se sube nada', () async {
+        await pumpEventQueue();
+
+        expect(await deRosa.publicarAlerta(fecha: DateTime.now()), isFalse);
+        expect(servidor.alertas, isEmpty);
+      });
+
+      test('el cuidador la atiende y deja de estar en alerta', () async {
+        await invitarYAceptar();
+        await deRosa.publicarAlerta(fecha: DateTime.now());
+        await pumpEventQueue();
+
+        deAndres.atenderAlertas('uid-rosa');
+        await pumpEventQueue();
+
+        expect(servidor.alertas['uid-rosa']!.single.atendida, isTrue);
+        expect(andres.personasACargo.single.estado, EstadoPersona.activa);
+      });
+
+      test('una alerta vieja no abre la pantalla, pero sale en la lista', () async {
+        await invitarYAceptar();
+        final nuevas = <String>[];
+        final sub = deAndres.alertasNuevas.listen(nuevas.add);
+        addTearDown(sub.cancel);
+
+        await deRosa.publicarAlerta(fecha: DateTime.now().subtract(const Duration(hours: 2)));
+        await pumpEventQueue();
+
+        expect(nuevas, isEmpty);
+        expect(andres.personasACargo.single.alertas, hasLength(1));
+      });
+
+      test('cerrar sesión borra las alertas del servidor', () async {
+        await invitarYAceptar();
+        await deRosa.publicarAlerta(fecha: DateTime.now());
+
+        rosa.cerrarSesion();
+        await pumpEventQueue();
+
+        expect(servidor.alertas, isEmpty);
+      });
     });
 
     test('las personas de ejemplo no se mezclan con las reales', () async {

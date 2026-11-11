@@ -84,6 +84,24 @@ service cloud.firestore {
     match /personas/{uid} {
       allow write: if soyYo(uid);
       allow read: if soyYo(uid) || laCuido(uid);
+
+      // ---------- Alertas que la persona no canceló (RF-15) ----------
+      match /alertas/{id} {
+        allow read: if soyYo(uid) || laCuido(uid);
+
+        allow create: if soyYo(uid)
+          && request.resource.data.keys().hasOnly(['fecha', 'latitud', 'longitud', 'atendida', 'creadaEn'])
+          && request.resource.data.fecha is timestamp
+          && request.resource.data.atendida == false;
+
+        // Un cuidador solo puede marcarla como atendida, a su nombre.
+        allow update: if laCuido(uid)
+          && cambiaSolo(['atendida', 'atendidaPor'])
+          && request.resource.data.atendida == true
+          && request.resource.data.atendidaPor == request.auth.uid;
+
+        allow delete: if soyYo(uid);
+      }
     }
 
     // ---------- Ficha médica del QR (RF-24, RF-25): fichas/{token} ----------

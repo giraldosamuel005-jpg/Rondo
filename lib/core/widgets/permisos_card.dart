@@ -7,7 +7,7 @@ import 'error_banner.dart';
 import 'glass.dart';
 import 'permission_row.dart';
 
-/// Interruptores de ubicación y sensores (RF-30), usados en el registro y en
+/// Interruptores de ubicación, sensores y SMS (RF-30), usados en el registro y en
 /// Ajustes. Al encenderlos se pide el permiso real del sistema; si la persona
 /// dice que no, el error se muestra aquí mismo, debajo de la tarjeta.
 class PermisosCard extends StatefulWidget {
@@ -29,6 +29,7 @@ class _PermisosCardState extends State<PermisosCard> {
   static const _mensajes = {
     PermisoSistema.ubicacion: 'Necesitamos tu permiso de ubicación para enviar alertas con tu posición.',
     PermisoSistema.sensores: 'Activa el permiso de sensores de movimiento para usar la detección de caídas.',
+    PermisoSistema.sms: 'La app no tiene permiso para enviar SMS. Actívalo en ajustes.',
   };
 
   void _guardar(PermisoSistema permiso, bool valor) =>
@@ -78,6 +79,13 @@ class _PermisosCardState extends State<PermisosCard> {
                 reason: 'Detectan la caída en el teléfono.',
                 value: estado.tienePermiso(PermisoSistema.sensores),
                 onChanged: (v) => _cambiar(PermisoSistema.sensores, v),
+              ),
+              const GlassDivider(indent: 18),
+              PermissionRow(
+                title: 'Enviar SMS',
+                reason: 'Solo para avisar a tus contactos en una alerta.',
+                value: estado.tienePermiso(PermisoSistema.sms),
+                onChanged: (v) => _cambiar(PermisoSistema.sms, v),
               ),
             ],
           ),
