@@ -1,0 +1,139 @@
+/* Ficha médica pública (RF-24). Colores de Rondó (rondo_colors.dart).
+   La lee alguien con afán, a veces de noche: letra grande y mucho contraste. */
+:root {
+  --bg: #eaf1f0;
+  --tarjeta: #ffffff;
+  --borde: #d3e0de;
+  --texto: #0e1a19;
+  --texto-2: #3b4d4a;
+  --acento: #0b7a6e;
+  --acento-texto: #ffffff;
+  --acento-suave: rgba(11, 122, 110, 0.12);
+  --neutro-suave: #e6eeec;
+  --error: #b5321f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #06110f;
+    --tarjeta: #0f1e1b;
+    --borde: #1f3430;
+    --texto: #eef5f4;
+    --texto-2: #a3b5b2;
+    --acento: #2dd4bf;
+    --acento-texto: #04201c;
+    --acento-suave: rgba(45, 212, 191, 0.14);
+    --neutro-suave: #1a2c29;
+    --error: #ff9a89;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
+
+[hidden] { display: none !important; }
+
+h1 { font-size: 30px; line-height: 1.15; margin: 2px 0; }
+h2 { font-size: 19px; margin: 0 0 10px; }
+p { margin: 0; }
+
+.marca {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--acento);
+  margin-bottom: 14px;
+}
+
+.tarjeta, .aviso {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 12px;
+}
+
+.aviso h1 { font-size: 24px; margin-bottom: 8px; }
+.aviso h1.error { color: var(--error); }
+
+.etiqueta, .secundario { color: var(--texto-2); font-size: 16px; }
+
+.sangre { display: flex; align-items: center; gap: 16px; }
+.sangre h2 { margin: 0; }
+.sangre-valor {
+  min-width: 84px;
+  height: 84px;
+  padding: 0 10px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--acento);
+  background: var(--acento-suave);
+}
+
+.etiquetas { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.etiquetas li {
+  background: var(--neutro-suave);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 600;
+}
+
+.lista { margin: 0; padding-left: 20px; }
+.lista li { margin: 4px 0; }
+
+.notas { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.contacto-nombre { font-size: 20px; font-weight: 700; }
+
+.boton {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--acento);
+  color: var(--acento-texto);
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.boton-123 {
+  background: transparent;
+  color: var(--texto);
+  border: 2px solid var(--borde);
+  margin-top: 4px;
+}
+
+button.boton, #reintentar { font: inherit; }
+#reintentar {
+  margin-top: 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 2px solid var(--acento);
+  background: transparent;
+  color: var(--acento);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pie { color: var(--texto-2); font-size: 14px; margin: 4px 4px 14px; }

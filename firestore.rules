@@ -85,5 +85,34 @@ service cloud.firestore {
       allow write: if soyYo(uid);
       allow read: if soyYo(uid) || laCuido(uid);
     }
+
+    // ---------- Ficha médica del QR (RF-24, RF-25): fichas/{token} ----------
+    // El token (128 bits al azar) es el secreto: quien lo tiene la lee sin
+    // iniciar sesión, desde la página web. Nadie puede listarlas.
+    match /fichas/{token} {
+      allow get: if true;
+
+      allow create: if soyYo(request.resource.data.duenoUid);
+      // Solo su dueña la cambia, y una revocada se queda revocada.
+      allow update: if soyYo(resource.data.duenoUid)
+        && request.resource.data.duenoUid == resource.data.duenoUid
+        && resource.data.get('revocada', false) != true;
+
+      // Cada vez que la abren queda registrado; solo la dueña ve la lista.
+      match /consultas/{id} {
+        function ficha() {
+          return /databases/$(db)/documents/fichas/$(token);
+        }
+
+        allow create: if exists(ficha())
+          && get(ficha()).data.get('revocada', false) != true
+          && request.resource.data.keys().hasOnly(['en'])
+          && request.resource.data.en is timestamp
+          && request.resource.data.en > request.time - duration.value(10, 'm')
+          && request.resource.data.en < request.time + duration.value(10, 'm');
+
+        allow list: if conSesion() && get(ficha()).data.duenoUid == request.auth.uid;
+      }
+    }
   }
 }

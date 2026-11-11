@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/contacto.dart';
 import '../state/app_state.dart';
+import 'ficha_publica.dart';
 import 'servicio_vinculos.dart';
 import 'vinculo.dart';
 
@@ -12,6 +13,8 @@ import 'vinculo.dart';
 /// Escucha al [AppState]: cuando hay sesión se conecta al servidor y
 /// - a la persona le mantiene al día sus invitaciones y cuidadores, y publica
 ///   su estado (ronda, "Estoy bien", medicamentos) solo mientras alguien la cuide;
+/// - a la persona le publica la ficha médica bajo el token de su QR (RF-24) y
+///   le trae cuándo la abrieron (RF-25);
 /// - al cuidador le trae las personas que lo vincularon y las pone en el
 ///   [AppState], así las pantallas de cuidador funcionan igual que antes.
 class Vinculos extends ChangeNotifier {
@@ -37,6 +40,12 @@ class Vinculos extends ChangeNotifier {
   List<Vinculo> _cuidadores = const [];
   EstadoCompartido? _publicado;
 
+  // Persona: ficha del QR (RF-24, RF-25)
+  String? _fichaToken;
+  FichaPublica? _fichaPublicada;
+  StreamSubscription<List<DateTime>>? _subConsultas;
+  List<DateTime> _consultas = const [];
+
   // Cuidador
   List<Vinculo> _personas = const [];
   final Map<String, StreamSubscription<EstadoCompartido?>> _subsEstado = {};
@@ -61,6 +70,10 @@ class Vinculos extends ChangeNotifier {
     }
     return mejor;
   }
+
+  /// Persona: cuándo abrieron su ficha con el QR actual (RF-25), de la más
+  /// reciente a la más vieja.
+  List<DateTime> get consultasFicha => _consultas;
 
   /// Cuidador: nombres de quienes dejaron de compartir con él (RF-27).
   List<String> get retirados => List.unmodifiable(_retirados);
@@ -170,6 +183,7 @@ class Vinculos extends ChangeNotifier {
         if (!_cerrado && _sesion != null && _uid == null) {
           _uid = uid;
           _escuchar(uid, comoCuidador: _sesion!.cuidador);
+          if (!_sesion!.cuidador) _publicarFichaSiCambio();
         }
         return uid;
       },
@@ -215,6 +229,7 @@ class Vinculos extends ChangeNotifier {
       if (_conectando == null) _conectar().ignore(); // Sin red: se reintenta en el próximo cambio
     } else if (!_sesion!.cuidador) {
       _publicarSiCambio();
+      _publicarFichaSiCambio();
     }
   }
 
@@ -225,10 +240,16 @@ class Vinculos extends ChangeNotifier {
     final ahora = _reloj();
     final pendientes = [for (final i in _invitaciones) if (i.vigente(ahora)) i];
     final habiaPublicado = _publicado != null;
+    final fichaToken = _fichaToken;
 
     for (final s in _subs) {
       s.cancel();
     }
+    _subConsultas?.cancel();
+    _subConsultas = null;
+    _consultas = const [];
+    _fichaToken = null;
+    _fichaPublicada = null;
     for (final s in _subsEstado.values) {
       s.cancel();
     }
@@ -254,6 +275,8 @@ class Vinculos extends ChangeNotifier {
             await _servicio.revocarInvitacion(i.codigo).catchError((_) {});
           }
           if (habiaPublicado) await _servicio.publicarEstado(uidAnterior, null).catchError((_) {});
+          // Y el QR que tenga impreso ya no muestra nada.
+          if (fichaToken != null) await _servicio.revocarFicha(uidAnterior, fichaToken).catchError((_) {});
         }
         await _servicio.cerrarSesion().catchError((_) {});
       }());
@@ -281,6 +304,44 @@ class Vinculos extends ChangeNotifier {
     if (nuevo == _publicado) return;
     _publicado = nuevo;
     _servicio.publicarEstado(uid, nuevo).ignore(); // Sin red, Firestore lo envía después
+  }
+
+  /// Mantiene en el servidor la ficha del QR igual a la del celular. Si el
+  /// token cambió (código nuevo) o ya no hay ficha (retiró el consentimiento),
+  /// el QR anterior queda revocado.
+  void _publicarFichaSiCambio() {
+    final uid = _uid;
+    final sesion = _sesion;
+    if (uid == null || sesion == null || sesion.cuidador) return;
+
+    final ficha = FichaPublica.de(_estado);
+    final token = ficha == null ? null : _estado.codigoQr!.token;
+    if (token == _fichaToken && ficha == _fichaPublicada) return;
+
+    final anterior = _fichaToken;
+    _fichaToken = token;
+    _fichaPublicada = ficha;
+    if (token != null) {
+      // Las consultas se leen cuando la ficha ya existe: antes, las reglas no
+      // saben de quién es y no dejan leerlas.
+      _servicio.publicarFicha(uid, token, ficha!).then((_) {
+        if (_fichaToken == token && _subConsultas == null && !_cerrado) _escucharConsultas(token);
+      }, onError: _ignorar);
+    }
+    if (anterior != null && anterior != token) {
+      _servicio.revocarFicha(uid, anterior).ignore();
+      _subConsultas?.cancel();
+      _subConsultas = null;
+      _consultas = const [];
+      notifyListeners();
+    }
+  }
+
+  void _escucharConsultas(String token) {
+    _subConsultas = _servicio.consultasDe(token).listen((lista) {
+      _consultas = lista;
+      notifyListeners();
+    }, onError: _ignorar);
   }
 
   // ---------- Cuidador: las personas que cuida ----------
@@ -321,6 +382,7 @@ class Vinculos extends ChangeNotifier {
     for (final s in _subsEstado.values) {
       s.cancel();
     }
+    _subConsultas?.cancel();
     super.dispose();
   }
 }

@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rondo/core/models/consentimiento.dart';
 import 'package:rondo/core/models/contacto.dart';
+import 'package:rondo/core/models/ficha_medica.dart';
 import 'package:rondo/core/models/persona_a_cargo.dart';
 import 'package:rondo/core/models/tipo_cuenta.dart';
 import 'package:rondo/core/state/app_state.dart';
@@ -249,6 +251,98 @@ void main() {
       await deRosa.dejarDeCompartir(deRosa.vinculoCon(ana.celular)!);
       await pumpEventQueue();
       expect(andres.personasACargo.map((p) => p.id), everyElement(startsWith(PersonaACargo.prefijoEjemplo)));
+    });
+  });
+
+  group('ficha del QR', () {
+    late ServidorFalso servidor;
+    late AppState rosa;
+    late Vinculos deRosa;
+
+    FichaMedica ficha({List<String> alergias = const ['Penicilina']}) => FichaMedica(
+          tipoSangre: TipoSangre.oPositivo,
+          celularContactoEmergencia: '3001234567',
+          alergias: alergias,
+          fechaNacimiento: DateTime(1950, 3, 7),
+        );
+
+    setUp(() async {
+      servidor = ServidorFalso();
+      rosa = AppState()
+        ..iniciarSesion('3104567890')
+        ..guardarPerfil(nombre: 'Rosa Gómez', tipo: TipoCuenta.paraMi)
+        ..agregarContacto(const Contacto(nombre: 'Ana', celular: '3001234567', relacion: 'Hija'))
+        ..darConsentimiento(TipoConsentimiento.datosMedicos)
+        ..guardarFichaMedica(ficha())
+        ..activarRonda();
+      deRosa = Vinculos(servidor.celular('uid-rosa'), rosa);
+      await pumpEventQueue();
+    });
+
+    tearDown(() => deRosa.dispose());
+
+    Map<String, Object?>? enServidor(String token) => servidor.fichas[token]?.ficha?.datos;
+
+    test('se publica bajo el token del QR, lista para mostrar', () {
+      final datos = enServidor(rosa.codigoQr!.token)!;
+      expect(datos['nombre'], 'Rosa Gómez');
+      expect(datos['tipoSangre'], 'O+');
+      expect(datos['alergias'], ['Penicilina']);
+      expect(datos['fechaNacimiento'], '1950-03-07');
+      expect(datos['contacto'], {'nombre': 'Ana', 'relacion': 'Hija', 'celular': '3001234567'});
+      expect(datos['medicamentos'], isEmpty); // No marcó "mostrar medicamentos"
+      expect(servidor.fichas[rosa.codigoQr!.token]!.duenoUid, 'uid-rosa');
+    });
+
+    test('al editar la ficha se actualiza la del QR', () async {
+      rosa.guardarFichaMedica(ficha(alergias: ['Penicilina', 'Maní']));
+      await pumpEventQueue();
+
+      expect(enServidor(rosa.codigoQr!.token)!['alergias'], ['Penicilina', 'Maní']);
+    });
+
+    test('con un código nuevo, el anterior queda revocado', () async {
+      final viejo = rosa.codigoQr!.token;
+      rosa.regenerarCodigoQr();
+      await pumpEventQueue();
+
+      expect(servidor.fichas[viejo]!.ficha, isNull);
+      expect(enServidor(rosa.codigoQr!.token), isNotNull);
+    });
+
+    test('retirar el consentimiento revoca el QR', () async {
+      final token = rosa.codigoQr!.token;
+      rosa.retirarConsentimiento(TipoConsentimiento.datosMedicos);
+      await pumpEventQueue();
+
+      expect(servidor.fichas[token]!.ficha, isNull);
+    });
+
+    test('cerrar sesión revoca el QR', () async {
+      final token = rosa.codigoQr!.token;
+      rosa.cerrarSesion();
+      await pumpEventQueue();
+
+      expect(servidor.fichas[token]!.ficha, isNull);
+    });
+
+    test('la persona ve cuándo abrieron su ficha', () async {
+      expect(deRosa.consultasFicha, isEmpty);
+
+      servidor.abrirFicha(rosa.codigoQr!.token, DateTime(2026, 11, 10, 9));
+      servidor.abrirFicha(rosa.codigoQr!.token, DateTime(2026, 11, 10, 11));
+      await pumpEventQueue();
+
+      expect(deRosa.consultasFicha, [DateTime(2026, 11, 10, 11), DateTime(2026, 11, 10, 9)]);
+    });
+
+    test('una ficha revocada ya no se puede abrir', () async {
+      final viejo = rosa.codigoQr!.token;
+      rosa.regenerarCodigoQr();
+      await pumpEventQueue();
+
+      expect(() => servidor.abrirFicha(viejo, DateTime(2026)), throwsStateError);
+      expect(deRosa.consultasFicha, isEmpty); // Las del código nuevo: ninguna
     });
   });
 

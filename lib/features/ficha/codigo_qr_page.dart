@@ -6,6 +6,7 @@ import '../../core/models/codigo_qr.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
+import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/rondo_back_button.dart';
@@ -58,6 +59,8 @@ class CodigoQrPage extends StatelessWidget {
     final c = context.rondo;
     final t = Theme.of(context).textTheme;
     final codigo = context.watch<AppState>().codigoQr;
+    // No hay en web, Windows ni en pruebas: ahí la ficha no se publica.
+    final vinculos = context.watch<Vinculos?>();
 
     return Scaffold(
       body: BlobBackground(
@@ -110,23 +113,26 @@ class CodigoQrPage extends StatelessWidget {
                       ),
               ),
               const SizedBox(height: 12),
-              // Aviso mientras no exista el servidor (no es un error de la persona).
-              Glass(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline_rounded, size: 22, color: c.accent),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'El código todavía no se puede consultar. No lo imprimas aún.',
-                        style: t.bodyLarge,
+              if (vinculos != null)
+                _Consultas(vinculos.consultasFicha)
+              else
+                // Sin servidor (por ejemplo, en el computador) el QR no abre nada.
+                Glass(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline_rounded, size: 22, color: c.accent),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'En este dispositivo el código no se puede consultar. Ábrelo desde tu celular.',
+                          style: t.bodyLarge,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               const SizedBox(height: 22),
               if (codigo != null) ...[
                 SecondaryButton(
@@ -149,6 +155,48 @@ class CodigoQrPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// RF-25: cuándo abrieron la ficha con este código. Solo lo ve la persona.
+class _Consultas extends StatelessWidget {
+  const _Consultas(this.fechas);
+
+  /// De la más reciente a la más vieja.
+  final List<DateTime> fechas;
+
+  static const maximo = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Glass(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Quién ha visto tu ficha', style: t.titleMedium),
+          const SizedBox(height: 8),
+          if (fechas.isEmpty)
+            Text('Nadie ha abierto tu ficha con este código.', style: t.bodyLarge)
+          else ...[
+            Text(
+              fechas.length == 1 ? 'La abrieron 1 vez:' : 'La abrieron ${fechas.length} veces. Las últimas:',
+              style: t.bodyLarge,
+            ),
+            const SizedBox(height: 6),
+            for (final fecha in fechas.take(maximo))
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Text(
+                  '${diaRelativo(fecha)}, ${horaCorta(fecha)}',
+                  style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                ),
+              ),
+          ],
+        ],
       ),
     );
   }

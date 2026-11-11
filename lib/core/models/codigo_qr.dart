@@ -4,9 +4,9 @@ import 'dart:math';
 /// un enlace con un token aleatorio. Quien lo escanea abre la ficha en solo
 /// lectura, sin iniciar sesión.
 ///
-/// Por ahora el token solo existe en el celular. Cuando haya servidor, se sube
-/// junto con la ficha y la página pública lo valida (y registra cada consulta,
-/// RF-25).
+/// La app sube la ficha a Firestore bajo este token (`fichas/{token}`) y la
+/// página de `ficha_web/` (Firebase Hosting) la muestra y registra cada
+/// consulta (RF-25).
 class CodigoQr {
   const CodigoQr({required this.token, required this.creadoEn});
 
@@ -23,9 +23,8 @@ class CodigoQr {
   /// 16 bytes = 128 bits.
   static const bytesToken = 16;
 
-  /// PROVISIONAL: el dominio `.example` está reservado y nunca abre nada.
-  /// Cambiarlo por el del servidor cuando exista.
-  static const urlBase = 'https://ficha.rondo.example';
+  /// Firebase Hosting del proyecto rondo-fb405 (ver `firebase.json`).
+  static const urlBase = 'https://rondo-fb405.web.app';
 
   static const errorGenerar = 'No se pudo generar el código QR. Intenta de nuevo.';
   static const errorRegenerar = 'No se pudo regenerar el código. Intenta de nuevo.';

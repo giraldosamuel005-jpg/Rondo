@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <title>Ficha médica · Rondó</title>
+  <link rel="stylesheet" href="/ficha.css">
+  <script src="/ficha.js" defer></script>
+</head>
+<body>
+  <main>
+    <p class="marca">Rondó · Ficha médica de emergencia</p>
+
+    <!-- Mientras carga -->
+    <section id="cargando" class="aviso">
+      <p>Cargando la ficha…</p>
+    </section>
+
+    <!-- No se pudo mostrar: código malo, revocado o sin internet -->
+    <section id="error" class="aviso" hidden>
+      <h1 id="error-titulo"></h1>
+      <p id="error-detalle"></p>
+      <button id="reintentar" type="button" hidden>Intentar otra vez</button>
+    </section>
+
+    <!-- La ficha -->
+    <article id="ficha" hidden>
+      <header class="tarjeta">
+        <p class="etiqueta">Ficha médica de</p>
+        <h1 id="nombre"></h1>
+        <p id="edad" class="secundario" hidden></p>
+      </header>
+
+      <section class="tarjeta sangre">
+        <div id="sangre" class="sangre-valor"></div>
+        <h2>Tipo de sangre</h2>
+      </section>
+
+      <section class="tarjeta">
+        <h2>Alergias</h2>
+        <ul id="alergias" class="etiquetas"></ul>
+        <p id="sin-alergias" hidden>Sin alergias conocidas.</p>
+      </section>
+
+      <section id="bloque-enfermedades" class="tarjeta" hidden>
+        <h2>Enfermedades</h2>
+        <ul id="enfermedades" class="etiquetas"></ul>
+      </section>
+
+      <section id="bloque-medicamentos" class="tarjeta" hidden>
+        <h2>Medicamentos</h2>
+        <ul id="medicamentos" class="lista"></ul>
+      </section>
+
+      <section id="bloque-notas" class="tarjeta" hidden>
+        <h2>Notas</h2>
+        <p id="notas" class="notas"></p>
+      </section>
+
+      <section class="tarjeta">
+        <h2>Contacto de emergencia</h2>
+        <div id="contacto" hidden>
+          <p id="contacto-nombre" class="contacto-nombre"></p>
+          <p id="contacto-detalle" class="secundario"></p>
+          <a id="contacto-llamar" class="boton"></a>
+        </div>
+        <p id="sin-contacto" hidden>No registró un contacto de emergencia.</p>
+      </section>
+
+      <p class="pie">Solo lectura. Estos datos los escribió la persona; no reemplazan una valoración médica.</p>
+    </article>
+
+    <a class="boton boton-123" href="tel:123">Llamar al 123 (emergencias)</a>
+  </main>
+</body>
+</html>

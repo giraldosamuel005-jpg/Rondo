@@ -50,3 +50,7 @@ app.*.map.json
 
 # AI assistant context (local only)
 GEMINI.md
+
+# Caché de la herramienta de Firebase (firebase deploy)
+.firebase/
+firebase-debug.log

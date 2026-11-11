@@ -1,3 +1,4 @@
+import 'ficha_publica.dart';
 import 'vinculo.dart';
 
 /// Un error para mostrarle a la persona tal cual.
@@ -54,4 +55,16 @@ abstract interface class ServicioVinculos {
 
   /// `null` borra lo publicado.
   Future<void> publicarEstado(String personaUid, EstadoCompartido? estado);
+
+  // ---------- Ficha médica del QR (RF-24, RF-25) ----------
+
+  /// Crea o actualiza la ficha que se ve al escanear el QR con ese token.
+  Future<void> publicarFicha(String personaUid, String token, FichaPublica ficha);
+
+  /// El QR de ese token deja de mostrar la ficha y dice "revocado". No tiene
+  /// vuelta atrás: para volver a compartir se crea un token nuevo.
+  Future<void> revocarFicha(String personaUid, String token);
+
+  /// Cuándo abrieron la ficha de ese token, de la más reciente a la más vieja.
+  Stream<List<DateTime>> consultasDe(String token);
 }

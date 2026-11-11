@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:rondo/core/vinculos/ficha_publica.dart';
 import 'package:rondo/core/vinculos/servicio_vinculos.dart';
 import 'package:rondo/core/vinculos/vinculo.dart';
 
@@ -12,6 +13,18 @@ class ServidorFalso {
   final Map<String, Invitacion> invitaciones = {};
   final Map<String, Vinculo> vinculos = {};
   final Map<String, EstadoCompartido> estados = {};
+
+  /// fichas/{token}: el dueño y la ficha, o `null` si está revocada.
+  final Map<String, ({String duenoUid, FichaPublica? ficha})> fichas = {};
+  final Map<String, List<DateTime>> consultas = {};
+
+  /// Lo que haría la página web al abrir el QR.
+  void abrirFicha(String token, DateTime en) {
+    final f = fichas[token];
+    if (f == null || f.ficha == null) throw StateError('permission-denied');
+    (consultas[token] ??= []).add(en);
+    _avisar();
+  }
   final _cambios = StreamController<void>.broadcast();
 
   /// Si es `true`, todo falla como sin internet.
@@ -142,6 +155,32 @@ class ServicioFalso implements ServicioVinculos {
     }
     _servidor._avisar();
   }
+
+  @override
+  Future<void> publicarFicha(String personaUid, String token, FichaPublica ficha) async {
+    _red();
+    final actual = _servidor.fichas[token];
+    if (personaUid != _uid || (actual != null && (actual.duenoUid != _uid || actual.ficha == null))) {
+      throw StateError('permission-denied');
+    }
+    _servidor.fichas[token] = (duenoUid: _uid, ficha: ficha);
+    _servidor._avisar();
+  }
+
+  @override
+  Future<void> revocarFicha(String personaUid, String token) async {
+    _red();
+    final actual = _servidor.fichas[token];
+    if (personaUid != _uid || (actual != null && actual.duenoUid != _uid)) throw StateError('permission-denied');
+    _servidor.fichas[token] = (duenoUid: _uid, ficha: null);
+    _servidor._avisar();
+  }
+
+  @override
+  Stream<List<DateTime>> consultasDe(String token) => _vigilar(() {
+        if (_servidor.fichas[token]?.duenoUid != _uid) throw StateError('permission-denied');
+        return [...?_servidor.consultas[token]]..sort((a, b) => b.compareTo(a));
+      });
 
   static Invitacion _con(Invitacion i, EstadoInvitacion estado, {String? cuidadorUid}) => Invitacion(
         codigo: i.codigo,

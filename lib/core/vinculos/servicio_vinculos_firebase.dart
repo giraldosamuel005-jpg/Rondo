@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../persistencia/serializacion.dart' show enumPorNombre;
+import 'ficha_publica.dart';
 import 'servicio_vinculos.dart';
 import 'vinculo.dart';
 
@@ -15,6 +16,8 @@ import 'vinculo.dart';
 /// - `invitaciones/{codigo}`
 /// - `vinculos/{personaUid}_{cuidadorUid}`
 /// - `personas/{uid}`: lo que la persona comparte con sus cuidadores.
+/// - `fichas/{token}`: la ficha médica pública del QR, y en `consultas` cada
+///   vez que alguien la abrió.
 class ServicioVinculosFirebase implements ServicioVinculos {
   ServicioVinculosFirebase({FirebaseAuth? auth, FirebaseFirestore? db})
       : _auth = auth ?? FirebaseAuth.instance,
@@ -142,6 +145,39 @@ class ServicioVinculosFirebase implements ServicioVinculos {
       'actualizadoEn': FieldValue.serverTimestamp(),
     });
   }
+
+  // ---------- Ficha médica del QR ----------
+  // Un `set` normal y no una transacción: sin internet queda en cola y se
+  // envía solo cuando vuelva la señal.
+
+  CollectionReference<Map<String, dynamic>> get _fichas => _db.collection('fichas');
+
+  @override
+  Future<void> publicarFicha(String personaUid, String token, FichaPublica ficha) => _fichas.doc(token).set({
+        ...ficha.datos,
+        'duenoUid': personaUid,
+        'actualizadoEn': FieldValue.serverTimestamp(),
+      });
+
+  /// Se reemplaza por un documento sin datos médicos que solo dice "revocada".
+  @override
+  Future<void> revocarFicha(String personaUid, String token) => _fichas.doc(token).set({
+        'duenoUid': personaUid,
+        'revocada': true,
+        'actualizadoEn': FieldValue.serverTimestamp(),
+      });
+
+  @override
+  Stream<List<DateTime>> consultasDe(String token) => _fichas
+      .doc(token)
+      .collection('consultas')
+      .orderBy('en', descending: true)
+      .limit(20)
+      .snapshots()
+      .map((q) => [
+            for (final d in q.docs)
+              if (d.data()['en'] case final Timestamp en) en.toDate(),
+          ]);
 
   // ---------- Mapas de Firestore ----------
 

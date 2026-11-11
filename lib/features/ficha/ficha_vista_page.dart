@@ -10,8 +10,8 @@ import '../../core/widgets/glass.dart';
 import '../../core/widgets/rondo_back_button.dart';
 
 /// Vista previa de la ficha médica en solo lectura: lo que verá quien escanee
-/// el QR (RF-24). La página real vivirá en el servidor; esta muestra a la
-/// persona qué datos suyos quedan a la vista.
+/// el QR (RF-24). La página real es `ficha_web/` (Firebase Hosting); esta le
+/// muestra a la persona qué datos suyos quedan a la vista.
 class FichaVistaPage extends StatelessWidget {
   const FichaVistaPage({super.key});
 

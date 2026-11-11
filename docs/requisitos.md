@@ -303,6 +303,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se pudo generar el código QR. Intenta de nuevo."
   - "Este código QR no es válido."
   - "Este enlace fue revocado por su dueño."
+- **Cómo está hecho (2026-11-10):** El QR abre `https://rondo-fb405.web.app/f/{token}`, una página web de Firebase Hosting (carpeta `ficha_web/`) que se ve en cualquier celular sin instalar nada. La app sube la ficha ya armada a Firestore en `fichas/{token}` y la mantiene al día cuando cambia. Las reglas dejan leer una ficha a quien tenga su token, pero no listarlas. La página tiene botones para llamar al contacto de emergencia y al 123. Error añadido: "No pudimos cargar la ficha." (sin internet), con botón para intentar otra vez.
 
 #### RF-25 — Revocar y regenerar el token del QR, y registrar cada consulta (visible solo para el dueño)
 - **Cómo funciona:** Revocar invalida el token y el QR viejo deja de funcionar. Regenerar crea uno nuevo. Cada vez que alguien abre la ficha se guarda un registro que solo ve el dueño.
@@ -314,6 +315,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se pudo regenerar el código. Intenta de nuevo."
   - "No se pudo cargar el historial de consultas."
   - "El código anterior ya no es válido."
+- **Cómo está hecho (2026-11-10):** Crear un código nuevo, retirar el consentimiento de datos médicos o cerrar sesión deja la ficha del token anterior como revocada: se borran sus datos y la página muestra "Este enlace fue revocado por su dueño.". Cada vez que la página muestra la ficha guarda la fecha en `fichas/{token}/consultas`, y la persona ve las últimas en la pantalla de su código QR. Por ahora no se guarda el origen de la consulta.
 
 ---
 
@@ -428,3 +430,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-10-25 | Alcance | **Fuera de alcance:** accidentes de tránsito (RF-08), microsueños (RF-11), geocercas (RF-18), modo "Acompáñame" (RF-19, RF-33) y cancelar la alerta con PIN, huella o voz (RF-14 queda solo con botón). Desaparecen los perfiles Conductor y Persona en ruta de riesgo. RF-09 ya no descarta frenazos y RF-30 ya no pide consentimiento de cámara. RF-07 (desmayo/inactividad) sigue en duda. |
 | 2026-11-05 | RF-23 | Se agregan a la ficha, como opcionales, enfermedades, fecha de nacimiento, notas y la opción de mostrar los medicamentos de RF-20. |
 | 2026-11-09 | RF-05 / RF-27 | La invitación se envía con un código que el cuidador escribe en la app, y se agregan los errores de código inválido, invitación vencida para el cuidador e invitación propia. |
+| 2026-11-10 | RF-24 / RF-25 | La ficha del QR se consulta en una página web pública. Cerrar sesión o retirar el consentimiento también revocan el QR, y se agrega el error "No pudimos cargar la ficha.". |
