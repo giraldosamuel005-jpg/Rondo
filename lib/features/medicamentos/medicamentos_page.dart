@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/medicamento.dart';
+import '../../core/recordatorios/recordatorios.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
 import '../../core/widgets/blob_background.dart';
+import '../../core/widgets/error_banner.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/rondo_back_button.dart';
@@ -16,6 +18,15 @@ import 'medicamento_form_page.dart';
 /// quedan; al tocar uno se registra la toma.
 class MedicamentosPage extends StatelessWidget {
   const MedicamentosPage({super.key});
+
+  /// Nombre de la ruta: con él se sabe si esta pantalla ya está a la vista.
+  static const ruta = 'medicamentos';
+
+  /// La ruta para abrirla. Úsala siempre, así lleva el nombre.
+  static Route<void> abrir() => MaterialPageRoute(
+        settings: const RouteSettings(name: ruta),
+        builder: (_) => const MedicamentosPage(),
+      );
 
   void _agregar(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MedicamentoFormPage()));
@@ -34,6 +45,8 @@ class MedicamentosPage extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final estado = context.watch<AppState>();
     final medicamentos = estado.medicamentos;
+    // No hay en web, Windows ni en pruebas: ahí no se programan avisos.
+    final recordatorios = context.watch<Recordatorios?>();
     final ahora = DateTime.now();
     final abajo = MediaQuery.paddingOf(context).bottom;
 
@@ -50,10 +63,29 @@ class MedicamentosPage extends StatelessWidget {
               Text('Medicamentos', style: t.headlineLarge),
               const SizedBox(height: 8),
               Text(
-                'Toca uno para marcar tu toma. Te decimos cuántos días te quedan.',
+                recordatorios == null
+                    ? 'Toca uno para marcar tu toma. Te decimos cuántos días te quedan.'
+                    : 'Te avisamos a la hora de cada toma. Toca uno para marcarla.',
                 style: t.bodyMedium!.copyWith(fontSize: 16),
               ),
               const SizedBox(height: 22),
+
+              // RF-22: si los avisos no van a sonar, se dice aquí.
+              if (recordatorios?.aviso != null) ...[
+                ErrorBanner(
+                  title: recordatorios!.aviso!,
+                  message: 'Sin ellos no te podemos avisar a la hora de cada toma.',
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: recordatorios.pedirPermiso,
+                    icon: const Icon(Icons.notifications_active_outlined, size: 20),
+                    label: const Text('Activar notificaciones'),
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ],
 
               if (estado.cumplimiento != null) ...[
                 _Cumplimiento(porcentaje: estado.cumplimiento!, tomas: estado.tomas.length,

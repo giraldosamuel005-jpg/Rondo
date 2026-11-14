@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/deteccion/detector_caidas.dart';
 import '../../core/deteccion/vigilante_caidas.dart';
+import '../../core/recordatorios/recordatorios.dart';
 import '../../core/state/app_state.dart';
 import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/glass_tab_bar.dart';
@@ -15,6 +16,7 @@ import '../cuidador/alertas_tab.dart';
 import '../cuidador/personas_tab.dart';
 import '../history/history_tab.dart';
 import '../home/home_page.dart';
+import '../medicamentos/medicamentos_page.dart';
 import '../settings/settings_tab.dart';
 
 /// Contenedor principal de la app después del registro:
@@ -68,19 +70,44 @@ class _MainShellState extends State<MainShell> {
   StreamSubscription<CaidaDetectada>? _caidas;
   bool _alertaDeCaidaAbierta = false;
 
+  /// Persona: tocó un aviso de toma de medicamento (RF-22).
+  StreamSubscription<String>? _avisosDeToma;
+
   @override
   void initState() {
     super.initState();
     // Sin servidor (web, Windows, pruebas) no hay Vinculos y no llega nada.
     _alertas = context.read<Vinculos?>()?.alertasNuevas.listen(_abrirAlerta);
     _caidas = context.read<VigilanteCaidas?>()?.caidas.listen(_abrirAlertaDeCaida);
+
+    // RF-22: al tocar un aviso de toma se abre la pantalla de medicamentos.
+    final recordatorios = context.read<Recordatorios?>();
+    _avisosDeToma = recordatorios?.tocados.listen((_) => _abrirMedicamentos());
+    // Si la app estaba cerrada y se abrió tocando el aviso.
+    if (recordatorios?.tomarAbiertaDesde() != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _abrirMedicamentos());
+    }
   }
 
   @override
   void dispose() {
     _alertas?.cancel();
     _caidas?.cancel();
+    _avisosDeToma?.cancel();
     super.dispose();
+  }
+
+  void _abrirMedicamentos() {
+    if (!mounted || !context.read<AppState>().usaFichaMedica) return;
+    final navegador = Navigator.of(context);
+    // Si ya está a la vista (la abrió desde Inicio), no se abre otra encima.
+    String? arriba;
+    navegador.popUntil((ruta) {
+      arriba = ruta.settings.name;
+      return true; // No cierra nada: solo mira cuál está arriba
+    });
+    if (arriba == MedicamentosPage.ruta) return;
+    navegador.push(MedicamentosPage.abrir());
   }
 
   /// RF-13: la cuenta regresiva a pantalla completa.

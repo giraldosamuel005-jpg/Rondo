@@ -8,6 +8,7 @@ import 'core/alertas/aviso_alerta.dart';
 import 'core/deteccion/vigilante_caidas.dart';
 import 'core/permisos/vigilante_permisos.dart';
 import 'core/persistencia/almacen_local.dart';
+import 'core/recordatorios/recordatorios.dart';
 import 'core/state/app_state.dart';
 import 'core/theme/rondo_theme.dart';
 import 'core/vinculos/servicio_vinculos_firebase.dart';
@@ -44,6 +45,9 @@ Future<void> main() async {
             lazy: false,
             create: (_) => VigilanteCaidas(estado, const SensoresDelCelular()),
           ),
+        // Avisos de toma de medicamentos (RF-22).
+        if (conFirebase)
+          ChangeNotifierProvider(lazy: false, create: (_) => Recordatorios(estado, ProgramadorAndroid())),
         // Alerta real: GPS + SMS + servidor (RF-15 a RF-17). Sin esto, la
         // alerta solo queda en el Historial (en web, Windows y pruebas).
         if (conFirebase)

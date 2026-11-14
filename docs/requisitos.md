@@ -295,6 +295,10 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - "No se pudo programar la alarma. Activa los permisos de notificaciones."
   - "No se pudo guardar el registro de la toma. Intenta de nuevo."
+- **Cómo está hecho (2026-11-13):** A la hora de cada toma el celular muestra una notificación con sonido ("Hora de tu medicamento"), aunque la app esté cerrada o no haya internet. Al tocarla se abre la pantalla de medicamentos, donde la persona marca "Tomé mi dosis" o "No la tomé". Detalles:
+  - **Qué se programa:** las tomas de los próximos 7 días, y se vuelve a programar cada vez que cambian los medicamentos, se registra una toma o se abre la app. Una toma ya registrada no suena.
+  - **Permiso:** al agregar el primer medicamento, Android pide el permiso de notificaciones. Si la persona dice que no, la pantalla de medicamentos muestra el error de arriba con un botón "Activar notificaciones".
+  - **Límite:** la toma no se puede registrar desde la notificación; hay que abrir la app.
 
 #### RF-23 — Crear una ficha médica con alergias, tipo de sangre y contacto de emergencia
 - **Cómo funciona:** El usuario llena un formulario con sus datos médicos básicos. La ficha se guarda en el servidor y solo el dueño puede editarla.
@@ -451,3 +455,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-11-10 | RF-24 / RF-25 | La ficha del QR se consulta en una página web pública. Cerrar sesión o retirar el consentimiento también revocan el QR, y se agrega el error "No pudimos cargar la ficha.". |
 | 2026-11-10 | RF-15 / RF-16 / RF-17 / RF-26 | Las alertas son reales: SMS automático a los contactos con la ubicación, y la alerta llega en Rondó a los cuidadores vinculados (sin push por ahora). Se agrega el permiso de SMS, con el aviso "Desactivaste el permiso de SMS. Si hay una alerta, solo les llegará a tus cuidadores con Rondó.". |
 | 2026-11-13 | RF-06 / RF-09 / RF-10 | La detección de caídas es real, con la app abierta. Se fijan los umbrales iniciales, los tres motivos de descarte y una espera de 60 s entre alertas. El error del ajuste de sensibilidad de RF-09 queda sin uso. |
+| 2026-11-13 | RF-22 | La alarma de toma es una notificación del celular que suena a la hora aunque la app esté cerrada. Se programan 7 días y la toma se registra abriendo la app. |

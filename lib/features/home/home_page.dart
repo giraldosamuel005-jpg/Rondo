@@ -408,9 +408,7 @@ class _TarjetaMedicamentos extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const MedicamentosPage()),
-          ),
+          onTap: () => Navigator.of(context).push(MedicamentosPage.abrir()),
           customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
