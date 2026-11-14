@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/deteccion/detector_caidas.dart';
+import '../../core/deteccion/vigilante_caidas.dart';
 import '../../core/state/app_state.dart';
 import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/glass_tab_bar.dart';
+import '../alert/fall_alert_page.dart';
 import '../contacts/contacts_tab.dart';
 import '../cuidador/alerta_entrante_page.dart';
 import '../cuidador/alertas_tab.dart';
@@ -61,17 +64,36 @@ class _MainShellState extends State<MainShell> {
 
   void _irA(int pestana) => setState(() => _actual = pestana);
 
+  /// Persona: posibles caídas detectadas por los sensores (RF-06).
+  StreamSubscription<CaidaDetectada>? _caidas;
+  bool _alertaDeCaidaAbierta = false;
+
   @override
   void initState() {
     super.initState();
     // Sin servidor (web, Windows, pruebas) no hay Vinculos y no llega nada.
     _alertas = context.read<Vinculos?>()?.alertasNuevas.listen(_abrirAlerta);
+    _caidas = context.read<VigilanteCaidas?>()?.caidas.listen(_abrirAlertaDeCaida);
   }
 
   @override
   void dispose() {
     _alertas?.cancel();
+    _caidas?.cancel();
     super.dispose();
+  }
+
+  /// RF-13: la cuenta regresiva a pantalla completa.
+  Future<void> _abrirAlertaDeCaida(CaidaDetectada caida) async {
+    if (!mounted || _alertaDeCaidaAbierta) return;
+    _alertaDeCaidaAbierta = true;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => FallAlertPage(detectadaA: caida.fecha),
+      ),
+    );
+    _alertaDeCaidaAbierta = false;
   }
 
   Future<void> _abrirAlerta(String personaId) async {

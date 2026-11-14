@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'core/alertas/aviso_alerta.dart';
+import 'core/deteccion/vigilante_caidas.dart';
 import 'core/permisos/vigilante_permisos.dart';
 import 'core/persistencia/almacen_local.dart';
 import 'core/state/app_state.dart';
@@ -20,7 +21,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Firebase (proyecto rondo-fb405) solo está configurado para Android. En
-  // otras plataformas la app abre igual, sin vincular cuidadores.
+  // otras plataformas la app abre igual, sin vincular cuidadores, sin alertas
+  // reales y sin detección de caídas.
   final conFirebase = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
   if (conFirebase) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -35,6 +37,13 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: estado),
         // Cuidador ↔ persona (RF-05, RF-26, RF-27).
         if (conFirebase) ChangeNotifierProvider(create: (_) => Vinculos(ServicioVinculosFirebase(), estado)),
+        // Detección de caídas con los sensores (RF-06, RF-09, RF-10). Arranca
+        // de una (lazy: false), no cuando una pantalla lo pida.
+        if (conFirebase)
+          ChangeNotifierProvider(
+            lazy: false,
+            create: (_) => VigilanteCaidas(estado, const SensoresDelCelular()),
+          ),
         // Alerta real: GPS + SMS + servidor (RF-15 a RF-17). Sin esto, la
         // alerta solo queda en el Historial (en web, Windows y pruebas).
         if (conFirebase)

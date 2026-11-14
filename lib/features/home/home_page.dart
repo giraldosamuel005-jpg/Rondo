@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/deteccion/vigilante_caidas.dart';
 import '../../core/models/contacto.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
@@ -60,6 +61,8 @@ class HomePage extends StatelessWidget {
     final cuantos = contactos.length;
     final activaDesde = estado.rondaActivaDesde ?? DateTime.now();
     final ultimoEstoyBien = estado.ultimoEstoyBien;
+    // No hay en web, Windows ni en pruebas: ahí no se detectan caídas.
+    final vigilante = context.watch<VigilanteCaidas?>();
 
     return BlobBackground(
       blobs: BlobBackground.inicio,
@@ -117,6 +120,10 @@ class HomePage extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: t.bodyMedium,
                   ),
+                  if (!enPausa && vigilante != null) ...[
+                    const SizedBox(height: 12),
+                    _EstadoDeteccion(vigilante),
+                  ],
                 ],
               ),
             ),
@@ -190,6 +197,47 @@ class HomePage extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// RF-06 / RF-32: dice si la detección de caídas está funcionando, o por qué
+/// no, en vez de fallar en silencio.
+class _EstadoDeteccion extends StatelessWidget {
+  const _EstadoDeteccion(this.vigilante);
+
+  final VigilanteCaidas vigilante;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.rondo;
+    final t = Theme.of(context).textTheme;
+    final aviso = vigilante.aviso;
+
+    return Semantics(
+      liveRegion: aviso != null,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            aviso == null ? Icons.sensors_rounded : Icons.sensors_off_rounded,
+            size: 18,
+            color: aviso == null ? c.accent : c.errorText,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              aviso ?? 'Detección de caídas activa',
+              textAlign: aviso == null ? TextAlign.start : TextAlign.center,
+              style: t.labelLarge!.copyWith(
+                fontWeight: FontWeight.w400,
+                color: aviso == null ? null : c.errorText,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

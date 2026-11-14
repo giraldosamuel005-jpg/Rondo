@@ -97,6 +97,9 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - "Activa el permiso de sensores de movimiento para usar la detección de caídas."
   - "No pudimos acceder a los sensores del celular. La detección de caídas está desactivada."
+- **Cómo está hecho (2026-11-13):** Con la ronda activa y el permiso de sensores encendido, la app lee el acelerómetro y el giroscopio unas 50 veces por segundo. Una caída es un golpe de 2,5 g o más seguido de 2,5 s casi sin movimiento (se dejan pasar 1 s de rebotes). Cuando la detecta abre sola la alerta de RF-13. Inicio muestra "Detección de caídas activa", o el error si falta el permiso o fallan los sensores. Dos límites:
+  - **Solo funciona con la app abierta.** Con la app cerrada Android corta los sensores; falta un servicio en segundo plano.
+  - **Los umbrales son valores típicos, no medidos.** Falta ajustarlos con caídas reales, como pide este requisito.
 
 #### RF-07 — Detectar inactividad prolongada (posible desmayo sin impacto)
 - **Cómo funciona:** Si el celular no registra movimiento durante un tiempo prolongado en un momento en que normalmente se movería, se considera un posible desmayo y se inicia la alerta.
@@ -126,6 +129,12 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - Proceso interno, no muestra mensaje al usuario.
   - "No se pudo guardar el ajuste de sensibilidad."
+- **Cómo está hecho (2026-11-13):** Un golpe no termina en alerta en tres casos, y cada descarte queda en un registro interno con su motivo:
+  - **Siguió el movimiento:** después del golpe el celular se mueve (lo recogieron, o la persona siguió andando).
+  - **Ejercicio:** hubo 3 o más sacudidas de 1,8 g en los 4 s anteriores (trotar, saltar).
+  - **Confianza baja:** la confianza no llega a 0,6. Se calcula con la quietud (45 %), la fuerza del golpe (25 %) y el cambio de postura del celular (30 %).
+
+  No hay ajuste de sensibilidad: ningún requisito lo define, así que el error de arriba no se usa.
 
 #### RF-10 — Aplicar un cooldown por tipo de evento para no repetir alertas
 - **Cómo funciona:** Después de un evento de un tipo, se ignoran nuevos eventos del mismo tipo durante un tiempo de espera, para no generar alertas repetidas.
@@ -135,6 +144,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - tiempo de espera: `int` (segundos)
 - **Errores:**
   - Proceso interno, no muestra mensaje al usuario. El evento omitido queda en el registro interno.
+- **Cómo está hecho (2026-11-13):** Después de una alerta de caída, las caídas detectadas en los 60 s siguientes no abren otra alerta y quedan en el registro interno. Por ahora el único tipo de evento es la caída.
 
 #### RF-11 — Detectar microsueños del conductor con la cámara durante el viaje
 > ⛔ **Fuera de alcance** (decisión del 2026-10-25). Se conserva solo como referencia; no se implementa.
@@ -440,3 +450,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-11-09 | RF-05 / RF-27 | La invitación se envía con un código que el cuidador escribe en la app, y se agregan los errores de código inválido, invitación vencida para el cuidador e invitación propia. |
 | 2026-11-10 | RF-24 / RF-25 | La ficha del QR se consulta en una página web pública. Cerrar sesión o retirar el consentimiento también revocan el QR, y se agrega el error "No pudimos cargar la ficha.". |
 | 2026-11-10 | RF-15 / RF-16 / RF-17 / RF-26 | Las alertas son reales: SMS automático a los contactos con la ubicación, y la alerta llega en Rondó a los cuidadores vinculados (sin push por ahora). Se agrega el permiso de SMS, con el aviso "Desactivaste el permiso de SMS. Si hay una alerta, solo les llegará a tus cuidadores con Rondó.". |
+| 2026-11-13 | RF-06 / RF-09 / RF-10 | La detección de caídas es real, con la app abierta. Se fijan los umbrales iniciales, los tres motivos de descarte y una espera de 60 s entre alertas. El error del ajuste de sensibilidad de RF-09 queda sin uso. |
