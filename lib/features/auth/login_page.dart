@@ -5,6 +5,7 @@ import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/glass_field.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/rondo_logo.dart';
 import '../../core/widgets/secondary_button.dart';
 import 'code_page.dart';
 
@@ -82,30 +83,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 64),
 
                       // ---------- Logo y nombre ----------
-                      Center(
-                        child: Container(
-                          width: 104,
-                          height: 104,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(34),
-                            boxShadow: [
-                              BoxShadow(
-                                color: c.glassShadow,
-                                blurRadius: 32,
-                                offset: const Offset(0, 12),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(34),
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                              fit: BoxFit.cover,
-                              semanticLabel: 'Logo de Rondó',
-                            ),
-                          ),
-                        ),
-                      ),
+                      const Center(child: RondoLogo()),
                       const SizedBox(height: 20),
                       Text('Rondó', textAlign: TextAlign.center, style: t.displayLarge),
                       const SizedBox(height: 6),

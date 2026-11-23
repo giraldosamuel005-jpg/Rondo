@@ -76,6 +76,12 @@ class AppState extends ChangeNotifier {
   ThemeMode _modoTema = ThemeMode.system;
   bool _vidrioReducido = false;
 
+  // RF-02: reingresar con la huella. Es una preferencia de esta cuenta en este
+  // celular: se borra al cerrar sesión. La app no guarda la huella, solo si
+  // la persona eligió usarla.
+  bool _huellaActivada = false;
+  bool _huellaOfrecida = false;
+
   // ---------- Lectura (las pantallas leen por aquí) ----------
 
   /// Ya terminó el registro: al abrir la app va a Inicio. Quien se cuida
@@ -461,7 +467,25 @@ class AppState extends ChangeNotifier {
 
   /// Ajustes → Apariencia → "Vidrio reducido": vidrio sin desenfoque
   /// (más fluido y gasta menos batería en celulares lentos).
+  /// Al abrir la app se pide la huella antes de mostrar nada (RF-02).
+  bool get huellaActivada => _huellaActivada;
+
+  /// Ya se le ofreció activar la huella (se ofrece una sola vez).
+  bool get huellaOfrecida => _huellaOfrecida;
+
   bool get vidrioReducido => _vidrioReducido;
+  void cambiarHuellaActivada(bool valor) {
+    _huellaActivada = valor;
+    notifyListeners();
+  }
+
+  /// Se llama al mostrar la oferta, la acepte o no.
+  void marcarHuellaOfrecida() {
+    if (_huellaOfrecida) return;
+    _huellaOfrecida = true;
+    notifyListeners();
+  }
+
   void cambiarVidrioReducido(bool valor) {
     _vidrioReducido = valor;
     notifyListeners();
@@ -487,6 +511,8 @@ class AppState extends ChangeNotifier {
     _rondaActivaDesde = null;
     _rondaEnPausa = false;
     _eventos.clear();
+    _huellaActivada = false;
+    _huellaOfrecida = false;
     notifyListeners();
   }
 
@@ -534,6 +560,8 @@ class AppState extends ChangeNotifier {
     'eventos': [for (final e in _eventos) eventoAJson(e)],
     'modoTema': _modoTema.name,
     'vidrioReducido': _vidrioReducido,
+    'huellaActivada': _huellaActivada,
+    'huellaOfrecida': _huellaOfrecida,
   };
 
   void _cargarDesde(Map<String, Object?> j, Map<String, Object?>? ficha) {
@@ -562,6 +590,8 @@ class AppState extends ChangeNotifier {
     _modoTema =
         enumPorNombre(ThemeMode.values, j['modoTema']) ?? ThemeMode.system;
     _vidrioReducido = j['vidrioReducido'] as bool? ?? false;
+    _huellaActivada = j['huellaActivada'] as bool? ?? false;
+    _huellaOfrecida = j['huellaOfrecida'] as bool? ?? false;
     // La ficha solo se carga si sigue el consentimiento de datos médicos.
     if (ficha != null && tieneConsentimiento(TipoConsentimiento.datosMedicos)) {
       _fichaMedica = fichaDeJson(ficha);

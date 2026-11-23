@@ -14,6 +14,7 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/rondo_back_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../onboarding/profile_page.dart';
+import '../shell/main_shell.dart';
 
 /// 04 · Código (RF-01): la persona escribe el código de 4 dígitos.
 class CodePage extends StatefulWidget {
@@ -70,7 +71,17 @@ class _CodePageState extends State<CodePage> {
     if (_codigoController.text == _codigoDePrueba) {
       // Reemplaza esta pantalla por el registro: "atrás" vuelve a Entrar,
       // no a escribir el código otra vez.
-      context.read<AppState>().iniciarSesion(widget.celular);
+      final estado = context.read<AppState>();
+      estado.iniciarSesion(widget.celular);
+      // Quien ya terminó su registro (entra con el código porque no pudo con
+      // la huella, RF-02) va directo a Inicio, sin repetir el registro.
+      if (estado.registroCompleto) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+          (_) => false,
+        );
+        return;
+      }
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const ProfilePage()),
       );

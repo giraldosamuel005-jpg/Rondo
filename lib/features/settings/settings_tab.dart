@@ -16,6 +16,7 @@ import '../alert/fall_alert_page.dart';
 import '../auth/login_page.dart';
 import '../cuidador/alerta_entrante_page.dart';
 import '../ficha/ficha_medica_card.dart';
+import 'huella.dart';
 
 /// Pestaña Ajustes: perfil, ficha médica (RF-23), apariencia, permisos (RF-31),
 /// aviso del 123 (RF-34) y cerrar sesión.
@@ -156,6 +157,22 @@ class SettingsTab extends StatelessWidget {
           onChanged: (valor) {
             RondoPerf.reducir.value = valor;
             estado.cambiarVidrioReducido(valor);
+          },
+        ),
+        const SizedBox(height: 22),
+
+        // ---------- Seguridad (RF-02): reingresar con la huella ----------
+        const SectionLabel('Seguridad'),
+        CheckCard(
+          title: 'Entrar con huella',
+          detail: 'Al abrir Rondó te pedimos tu huella en vez de un código. Si no funciona, entras con tu código SMS.',
+          value: estado.huellaActivada,
+          onChanged: (valor) {
+            if (valor) {
+              activarHuella(context);
+            } else {
+              estado.cambiarHuellaActivada(false);
+            }
           },
         ),
         const SizedBox(height: 22),

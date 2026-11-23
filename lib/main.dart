@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'core/alertas/aviso_alerta.dart';
+import 'core/biometria/servicio_biometria.dart';
 import 'core/deteccion/vigilante_caidas.dart';
 import 'core/permisos/vigilante_permisos.dart';
 import 'core/persistencia/almacen_local.dart';
@@ -14,6 +15,7 @@ import 'core/theme/rondo_theme.dart';
 import 'core/widgets/glass.dart';
 import 'core/vinculos/servicio_vinculos_firebase.dart';
 import 'core/vinculos/vinculos.dart';
+import 'features/auth/bloqueo_page.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/main_shell.dart';
 import 'firebase_options.dart';
@@ -38,6 +40,8 @@ Future<void> main() async {
       providers: [
         // UN solo AppState para todas las pantallas, ya con los datos guardados.
         ChangeNotifierProvider.value(value: estado),
+        // Huella para reingresar (RF-02).
+        Provider<ServicioBiometria>.value(value: servicioBiometriaDeLaPlataforma()),
         // Cuidador ↔ persona (RF-05, RF-26, RF-27).
         if (conFirebase) ChangeNotifierProvider(create: (_) => Vinculos(ServicioVinculosFirebase(), estado)),
         // Detección de caídas con los sensores (RF-06, RF-09, RF-10). Arranca
@@ -55,16 +59,19 @@ Future<void> main() async {
         if (conFirebase)
           Provider.value(value: const AvisoDeAlerta(ubicacion: LectorUbicacionGps(), sms: EnviadorSmsAndroid())),
       ],
-      child: RondoApp(registrado: estado.registroCompleto),
+      child: RondoApp(registrado: estado.registroCompleto, conHuella: estado.huellaActivada),
     ),
   );
 }
 
 class RondoApp extends StatelessWidget {
-  const RondoApp({super.key, required this.registrado});
+  const RondoApp({super.key, required this.registrado, this.conHuella = false});
 
   /// Si ya terminó el registro, la app abre directo en Inicio.
   final bool registrado;
+
+  /// Activó la huella (RF-02): al abrir se la pedimos antes de mostrar Inicio.
+  final bool conHuella;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +86,9 @@ class RondoApp extends StatelessWidget {
       darkTheme: RondoTheme.dark(),
       // Automático (según el celular), claro u oscuro: se elige en Ajustes.
       themeMode: context.watch<AppState>().modoTema,
-      home: registrado ? const MainShell() : const LoginPage(),
+      home: !registrado
+          ? const LoginPage()
+          : (conHuella ? const BloqueoPage() : const MainShell()),
       // Revisa en todas las pantallas si quitaron un permiso (RF-32).
       builder: (context, child) => VigilantePermisos(child: child!),
     );

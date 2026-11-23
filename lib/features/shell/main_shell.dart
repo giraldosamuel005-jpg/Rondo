@@ -17,6 +17,7 @@ import '../cuidador/personas_tab.dart';
 import '../history/history_tab.dart';
 import '../home/home_page.dart';
 import '../medicamentos/medicamentos_page.dart';
+import '../settings/huella.dart';
 import '../settings/settings_tab.dart';
 
 /// Contenedor principal de la app después del registro:
@@ -79,6 +80,11 @@ class _MainShellState extends State<MainShell> {
     // Sin servidor (web, Windows, pruebas) no hay Vinculos y no llega nada.
     _alertas = context.read<Vinculos?>()?.alertasNuevas.listen(_abrirAlerta);
     _caidas = context.read<VigilanteCaidas?>()?.caidas.listen(_abrirAlertaDeCaida);
+
+    // RF-02: después del primer ingreso se ofrece activar la huella (una vez).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ofrecerHuella(context);
+    });
 
     // RF-22: al tocar un aviso de toma se abre la pantalla de medicamentos.
     final recordatorios = context.read<Recordatorios?>();

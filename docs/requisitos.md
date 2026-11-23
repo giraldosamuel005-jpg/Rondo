@@ -50,6 +50,12 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se reconoció tu huella. Intenta de nuevo o ingresa con tu código SMS."
   - "Tu celular no tiene biometría configurada. Ingresa con tu código SMS."
   - "Demasiados intentos fallidos. Ingresa con tu código SMS."
+- **Cómo está hecho (2026-11-23):** Con `local_auth`, solo huella o rostro (no el PIN del celular). Funciona así:
+  - **Oferta:** al llegar a Inicio por primera vez, si el celular tiene una huella guardada, un cuadro pregunta "¿Entrar con tu huella?". Sale una sola vez. Se puede activar o quitar después en Ajustes → Seguridad → "Entrar con huella".
+  - **Activar:** antes de guardar la preferencia se pide la huella una vez, para saber que funciona.
+  - **Reingresar:** si está activada, al abrir la app aparece una pantalla que pide la huella sola. Con la huella válida entra a Inicio. Si falla, muestra el mensaje de arriba, se puede reintentar, y el botón "Entrar con mi código SMS" lleva al código y de ahí directo a Inicio, sin repetir el registro.
+  - **Cerrar sesión** borra la preferencia: la huella era de esa cuenta.
+  - **Límite:** solo se pide al abrir la app desde cero, no cada vez que vuelve del fondo.
 
 #### RF-03 — Al registrarse, elegir si la cuenta es "para mí" o "para cuidar a alguien"
 - **Cómo funciona:** Al terminar el registro, la persona elige "para mí" o "para cuidar a alguien". Esto define qué módulos se activan y si se muestra el dashboard de cuidador.
@@ -456,3 +462,4 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-11-10 | RF-15 / RF-16 / RF-17 / RF-26 | Las alertas son reales: SMS automático a los contactos con la ubicación, y la alerta llega en Rondó a los cuidadores vinculados (sin push por ahora). Se agrega el permiso de SMS, con el aviso "Desactivaste el permiso de SMS. Si hay una alerta, solo les llegará a tus cuidadores con Rondó.". |
 | 2026-11-13 | RF-06 / RF-09 / RF-10 | La detección de caídas es real, con la app abierta. Se fijan los umbrales iniciales, los tres motivos de descarte y una espera de 60 s entre alertas. El error del ajuste de sensibilidad de RF-09 queda sin uso. |
 | 2026-11-13 | RF-22 | La alarma de toma es una notificación del celular que suena a la hora aunque la app esté cerrada. Se programan 7 días y la toma se registra abriendo la app. |
+| 2026-11-23 | RF-02 | Reingreso con huella: oferta única al llegar a Inicio, interruptor en Ajustes, pantalla de huella al abrir la app y plan B con el código SMS. |
