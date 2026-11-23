@@ -38,33 +38,46 @@ class PersonaDetallePage extends StatelessWidget {
       body: BlobBackground(
         blobs: BlobBackground.paso,
         child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverFillRemaining(
-                  hasScrollBody: false,
+          // El contenido se desplaza; "Llamar" queda fijo abajo para que se vea
+          // siempre, aunque la persona tenga muchas alertas.
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 8),
-                      const Align(alignment: Alignment.centerLeft, child: RondoBackButton()),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: RondoBackButton(),
+                      ),
                       const SizedBox(height: 18),
 
                       // ---------- Encabezado ----------
                       Row(
                         children: [
-                          RondoAvatar(iniciales: inicialesDe(persona.nombre), size: 64),
+                          RondoAvatar(
+                            iniciales: inicialesDe(persona.nombre),
+                            size: 64,
+                          ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(persona.nombre, style: t.headlineLarge!.copyWith(fontSize: 28)),
+                                Text(
+                                  persona.nombre,
+                                  style: t.headlineLarge!.copyWith(
+                                    fontSize: 28,
+                                  ),
+                                ),
                                 const SizedBox(height: 2),
                                 Text(
                                   [
-                                    if (persona.relacion.isNotEmpty) persona.relacion,
+                                    if (persona.relacion.isNotEmpty)
+                                      persona.relacion,
                                     formatearCelular(persona.celular),
                                   ].join(' · '),
                                   style: t.bodyMedium,
@@ -91,27 +104,40 @@ class PersonaDetallePage extends StatelessWidget {
                       Glass(
                         padding: const EdgeInsets.all(16),
                         child: ubicacion == null
-                            ? Text('Todavía no conocemos su ubicación.', style: t.bodyMedium)
+                            ? Text(
+                                'Todavía no conocemos su ubicación.',
+                                style: t.bodyMedium,
+                              )
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Icon(Icons.place_rounded, size: 22, color: c.accent),
+                                      Icon(
+                                        Icons.place_rounded,
+                                        size: 22,
+                                        color: c.accent,
+                                      ),
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               ubicacion.descripcion,
-                                              style: t.bodyLarge!.copyWith(fontWeight: FontWeight.w600),
+                                              style: t.bodyLarge!.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
                                               'Actualizada ${haceCuanto(ubicacion.fecha)}',
-                                              style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                                              style: t.labelLarge!.copyWith(
+                                                fontWeight: FontWeight.w400,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -123,7 +149,8 @@ class PersonaDetallePage extends StatelessWidget {
                                     label: 'Ver en el mapa',
                                     icon: Icons.map_rounded,
                                     blur: false,
-                                    onPressed: () => verEnMapa(context, ubicacion),
+                                    onPressed: () =>
+                                        verEnMapa(context, ubicacion),
                                   ),
                                 ],
                               ),
@@ -148,7 +175,8 @@ class PersonaDetallePage extends StatelessWidget {
                               _Fila(
                                 icono: Icons.medication_rounded,
                                 titulo: 'Medicamentos',
-                                detalle: '${persona.cumplimiento} % de tomas cumplidas',
+                                detalle:
+                                    '${persona.cumplimiento} % de tomas cumplidas',
                               ),
                             ],
                           ],
@@ -162,35 +190,51 @@ class PersonaDetallePage extends StatelessWidget {
                         child: persona.alertas.isEmpty
                             ? Padding(
                                 padding: const EdgeInsets.all(16),
-                                child: Text('Sin alertas recientes.', style: t.bodyMedium),
+                                child: Text(
+                                  'Sin alertas recientes.',
+                                  style: t.bodyMedium,
+                                ),
                               )
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  for (var i = 0; i < persona.alertas.length; i++) ...[
+                                  for (
+                                    var i = 0;
+                                    i < persona.alertas.length;
+                                    i++
+                                  ) ...[
                                     if (i > 0) const GlassDivider(indent: 74),
-                                    FilaAlertaPersona(persona: persona, alerta: persona.alertas[i]),
+                                    FilaAlertaPersona(
+                                      persona: persona,
+                                      alerta: persona.alertas[i],
+                                    ),
                                   ],
                                 ],
                               ),
                       ),
 
-                      const Spacer(),
-                      const SizedBox(height: 24),
-                      PrimaryButton(
-                        label: 'Llamar a $nombre',
-                        icon: Icons.phone_rounded,
-                        onPressed: () => llamarA(context, persona),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Se abre el teléfono con su número listo para llamar.',
-                        textAlign: TextAlign.center,
-                        style: t.bodySmall,
-                      ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                     ],
                   ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    PrimaryButton(
+                      label: 'Llamar a $nombre',
+                      icon: Icons.phone_rounded,
+                      onPressed: () => llamarA(context, persona),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Se abre el teléfono con su número listo para llamar.',
+                      textAlign: TextAlign.center,
+                      style: t.bodySmall,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -202,7 +246,11 @@ class PersonaDetallePage extends StatelessWidget {
 }
 
 class _Fila extends StatelessWidget {
-  const _Fila({required this.icono, required this.titulo, required this.detalle});
+  const _Fila({
+    required this.icono,
+    required this.titulo,
+    required this.detalle,
+  });
 
   final IconData icono;
   final String titulo;
@@ -220,7 +268,10 @@ class _Fila extends StatelessWidget {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: c.accentSoft, borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(
+              color: c.accentSoft,
+              borderRadius: BorderRadius.circular(14),
+            ),
             child: Icon(icono, size: 22, color: c.accent),
           ),
           const SizedBox(width: 14),
@@ -228,9 +279,12 @@ class _Fila extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(titulo, style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(titulo, style: t.titleMedium),
                 const SizedBox(height: 2),
-                Text(detalle, style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400)),
+                Text(
+                  detalle,
+                  style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                ),
               ],
             ),
           ),

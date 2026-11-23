@@ -46,13 +46,15 @@ class ContactRow extends StatelessWidget {
                   children: [
                     Text(
                       contacto.nombre,
-                      style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: t.titleMedium,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       contacto.detalle,
-                      style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                      style: t.labelLarge!.copyWith(
+                        fontWeight: FontWeight.w400,
+                      ),
                       // Con el botón de teléfono hay menos ancho: que no se corte el número.
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -62,7 +64,10 @@ class ContactRow extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: esPrimero ? c.accentSoft : c.neutralSoft,
                   borderRadius: BorderRadius.circular(999),
@@ -119,7 +124,11 @@ class AddContactRow extends StatelessWidget {
                   height: 40,
                   child: CustomPaint(
                     painter: _CirculoPunteado(c.accentLink),
-                    child: Icon(Icons.add_rounded, size: 22, color: c.accentLink),
+                    child: Icon(
+                      Icons.add_rounded,
+                      size: 22,
+                      color: c.accentLink,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -31,7 +31,10 @@ class FichaVistaPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
               const SizedBox(height: 8),
-              const Align(alignment: Alignment.centerLeft, child: RondoBackButton()),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: RondoBackButton(),
+              ),
               const SizedBox(height: 22),
               Text('Así se ve tu ficha', style: t.headlineLarge),
               const SizedBox(height: 8),
@@ -55,20 +58,30 @@ class FichaVistaPage extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      RondoAvatar(iniciales: inicialesDe(estado.nombre), size: 52),
+                      RondoAvatar(
+                        iniciales: inicialesDe(estado.nombre),
+                        size: 52,
+                      ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Ficha médica de', style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400)),
+                            Text(
+                              'Ficha médica de',
+                              style: t.labelLarge!.copyWith(
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
                             const SizedBox(height: 2),
                             Text(estado.nombre, style: t.titleLarge),
                             if (ficha.fechaNacimiento != null) ...[
                               const SizedBox(height: 2),
                               Text(
                                 '${ficha.edad(DateTime.now())} años · ${fechaCompleta(ficha.fechaNacimiento!)}',
-                                style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                                style: t.labelLarge!.copyWith(
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
                             ],
                           ],
@@ -97,11 +110,15 @@ class FichaVistaPage extends StatelessWidget {
                           ),
                           child: Text(
                             ficha.tipoSangre.etiqueta,
-                            style: t.headlineLarge!.copyWith(color: c.accentLink),
+                            style: t.headlineLarge!.copyWith(
+                              color: c.accentLink,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 14),
-                        Expanded(child: Text('Tipo de sangre', style: t.titleMedium)),
+                        Expanded(
+                          child: Text('Tipo de sangre', style: t.titleMedium),
+                        ),
                       ],
                     ),
                   ),
@@ -134,7 +151,8 @@ class FichaVistaPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
-                if (ficha.mostrarMedicamentos && estado.medicamentos.isNotEmpty) ...[
+                if (ficha.mostrarMedicamentos &&
+                    estado.medicamentos.isNotEmpty) ...[
                   _SeccionOpcional(
                     titulo: 'Medicamentos',
                     child: Column(
@@ -170,7 +188,10 @@ class FichaVistaPage extends StatelessWidget {
                       Text('Contacto de emergencia', style: t.titleMedium),
                       const SizedBox(height: 10),
                       if (contacto == null)
-                        Text('Sin contacto. Elige uno al editar tu ficha.', style: t.bodyLarge)
+                        Text(
+                          'Sin contacto. Elige uno al editar tu ficha.',
+                          style: t.bodyLarge,
+                        )
                       else
                         Row(
                           children: [
@@ -180,14 +201,13 @@ class FichaVistaPage extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    contacto.nombre,
-                                    style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
-                                  ),
+                                  Text(contacto.nombre, style: t.titleMedium),
                                   const SizedBox(height: 2),
                                   Text(
                                     contacto.detalle,
-                                    style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                                    style: t.labelLarge!.copyWith(
+                                      fontWeight: FontWeight.w400,
+                                    ),
                                   ),
                                 ],
                               ),

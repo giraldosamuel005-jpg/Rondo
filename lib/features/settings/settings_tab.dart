@@ -7,6 +7,7 @@ import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/blob_background.dart';
+import '../../core/widgets/check_card.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/permisos_card.dart';
 import '../../core/widgets/secondary_button.dart';
@@ -29,7 +30,9 @@ class SettingsTab extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('¿Cerrar sesión?'),
-        content: const Text('Tendrás que volver a entrar con tu celular y un código.'),
+        content: const Text(
+          'Tendrás que volver a entrar con tu celular y un código.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -57,7 +60,11 @@ class SettingsTab extends StatelessWidget {
   void _simularCaida(BuildContext context) {
     if (context.read<AppState>().rondaEnPausa) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tu ronda está en pausa. Reanúdala para probar la alerta.')),
+        const SnackBar(
+          content: Text(
+            'Tu ronda está en pausa. Reanúdala para probar la alerta.',
+          ),
+        ),
       );
       return;
     }
@@ -108,7 +115,9 @@ class SettingsTab extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       formatearCelular(estado.celular ?? ''),
-                      style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                      style: t.labelLarge!.copyWith(
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -139,6 +148,16 @@ class SettingsTab extends StatelessWidget {
             onChanged: estado.cambiarModoTema,
           ),
         ),
+        const SizedBox(height: 12),
+        CheckCard(
+          title: 'Vidrio reducido',
+          detail: 'Quita el desenfoque de las tarjetas. Ayuda si el celular va lento o gasta mucha batería.',
+          value: estado.vidrioReducido,
+          onChanged: (valor) {
+            RondoPerf.reducir.value = valor;
+            estado.cambiarVidrioReducido(valor);
+          },
+        ),
         const SizedBox(height: 22),
 
         // ---------- Permisos (RF-31): el cuidador no usa sensores ----------
@@ -163,12 +182,14 @@ class SettingsTab extends StatelessWidget {
                   children: [
                     Text(
                       'Rondó no reemplaza los servicios de emergencia oficiales.',
-                      style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: t.titleMedium,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'En una emergencia, llama al 123.',
-                      style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                      style: t.labelLarge!.copyWith(
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                   ],
                 ),
@@ -264,13 +285,24 @@ class _SelectorTema extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(icono, size: 22, color: modo == actual ? c.accentLink : c.textSecondary),
+                        Icon(
+                          icono,
+                          size: 22,
+                          color: modo == actual
+                              ? c.accentLink
+                              : c.textSecondary,
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           etiqueta,
-                          style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                                fontWeight: modo == actual ? FontWeight.w700 : FontWeight.w500,
-                                color: modo == actual ? c.accentLink : c.textSecondary,
+                          style: Theme.of(context).textTheme.labelLarge!
+                              .copyWith(
+                                fontWeight: modo == actual
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: modo == actual
+                                    ? c.accentLink
+                                    : c.textSecondary,
                               ),
                         ),
                       ],

@@ -20,12 +20,7 @@ class AlertButton extends StatelessWidget {
       height: alto,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(alto),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color.lerp(c.alert, Colors.white, 0.18)!, c.alert],
-        ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+        color: c.alert, // plano, sin degradado
         boxShadow: [
           BoxShadow(
             color: c.alert.withValues(alpha: 0.35),

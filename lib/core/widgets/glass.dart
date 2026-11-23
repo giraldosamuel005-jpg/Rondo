@@ -9,8 +9,12 @@ class RondoPerf {
   RondoPerf._();
 
   /// Con `true` el vidrio se dibuja sin desenfoque, como superficie sólida.
-  /// Más adelante se activará con ahorro de batería o en celulares lentos.
-  static bool reduceGlass = false;
+  /// Lo enciende la persona en Ajustes → Apariencia → "Vidrio reducido"
+  /// (main.dart lo carga al abrir la app). Es un notificador para que todo
+  /// el vidrio se redibuje al cambiarlo, sin reconstruir pantallas a mano.
+  static final ValueNotifier<bool> reducir = ValueNotifier(false);
+
+  static bool get reduceGlass => reducir.value;
 }
 
 /// Superficie de vidrio: degradado translúcido, borde fino, brillo superior
@@ -47,23 +51,30 @@ class Glass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: RondoPerf.reducir,
+      builder: (context, reduccion, _) => _construir(context, reduccion),
+    );
+  }
+
+  Widget _construir(BuildContext context, bool reduccion) {
     final c = context.rondo;
     final esquinas = BorderRadius.circular(radius);
-    final reducido = MediaQuery.highContrastOf(context) || RondoPerf.reduceGlass;
-    final conDegradado = fill == null && !reducido;
+    final reducido = MediaQuery.highContrastOf(context) || reduccion;
+    final conDegradado = fill == null && !reducido; // (sigue el nombre: ahora es relleno plano)
+
+    // Relleno plano translúcido: un solo color, sin degradado. La sensación de
+    // vidrio la dan el desenfoque, el borde fino y el brillo de 1 px.
+    final relleno = Color.lerp(c.glassTop, c.glassBottom, 0.5)!;
 
     Widget cuerpo = DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: esquinas,
-        color: fill ?? (reducido ? c.bg.withValues(alpha: 0.96) : null),
-        gradient: conDegradado
-            ? LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [c.glassTop, c.glassBottom],
-              )
-            : null,
-        border: Border.all(color: borderColor ?? c.glassBorder, width: borderWidth),
+        color: fill ?? (reducido ? c.bg.withValues(alpha: 0.96) : relleno),
+        border: Border.all(
+          color: borderColor ?? c.glassBorder,
+          width: borderWidth,
+        ),
       ),
       child: Stack(
         fit: StackFit.passthrough,

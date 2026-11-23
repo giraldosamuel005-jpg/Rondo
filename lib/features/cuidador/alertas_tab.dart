@@ -80,7 +80,9 @@ class FilaAlertaPersona extends StatelessWidget {
       );
     } else if (mostrarNombre) {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PersonaDetallePage(personaId: persona.id)),
+        MaterialPageRoute(
+          builder: (_) => PersonaDetallePage(personaId: persona.id),
+        ),
       );
     }
   }
@@ -92,12 +94,25 @@ class FilaAlertaPersona extends StatelessWidget {
 
     // Ámbar: sin atender. Turquesa: estaba bien. Neutro: ya se atendió.
     final (icono, fondo, color, estadoTexto) = !alerta.atendida
-        ? (Icons.notifications_active_rounded, c.alert.withValues(alpha: 0.18), c.alertText, 'Sin atender')
+        ? (
+            Icons.notifications_active_rounded,
+            c.alert.withValues(alpha: 0.18),
+            c.alertText,
+            'Sin atender',
+          )
         : alerta.estabaBien
-            ? (Icons.check_rounded, c.accentSoft, c.accent, 'Respondió que estaba bien')
-            : (Icons.done_all_rounded, c.neutralSoft, c.textSecondary, 'Atendida');
-    final titulo = mostrarNombre ? 'Posible caída de ${primerNombre(persona.nombre)}' : 'Posible caída';
-    final detalle = '${diaRelativo(alerta.fecha)} · ${horaCorta(alerta.fecha)} · $estadoTexto';
+        ? (
+            Icons.check_rounded,
+            c.accentSoft,
+            c.accent,
+            'Respondió que estaba bien',
+          )
+        : (Icons.done_all_rounded, c.neutralSoft, c.textSecondary, 'Atendida');
+    final titulo = mostrarNombre
+        ? 'Posible caída de ${primerNombre(persona.nombre)}'
+        : 'Posible caída';
+    final detalle =
+        '${diaRelativo(alerta.fecha)} · ${horaCorta(alerta.fecha)} · $estadoTexto';
     final sePuedeAbrir = !alerta.atendida || mostrarNombre;
 
     return Semantics(
@@ -115,7 +130,10 @@ class FilaAlertaPersona extends StatelessWidget {
                 Container(
                   width: 44,
                   height: 44,
-                  decoration: BoxDecoration(color: fondo, borderRadius: BorderRadius.circular(14)),
+                  decoration: BoxDecoration(
+                    color: fondo,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   child: Icon(icono, size: 22, color: color),
                 ),
                 const SizedBox(width: 14),
@@ -123,22 +141,22 @@ class FilaAlertaPersona extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        titulo,
-                        style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
+                      Text(titulo, style: t.titleMedium),
                       const SizedBox(height: 2),
                       Text(
                         detalle,
                         style: t.labelLarge!.copyWith(
-                          fontWeight: alerta.atendida ? FontWeight.w400 : FontWeight.w600,
+                          fontWeight: alerta.atendida
+                              ? FontWeight.w400
+                              : FontWeight.w600,
                           color: alerta.atendida ? null : c.alertText,
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (sePuedeAbrir) Icon(Icons.chevron_right_rounded, color: c.textSecondary),
+                if (sePuedeAbrir)
+                  Icon(Icons.chevron_right_rounded, color: c.textSecondary),
               ],
             ),
           ),
@@ -160,7 +178,11 @@ class _SinAlertas extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Icon(Icons.notifications_none_rounded, size: 32, color: c.textSecondary),
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 32,
+            color: c.textSecondary,
+          ),
           const SizedBox(height: 12),
           Text('No hay alertas', style: t.titleMedium),
           const SizedBox(height: 4),

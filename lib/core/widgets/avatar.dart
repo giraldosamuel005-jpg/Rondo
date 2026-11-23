@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/rondo_colors.dart';
 
 /// Círculo con las iniciales de una persona.
-/// `variante` 0 = degradado turquesa (1.º contacto), 1 = azul (2.º), y se alternan.
+/// `variante` 0 = turquesa (1.º contacto), 1 = azul (2.º), y se alternan. Colores planos.
 class RondoAvatar extends StatelessWidget {
   const RondoAvatar({
     super.key,
@@ -30,13 +30,8 @@ class RondoAvatar extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: turquesa
-              ? [c.tintTop, c.tintBottom]
-              : [c.avatarBlueTop, c.avatarBlueBottom],
-        ),
+        // Color plano: turquesa para el 1.º, azul para el 2.º.
+        color: turquesa ? c.accent : c.avatarBlueBottom,
         border: borderColor != null ? Border.all(color: borderColor!, width: 2) : null,
       ),
       alignment: Alignment.center,

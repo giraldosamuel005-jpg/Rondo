@@ -7,7 +7,12 @@ import 'glass.dart';
 /// Quien se cuida: Inicio · Contactos · Historial · Ajustes.
 /// Cuidador: Personas · Alertas · Ajustes.
 class GlassTabBar extends StatelessWidget {
-  const GlassTabBar({super.key, required this.pestanas, required this.actual, required this.onTap});
+  const GlassTabBar({
+    super.key,
+    required this.pestanas,
+    required this.actual,
+    required this.onTap,
+  });
 
   /// Ícono y etiqueta de cada pestaña.
   final List<(IconData, String)> pestanas;
@@ -81,10 +86,10 @@ class _Pestana extends StatelessWidget {
                 Text(
                   etiqueta,
                   style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                        fontSize: 11,
-                        fontWeight: activa ? FontWeight.w700 : FontWeight.w500,
-                        color: color,
-                      ),
+                    fontSize: 12, // mínimo del diseño; 11 era muy pequeño para adultos mayores
+                    fontWeight: activa ? FontWeight.w700 : FontWeight.w500,
+                    color: color,
+                  ),
                 ),
               ],
             ),

@@ -11,6 +11,7 @@ import 'core/persistencia/almacen_local.dart';
 import 'core/recordatorios/recordatorios.dart';
 import 'core/state/app_state.dart';
 import 'core/theme/rondo_theme.dart';
+import 'core/widgets/glass.dart';
 import 'core/vinculos/servicio_vinculos_firebase.dart';
 import 'core/vinculos/vinculos.dart';
 import 'features/auth/login_page.dart';
@@ -30,6 +31,7 @@ Future<void> main() async {
   }
 
   final estado = await AppState.cargar(AlmacenLocal());
+  RondoPerf.reducir.value = estado.vidrioReducido;
 
   runApp(
     MultiProvider(

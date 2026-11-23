@@ -36,11 +36,8 @@ class PrimaryButton extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(height),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [c.tintTop, c.tintBottom],
-          ),
+          // Color plano: sin degradado.
+          color: c.accent,
           border: Border.all(color: c.tintBorder),
           boxShadow: activo
               ? [

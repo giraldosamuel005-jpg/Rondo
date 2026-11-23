@@ -56,10 +56,15 @@ class _ProfilePageState extends State<ProfilePage> {
       _errorTipo = _tipo == null
           ? 'Selecciona si la cuenta es para ti o para cuidar a alguien para continuar.'
           : null;
-      _errorNombre = nombre.isEmpty ? 'Escribe tu nombre para continuar.' : null;
-      _errorAviso = _avisoAceptado ? null : 'Debes aceptar este aviso para continuar.';
+      _errorNombre = nombre.isEmpty
+          ? 'Escribe tu nombre para continuar.'
+          : null;
+      _errorAviso = _avisoAceptado
+          ? null
+          : 'Debes aceptar este aviso para continuar.';
     });
-    if (_errorTipo != null || _errorNombre != null || _errorAviso != null) return;
+    if (_errorTipo != null || _errorNombre != null || _errorAviso != null)
+      return;
 
     // Guarda el perfil y la fecha en que se aceptó el aviso (RF-34).
     context.read<AppState>().guardarPerfil(nombre: nombre, tipo: _tipo!);
@@ -69,9 +74,8 @@ class _ProfilePageState extends State<ProfilePage> {
         (ruta) => false,
       );
     } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const ContactsPage()),
-      );
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const ContactsPage()));
     }
   }
 
@@ -101,7 +105,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: t.bodyLarge,
               ),
               const SizedBox(height: 20),
-              PrimaryButton(label: 'Entendido', onPressed: () => Navigator.of(context).pop()),
+              PrimaryButton(
+                label: 'Entendido',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             ],
           ),
         ),
@@ -133,7 +140,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           Expanded(
                             child: Center(
                               // El cuidador termina en este paso.
-                              child: StepPill(actual: 1, total: _tipo == TipoCuenta.cuidador ? 1 : 2),
+                              child: StepPill(
+                                actual: 1,
+                                total: _tipo == TipoCuenta.cuidador ? 1 : 2,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 44), // Equilibra el botón Atrás
@@ -142,7 +152,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(height: 22),
                       Text('¿Para quién es la cuenta?', style: t.headlineLarge),
                       const SizedBox(height: 8),
-                      Text('Puedes cambiarlo después.', style: t.bodyMedium!.copyWith(fontSize: 16)),
+                      Text(
+                        'Puedes cambiarlo después.',
+                        style: t.bodyMedium!.copyWith(fontSize: 16),
+                      ),
                       const SizedBox(height: 22),
 
                       // ---------- Tipo de cuenta (RF-03) ----------
@@ -181,13 +194,16 @@ class _ProfilePageState extends State<ProfilePage> {
                               textInputAction: TextInputAction.done,
                               autofillHints: const [AutofillHints.name],
                               onChanged: (_) {
-                                if (_errorNombre != null) setState(() => _errorNombre = null);
+                                if (_errorNombre != null)
+                                  setState(() => _errorNombre = null);
                               },
                             ),
                             const GlassDivider(indent: 18),
                             GlassField(
                               label: 'Celular',
-                              value: formatearCelular(context.watch<AppState>().celular ?? ''),
+                              value: formatearCelular(
+                                context.watch<AppState>().celular ?? '',
+                              ),
                             ),
                           ],
                         ),
@@ -207,7 +223,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       const Spacer(),
                       const SizedBox(height: 24),
                       PrimaryButton(
-                        label: _tipo == TipoCuenta.cuidador ? 'Entrar a mi panel' : 'Continuar',
+                        label: _tipo == TipoCuenta.cuidador
+                            ? 'Entrar a mi panel'
+                            : 'Continuar',
                         onPressed: _continuar,
                       ),
                       const SizedBox(height: 6),
@@ -228,7 +246,11 @@ class _ProfilePageState extends State<ProfilePage> {
 /// Tarjeta del aviso obligatorio: "Rondó no reemplaza al 123".
 /// Toda la tarjeta se toca para marcarla.
 class _AvisoEmergencias extends StatelessWidget {
-  const _AvisoEmergencias({required this.aceptado, required this.error, required this.onChanged});
+  const _AvisoEmergencias({
+    required this.aceptado,
+    required this.error,
+    required this.onChanged,
+  });
 
   final bool aceptado;
   final String? error;
@@ -250,7 +272,9 @@ class _AvisoEmergencias extends StatelessWidget {
           type: MaterialType.transparency,
           child: InkWell(
             onTap: () => onChanged(!aceptado),
-            customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            customBorder: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -266,11 +290,15 @@ class _AvisoEmergencias extends StatelessWidget {
                       border: aceptado
                           ? null
                           : Border.all(
-                              color: hayError ? c.error : c.textSecondary.withValues(alpha: 0.55),
+                              color: hayError
+                                  ? c.error
+                                  : c.textSecondary.withValues(alpha: 0.55),
                               width: 1.5,
                             ),
                     ),
-                    child: aceptado ? Icon(Icons.check_rounded, size: 16, color: c.onAccent) : null,
+                    child: aceptado
+                        ? Icon(Icons.check_rounded, size: 16, color: c.onAccent)
+                        : null,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -279,16 +307,21 @@ class _AvisoEmergencias extends StatelessWidget {
                       children: [
                         Text(
                           'Entiendo que Rondó no reemplaza los servicios de emergencia oficiales.',
-                          style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: t.titleMedium,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'En una emergencia, llama al 123.',
-                          style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                          style: t.labelLarge!.copyWith(
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                         if (hayError) ...[
                           const SizedBox(height: 6),
-                          Text(error!, style: t.labelLarge!.copyWith(color: c.errorText)),
+                          Text(
+                            error!,
+                            style: t.labelLarge!.copyWith(color: c.errorText),
+                          ),
                         ],
                       ],
                     ),
@@ -355,7 +388,8 @@ class _TextoError extends StatelessWidget {
       liveRegion: true,
       child: Text(
         texto,
-        style: Theme.of(context).textTheme.labelLarge!.copyWith(color: context.rondo.errorText),
+        style: Theme.of(context).textTheme.labelLarge!
+            .copyWith(color: context.rondo.errorText),
       ),
     );
   }

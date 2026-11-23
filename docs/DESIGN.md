@@ -43,7 +43,7 @@ Márgenes laterales de pantalla: **20 px** (24 en la pantalla Entrar). Separaci�
 
 | Token | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `bg` | `#EAF1F0` | `#06110F` | Fondo de pantalla |
+| `bg` | `#EAF1F0` | `#07131F` | Fondo de pantalla (oscuro: azul noche) |
 | `text` | `#0E1A19` | `#EEF5F4` | Texto principal |
 | `textSecondary` | `#3B4D4A` | `#A3B5B2` | Subtítulos, etiquetas, ayudas |
 | `accent` | `#0B7A6E` | `#2DD4BF` | Marca, toggles, progreso, iconos activos |
@@ -63,26 +63,27 @@ Márgenes laterales de pantalla: **20 px** (24 en la pantalla Entrar). Separaci�
 
 | | Claro | Oscuro |
 |---|---|---|
-| Turquesa | `#5EEAD4` op. 0.6–0.7 | `#0F766E` op. 0.55–0.6 |
-| Azul | `#93C5FD` op. 0.5–0.6 | `#1E40AF` op. 0.4–0.45 |
-| Menta | `#A7F3D0` op. 0.7 | `#065F46` op. 0.7 |
-| Violeta (opcional, solo paso 1) | `#C4B5FD` op. 0.45 | `#4C1D95` op. 0.4 |
+| Turquesa | `#2DD4BF` op. 0.5 | `#0F766E` op. 0.26 |
+| Cielo | `#7DD3FC` op. 0.5 | `#0369A1` op. 0.26 |
+| Verde | `#86EFAC` op. 0.5 | `#047857` op. 0.26 |
+| Turquesa claro/oscuro | `#5EEAD4` op. 0.5 | `#115E59` op. 0.26 |
 | Alerta | `#FCD34D`, `#FDBA74`, `#FDE68A` | `#B45309`, `#92400E`, `#78350F` |
 
-Tamaño 240–380 px, desenfoque 56 px (claro) / 64–70 px (oscuro). Posición: una arriba-izquierda o arriba-derecha, una a media altura en el borde opuesto, una abajo. Varía la posición entre pantallas para que no se vea como plantilla.
+**Formas planas y nítidas, sin difuminar** (círculos de 220–360 px). El vidrio de encima es lo que las desenfoca. Sin índigo ni violeta: esa mezcla es el "degradado de IA" que se quitó el 2026-11-23. Tamaño 220–360 px. Posición: una arriba-izquierda o arriba-derecha, una a media altura en el borde opuesto, una abajo. Varía la posición entre pantallas para que no se vea como plantilla.
 
 ### 3.2 Vidrio (3 niveles)
 
 | Nivel | Uso | Claro | Oscuro |
 |---|---|---|---|
-| **Tarjeta** | Listas, campos, opciones | Degradado vertical blanco 66% → 40% | Blanco 11% → 4% |
+| **Tarjeta** | Listas, campos, opciones | Relleno plano blanco ~53% | Relleno plano blanco ~12% |
 | **Control** | Botón atrás, progreso, tab bar, botones secundarios | Igual que tarjeta, forma cápsula/círculo | Igual |
-| **Tintado** | Botón principal | Degradado `#139384` → `#0B7A6E` | Degradado `#5EEAD4` → `#2DD4BF` |
+| **Tintado** | Botón principal | Color plano `#0B7A6E` | Color plano `#2DD4BF` |
 
 Receta común:
 - Desenfoque de fondo: **28 px** (CSS) ≈ `sigma 14` en Flutter.
 - Borde 1 px: claro blanco @ 75%, oscuro blanco @ 16%.
-- Brillo interior superior 1 px: claro blanco @ 95%, oscuro blanco @ 22%.
+- Brillo interior superior 1 px: claro blanco @ 95%, oscuro blanco @ 40%.
+- **Sin degradados** (2026-11-23): ni en el vidrio, ni en los botones, ni en los avatares, ni en los anillos. El volumen lo dan el desenfoque, el borde y el brillo de 1 px.
 - Sombra: claro `0 12 32` `#143C37` @ 10%; oscuro `0 16 40` negro @ 35%.
 - Tintado: brillo interior superior blanco @ 45% (claro) / 70% (oscuro), sombra de color del acento @ 30–35%, borde blanco @ 25–35%.
 
@@ -145,15 +146,19 @@ Familia: **Geist** (paquete `google_fonts`), con la del sistema como respaldo. E
 
 **CodeInput**: 4 cajas de vidrio en grid de 4 columnas, separación 10. Dígitos erróneos: texto `errorText` + borde 1.5 `error`. Debajo, **ErrorBanner**: icono de círculo con "!" + título 15/600 en `errorText` + explicación 13 en `textSecondary`.
 
-**ContactRow**: avatar con iniciales (degradado turquesa para el 1.º, azul para el 2.º) | nombre 16/600 + "Relación · número" 13 | chip de orden "1.º" (`accentSoft`/`accent`) o "2.º" (neutro). Última fila: "Agregar contacto" con círculo de borde punteado y "+", en `accentLink`.
+**ContactRow**: avatar con iniciales (color plano: turquesa para el 1.º, azul para el 2.º) | nombre 16/600 + "Relación · número" 13 | chip de orden "1.º" (`accentSoft`/`accent`) o "2.º" (neutro). Última fila: "Agregar contacto" con círculo de borde punteado y "+", en `accentLink`.
 
 **PermissionRow**: título 16/600 + razón 13 (`textSecondary`) | Toggle. La razón SIEMPRE va al lado del permiso, antes de pedir el permiso del sistema.
 
 **Toggle**: 52×32, encendido `accent` con perilla a la derecha, apagado `toggleOff`. Perilla blanca con sombra suave.
 
+**Skeleton** (2026-11-23): lo que carga se muestra como barras grises con un brillo que las recorre (1,5 s), con la forma de lo que va a aparecer (`Skeleton`, `SkeletonFila` en `core/widgets/skeleton.dart`). Nunca un círculo girando, salvo en la alerta de caída. Con "quitar animaciones" del celular queda quieto. Un `Semantics(label: 'Cargando…')` envuelve cada grupo. Hoy se usa en Personas (primera respuesta del servidor), "Quién te cuida" y al aceptar una invitación.
+
+**Vidrio reducido** (Ajustes → Apariencia): interruptor que quita el desenfoque de todas las tarjetas (`RondoPerf.reducir`).
+
 **StatusChip**: cápsula, 13/700, padding 6×12. Variantes: *Ronda activa* (`accentSoft`/`accent`), *Alerta* (ámbar @ 18% / `alertText`), *En pausa* (neutro).
 
-**StatusRing** (Inicio): anillo 168 px con degradado cónico turquesa, 72% relleno (progreso decorativo del día), centro con pulso del logo y "Vigilando". En oscuro añade halo `accent` @ 25% blur 50.
+**EstadoMarca** (Inicio): cuadrado sólido 64 px (radio 30%). Activa: `accent` con la línea de pulso del logo en `onAccent`. En pausa: `neutralSoft` con el símbolo de pausa. Reemplazó al anillo con "72 %", que no medía nada.
 
 **CountdownRing** (Alerta): círculo de vidrio 220 → anillo cónico `alert` (proporción = tiempo restante) → centro sólido con "0:24" y "para avisar".
 
@@ -198,10 +203,9 @@ Iconografía: trazo 1.8–2.2, extremos redondeados, 18–24 px. Sugerido: `luci
 
 ### 05 · Inicio (ronda activa)
 - Fecha (15, secundario) + "Hola, {nombre}" (`title`) | avatar de perfil 44 con iniciales.
-- Tarjeta héroe (radio 32): StatusRing → chip "Ronda activa" → "Todo en orden" → "Desde las 7:02 a. m. · sin novedades".
-- Grid 2 columnas: **Pausar ronda** / **Estoy bien** (vidrio, icono + etiqueta). "Estoy bien" (RF-12) muestra debajo la última confirmación (`label`, ej. "Hoy, 3:45 p. m.").
-- Tarjeta **Medicamentos** (solo cuenta "para mí"): icono en `accentSoft` | "Próxima toma" + "{medicamento} · {hora}" | chevron. Sin medicamentos: "Agrega tus medicamentos".
-- Fila "Te cuidan 2 personas" con avatares apilados + chevron.
+- Tarjeta de estado (radio 32): fila con EstadoMarca | chip "Ronda activa" + "Todo en orden"; debajo "Desde las 7:02 a. m. · sin novedades" y "Detección de caídas activa". Compacta, para que Medicamentos se vea sin desplazarse.
+- Bloques (2026-11-23): **Estoy bien** (RF-12) es un bloque alto a la izquierda (icono 56, `stat`, y debajo la última confirmación); a la derecha, dos bloques pequeños apilados: **Pausar** / **Llamar al 123**. Solo el alto lleva desenfoque.
+- Una sola tarjeta de vidrio con dos filas separadas por `hairline`: "Te cuidan 2 personas" (avatares apilados + chevron) y, solo en cuenta "para mí", **Medicamentos** (icono en `accentSoft` | "Próxima: {medicamento}, {hora}" | chevron; sin medicamentos: "Agrega tus medicamentos").
 - GlassTabBar flotante. Dejar ~100 px de padding inferior en el scroll para que el contenido pase por debajo del vidrio.
 - *En pausa* (implementado): anillo gris, chip neutro "En pausa", atajo "Reanudar ronda". Por diseñar: *Sin conexión*.
 
@@ -319,7 +323,7 @@ lib/
                    secondary_button.dart, back_button.dart, step_pill.dart,
                    glass_field.dart, code_input.dart, error_banner.dart,
                    contact_row.dart, permission_row.dart, rondo_toggle.dart,
-                   status_chip.dart, status_ring.dart, countdown_ring.dart,
+                   status_chip.dart, status_mark.dart, countdown_ring.dart,
                    glass_tab_bar.dart
   features/auth/       login_page.dart, code_page.dart
   features/onboarding/ profile_page.dart, contacts_page.dart

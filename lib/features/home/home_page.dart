@@ -10,14 +10,18 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/status_chip.dart';
-import '../../core/widgets/status_ring.dart';
+import '../../core/widgets/status_mark.dart';
 import '../cuidador/abrir_enlace.dart';
 import '../medicamentos/medicamentos_page.dart';
 
 /// 05 · Inicio (pestaña 1): estado de la ronda (activa o en pausa).
 /// La barra de pestañas la pone [MainShell]; esta pantalla solo es el contenido.
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.onVerContactos, required this.onVerAjustes});
+  const HomePage({
+    super.key,
+    required this.onVerContactos,
+    required this.onVerAjustes,
+  });
 
   /// Lleva a la pestaña Contactos ("Te cuidan N personas").
   final VoidCallback onVerContactos;
@@ -31,7 +35,9 @@ class HomePage extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          estado.rondaEnPausa ? 'Ronda en pausa. Nadie recibirá alertas.' : 'Ronda activa de nuevo.',
+          estado.rondaEnPausa
+              ? 'Ronda en pausa. Nadie recibirá alertas.'
+              : 'Ronda activa de nuevo.',
         ),
       ),
     );
@@ -43,7 +49,9 @@ class HomePage extends StatelessWidget {
     estado.confirmarEstoyBien();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Listo. Quedó registrado que estás bien (${horaCorta(DateTime.now())}).'),
+        content: Text(
+          'Listo. Quedó registrado que estás bien (${horaCorta(DateTime.now())}).',
+        ),
       ),
     );
   }
@@ -81,7 +89,10 @@ class HomePage extends StatelessWidget {
                     children: [
                       Text(fechaLarga(DateTime.now()), style: t.bodyMedium),
                       const SizedBox(height: 4),
-                      Text('Hola, ${primerNombre(estado.nombre)}', style: t.headlineLarge),
+                      Text(
+                        'Hola, ${primerNombre(estado.nombre)}',
+                        style: t.headlineLarge,
+                      ),
                     ],
                   ),
                 ),
@@ -91,37 +102,59 @@ class HomePage extends StatelessWidget {
                   excludeSemantics: true,
                   child: GestureDetector(
                     onTap: onVerAjustes,
-                    child: RondoAvatar(iniciales: inicialesDe(estado.nombre), size: 44),
+                    child: RondoAvatar(
+                      iniciales: inicialesDe(estado.nombre),
+                      size: 44,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // ---------- Tarjeta héroe: estado de la ronda ----------
+            // ---------- Estado de la ronda ----------
+            // Marca a la izquierda y texto a la derecha: así ocupa un tercio de
+            // la pantalla y Medicamentos se ve sin tener que desplazarse.
             Glass(
               radius: 32,
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+              padding: const EdgeInsets.all(20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  StatusRing(activa: !enPausa),
-                  const SizedBox(height: 18),
-                  StatusChip(
-                    label: enPausa ? 'En pausa' : 'Ronda activa',
-                    variant: enPausa ? StatusChipVariant.pausa : StatusChipVariant.activa,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      EstadoMarca(activa: !enPausa),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            StatusChip(
+                              label: enPausa ? 'En pausa' : 'Ronda activa',
+                              variant: enPausa
+                                  ? StatusChipVariant.pausa
+                                  : StatusChipVariant.activa,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              enPausa ? 'Ronda en pausa' : 'Todo en orden',
+                              style: t.titleLarge,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  Text(enPausa ? 'Ronda en pausa' : 'Todo en orden', style: t.titleLarge),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 12),
                   Text(
                     enPausa
                         ? 'Nadie recibirá alertas hasta que la reanudes.'
                         : 'Desde las ${horaCorta(activaDesde)} · sin novedades',
-                    textAlign: TextAlign.center,
                     style: t.bodyMedium,
                   ),
                   if (!enPausa && vigilante != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _EstadoDeteccion(vigilante),
                   ],
                 ],
@@ -129,23 +162,17 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // ---------- Atajos ----------
-            // IntrinsicHeight + stretch: las dos tarjetas miden lo mismo aunque
-            // "Estoy bien" tenga una línea más.
+            // ---------- Bloques: uno grande y dos pequeños ----------
+            // "Estoy bien" es la acción que más se usa: ocupa el bloque alto.
+            // IntrinsicHeight + stretch: el bloque alto mide lo que miden los dos pequeños.
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
+                    flex: 5,
                     child: _Atajo(
-                      icono: enPausa ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                      etiqueta: enPausa ? 'Reanudar ronda' : 'Pausar ronda',
-                      onTap: () => _alternarPausa(context),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _Atajo(
+                      grande: true,
                       icono: Icons.favorite_rounded,
                       etiqueta: 'Estoy bien',
                       detalle: ultimoEstoyBien == null
@@ -154,47 +181,85 @@ class HomePage extends StatelessWidget {
                       onTap: () => _estoyBien(context),
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _Atajo(
+                            icono: enPausa
+                                ? Icons.play_arrow_rounded
+                                : Icons.pause_rounded,
+                            etiqueta: enPausa ? 'Reanudar' : 'Pausar',
+                            onTap: () => _alternarPausa(context),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Emergencias (RF-34): abre el marcador con el 123.
+                        Expanded(
+                          child: _Atajo(
+                            icono: Icons.phone_rounded,
+                            etiqueta: 'Llamar al 123',
+                            onTap: () => llamarAl123(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
 
-            // ---------- Emergencias (RF-34) ----------
-            const _LlamarAl123(),
-            const SizedBox(height: 12),
-
-            // ---------- Quiénes te cuidan ----------
+            // ---------- Quiénes te cuidan + medicamentos: una sola tarjeta ----------
+            // Dos filas en el mismo vidrio (un solo desenfoque) en vez de dos
+            // tarjetas iguales apiladas.
             Glass(
-              child: Material(
-                type: MaterialType.transparency,
-                child: InkWell(
-                  onTap: onVerContactos,
-                  customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(
-                      children: [
-                        _AvataresApilados(contactos: contactos),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            cuantos == 1 ? 'Te cuida 1 persona' : 'Te cuidan $cuantos personas',
-                            style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
+              child: Column(
+                children: [
+                  Material(
+                    type: MaterialType.transparency,
+                    child: InkWell(
+                      onTap: onVerContactos,
+                      customBorder: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
                         ),
-                        Icon(Icons.chevron_right_rounded, color: c.textSecondary),
-                      ],
+                        child: Row(
+                          children: [
+                            _AvataresApilados(contactos: contactos),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                cuantos == 1
+                                    ? 'Te cuida 1 persona'
+                                    : 'Te cuidan $cuantos personas',
+                                style: t.titleMedium,
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: c.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  // Medicamentos: solo quien se cuida a sí mismo.
+                  if (estado.usaFichaMedica) ...[
+                    const GlassDivider(),
+                    const _TarjetaMedicamentos(),
+                  ],
+                ],
               ),
             ),
-
-            // ---------- Medicamentos (solo quien se cuida a sí mismo) ----------
-            if (estado.usaFichaMedica) ...[
-              const SizedBox(height: 12),
-              const _TarjetaMedicamentos(),
-            ],
           ],
         ),
       ),
@@ -218,7 +283,7 @@ class _EstadoDeteccion extends StatelessWidget {
     return Semantics(
       liveRegion: aviso != null,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
@@ -230,7 +295,7 @@ class _EstadoDeteccion extends StatelessWidget {
           Flexible(
             child: Text(
               aviso ?? 'Detección de caídas activa',
-              textAlign: aviso == null ? TextAlign.start : TextAlign.center,
+              textAlign: TextAlign.start,
               style: t.labelLarge!.copyWith(
                 fontWeight: FontWeight.w400,
                 color: aviso == null ? null : c.errorText,
@@ -243,18 +308,22 @@ class _EstadoDeteccion extends StatelessWidget {
   }
 }
 
-/// Botón cuadrado de vidrio con ícono y texto ("Pausar ronda", "Estoy bien").
+/// Bloque de vidrio con ícono y texto ("Estoy bien", "Pausar", "Llamar al 123").
+/// [grande]: el bloque alto de Inicio (ícono grande, texto abajo, con desenfoque).
+/// Los pequeños van sin desenfoque: Inicio ya usa 4 de los 6 permitidos.
 class _Atajo extends StatelessWidget {
   const _Atajo({
     required this.icono,
     required this.etiqueta,
     required this.onTap,
     this.detalle,
+    this.grande = false,
   });
 
   final IconData icono;
   final String etiqueta;
   final VoidCallback onTap;
+  final bool grande;
 
   /// Texto pequeño debajo, por ejemplo "Hoy, 3:45 p. m.".
   final String? detalle;
@@ -262,90 +331,57 @@ class _Atajo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.rondo;
+    final t = Theme.of(context).textTheme;
+
+    final icon = Container(
+      width: grande ? 56 : 44,
+      height: grande ? 56 : 44,
+      decoration: BoxDecoration(
+        color: c.accentSoft,
+        borderRadius: BorderRadius.circular(grande ? 18 : 14),
+      ),
+      child: Icon(icono, size: grande ? 28 : 22, color: c.accent),
+    );
+
+    final textos = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(etiqueta, style: grande ? t.titleLarge : t.titleMedium),
+        if (detalle != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            detalle!,
+            style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+          ),
+        ],
+      ],
+    );
 
     return Glass(
+      blur: grande,
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
           onTap: onTap,
-          customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: c.accentSoft,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icono, size: 22, color: c.accent),
-                ),
-                const SizedBox(height: 12),
-                Text(etiqueta, style: Theme.of(context).textTheme.titleMedium),
-                if (detalle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    detalle!,
-                    style: Theme.of(context).textTheme.labelLarge!.copyWith(fontWeight: FontWeight.w400),
-                  ),
-                ],
-              ],
-            ),
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Abre el marcador con el 123; la persona solo confirma tocando "llamar".
-class _LlamarAl123 extends StatelessWidget {
-  const _LlamarAl123();
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.rondo;
-    final t = Theme.of(context).textTheme;
-
-    return Glass(
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: () => llamarAl123(context),
-          customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(color: c.accentSoft, borderRadius: BorderRadius.circular(14)),
-                  child: Icon(Icons.phone_rounded, color: c.accent),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
+            padding: EdgeInsets.all(grande ? 18 : 14),
+            child: grande
+                ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [icon, textos],
+                  )
+                : Row(
                     children: [
-                      Text(
-                        'Llamar al 123',
-                        style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Línea de emergencias de Colombia',
-                        style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
-                      ),
+                      icon,
+                      const SizedBox(width: 12),
+                      Expanded(child: textos),
                     ],
                   ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: c.textSecondary),
-              ],
-            ),
           ),
         ),
       ),
@@ -397,50 +433,61 @@ class _TarjetaMedicamentos extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final estado = context.watch<AppState>();
     final proxima = estado.proximaToma(DateTime.now());
-    final acabandose = estado.medicamentos.where((m) => m.seEstaAcabando).toList();
+    final acabandose = estado.medicamentos
+        .where((m) => m.seEstaAcabando)
+        .toList();
 
     final resumen = proxima == null
         ? 'Agrega tus medicamentos'
         : 'Próxima: ${proxima.medicamento.nombre}, '
-            '${diaRelativo(proxima.hora).toLowerCase()} a las ${horaCorta(proxima.hora)}';
+              '${diaRelativo(proxima.hora).toLowerCase()} a las ${horaCorta(proxima.hora)}';
 
-    return Glass(
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: () => Navigator.of(context).push(MedicamentosPage.abrir()),
-          customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(color: c.accentSoft, borderRadius: BorderRadius.circular(14)),
-                  child: Icon(Icons.medication_rounded, color: c.accent),
+    // Va dentro de la tarjeta de vidrio de Inicio (sin su propio vidrio).
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(MedicamentosPage.abrir()),
+        customBorder: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: c.accentSoft,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Medicamentos',
-                        style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                child: Icon(Icons.medication_rounded, color: c.accent),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Medicamentos', style: t.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      resumen,
+                      style: t.labelLarge!.copyWith(
+                        fontWeight: FontWeight.w400,
                       ),
-                      const SizedBox(height: 2),
-                      Text(resumen, style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400)),
-                      if (acabandose.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(acabandose.first.avisoReponer, style: t.labelLarge!.copyWith(color: c.text)),
-                      ],
+                    ),
+                    if (acabandose.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        acabandose.first.avisoReponer,
+                        style: t.labelLarge!.copyWith(color: c.text),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
-                Icon(Icons.chevron_right_rounded, color: c.textSecondary),
-              ],
-            ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: c.textSecondary),
+            ],
           ),
         ),
       ),

@@ -12,6 +12,7 @@ import '../../core/widgets/glass.dart';
 import '../../core/widgets/glass_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/rondo_back_button.dart';
+import '../../core/widgets/skeleton.dart';
 
 /// El cuidador escribe el código que le llegó por SMS (RF-05) y queda
 /// vinculado. Devuelve el nombre de la persona al aceptar.
@@ -69,7 +70,10 @@ class _AceptarInvitacionPageState extends State<AceptarInvitacionPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 8),
-                      const Align(alignment: Alignment.centerLeft, child: RondoBackButton()),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: RondoBackButton(),
+                      ),
                       const SizedBox(height: 22),
                       Text('Escribe tu código', style: t.headlineLarge),
                       const SizedBox(height: 8),
@@ -88,8 +92,12 @@ class _AceptarInvitacionPageState extends State<AceptarInvitacionPage> {
                           textCapitalization: TextCapitalization.characters,
                           textInputAction: TextInputAction.done,
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
-                            LengthLimitingTextInputFormatter(Invitacion.largoCodigo),
+                            FilteringTextInputFormatter.allow(
+                              RegExp('[A-Za-z0-9]'),
+                            ),
+                            LengthLimitingTextInputFormatter(
+                              Invitacion.largoCodigo,
+                            ),
                           ],
                           onChanged: (_) {
                             if (_error != null) setState(() => _error = null);
@@ -101,7 +109,11 @@ class _AceptarInvitacionPageState extends State<AceptarInvitacionPage> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.lock_outline_rounded, size: 18, color: c.textSecondary),
+                          Icon(
+                            Icons.lock_outline_rounded,
+                            size: 18,
+                            color: c.textSecondary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -114,9 +126,17 @@ class _AceptarInvitacionPageState extends State<AceptarInvitacionPage> {
                       const Spacer(),
                       const SizedBox(height: 24),
                       if (_ocupado)
-                        const Center(child: CircularProgressIndicator())
+                        // Mismo tamaño que el botón (alto 56) mientras se valida el código.
+                        Semantics(
+                          label: 'Aceptando la invitación…',
+                          liveRegion: true,
+                          child: const Skeleton(height: 56, radius: 28),
+                        )
                       else
-                        PrimaryButton(label: 'Aceptar invitación', onPressed: _aceptar),
+                        PrimaryButton(
+                          label: 'Aceptar invitación',
+                          onPressed: _aceptar,
+                        ),
                       const SizedBox(height: 12),
                     ],
                   ),

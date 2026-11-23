@@ -51,7 +51,12 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
     } else {
       // Por defecto: la próxima hora en punto.
       final ahora = DateTime.now();
-      _primeraToma = DateTime(ahora.year, ahora.month, ahora.day, ahora.hour + 1);
+      _primeraToma = DateTime(
+        ahora.year,
+        ahora.month,
+        ahora.day,
+        ahora.hour + 1,
+      );
     }
   }
 
@@ -125,7 +130,9 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
         content: Text(
           medicamento.seEstaAcabando
               ? medicamento.avisoReponer
-              : (_editando ? 'Cambios guardados.' : 'Agregamos ${medicamento.nombre}.'),
+              : (_editando
+                    ? 'Cambios guardados.'
+                    : 'Agregamos ${medicamento.nombre}.'),
         ),
       ),
     );
@@ -150,9 +157,15 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 8),
-                      const Align(alignment: Alignment.centerLeft, child: RondoBackButton()),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: RondoBackButton(),
+                      ),
                       const SizedBox(height: 22),
-                      Text(_editando ? 'Editar medicamento' : 'Nuevo medicamento', style: t.headlineLarge),
+                      Text(
+                        _editando ? 'Editar medicamento' : 'Nuevo medicamento',
+                        style: t.headlineLarge,
+                      ),
                       const SizedBox(height: 22),
 
                       // ---------- Nombre y dosis ----------
@@ -189,7 +202,9 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
                         children: [
                           for (final horas in Medicamento.frecuencias)
                             _Opcion(
-                              texto: horas == 24 ? '1 vez al día' : 'Cada $horas h',
+                              texto: horas == 24
+                                  ? '1 vez al día'
+                                  : 'Cada $horas h',
                               seleccionada: _frecuencia == horas,
                               onTap: () => setState(() {
                                 _frecuencia = horas;
@@ -207,9 +222,14 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
                           type: MaterialType.transparency,
                           child: InkWell(
                             onTap: _elegirHora,
-                            customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                            customBorder: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 14,
+                              ),
                               child: Row(
                                 children: [
                                   Icon(Icons.schedule_rounded, color: c.accent),
@@ -220,7 +240,12 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
                                       style: t.bodyLarge,
                                     ),
                                   ),
-                                  Text('Cambiar', style: t.labelLarge!.copyWith(color: c.accentLink)),
+                                  Text(
+                                    'Cambiar',
+                                    style: t.labelLarge!.copyWith(
+                                      color: c.accentLink,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -236,20 +261,28 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(18, 10, 12, 10),
+                              padding: const EdgeInsets.fromLTRB(
+                                18,
+                                10,
+                                12,
+                                10,
+                              ),
                               child: Row(
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Unidades por toma',
-                                          style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                                          style: t.titleMedium,
                                         ),
                                         Text(
                                           'Pastillas, gotas o cápsulas cada vez',
-                                          style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                                          style: t.labelLarge!.copyWith(
+                                            fontWeight: FontWeight.w400,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -285,7 +318,10 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
                         const SizedBox(height: 12),
                         Semantics(
                           liveRegion: true,
-                          child: Text(_error!, style: t.labelLarge!.copyWith(color: c.errorText)),
+                          child: Text(
+                            _error!,
+                            style: t.labelLarge!.copyWith(color: c.errorText),
+                          ),
                         ),
                       ],
 
@@ -307,7 +343,11 @@ class _MedicamentoFormPageState extends State<MedicamentoFormPage> {
 
 /// Opción seleccionable en forma de cápsula ("Cada 8 h").
 class _Opcion extends StatelessWidget {
-  const _Opcion({required this.texto, required this.seleccionada, required this.onTap});
+  const _Opcion({
+    required this.texto,
+    required this.seleccionada,
+    required this.onTap,
+  });
 
   final String texto;
   final bool seleccionada;
@@ -344,9 +384,9 @@ class _Opcion extends StatelessWidget {
               child: Text(
                 texto,
                 style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                      fontWeight: seleccionada ? FontWeight.w700 : FontWeight.w600,
-                      color: seleccionada ? c.accentLink : c.text,
-                    ),
+                  fontWeight: seleccionada ? FontWeight.w700 : FontWeight.w600,
+                  color: seleccionada ? c.accentLink : c.text,
+                ),
               ),
             ),
           ),
@@ -392,7 +432,11 @@ class _Contador extends StatelessWidget {
 }
 
 class _BotonRedondo extends StatelessWidget {
-  const _BotonRedondo({required this.icono, required this.etiqueta, required this.onTap});
+  const _BotonRedondo({
+    required this.icono,
+    required this.etiqueta,
+    required this.onTap,
+  });
 
   final IconData icono;
   final String etiqueta;
@@ -415,8 +459,16 @@ class _BotonRedondo extends StatelessWidget {
           child: Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: c.neutralSoft, shape: BoxShape.circle),
-            child: Icon(icono, color: onTap != null ? c.text : c.textSecondary.withValues(alpha: 0.4)),
+            decoration: BoxDecoration(
+              color: c.neutralSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icono,
+              color: onTap != null
+                  ? c.text
+                  : c.textSecondary.withValues(alpha: 0.4),
+            ),
           ),
         ),
       ),

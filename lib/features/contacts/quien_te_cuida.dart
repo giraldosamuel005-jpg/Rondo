@@ -10,6 +10,7 @@ import '../../core/vinculos/vinculo.dart';
 import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/glass.dart';
+import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/tab_page.dart';
 import '../cuidador/abrir_enlace.dart';
 
@@ -79,9 +80,9 @@ class _FilaCuidadorState extends State<_FilaCuidador> {
   }
 
   Future<void> _invitar(Vinculos vinculos) => _hacer(() async {
-        final invitacion = await vinculos.invitar(widget.contacto);
-        if (mounted) await enviarInvitacion(context, invitacion);
-      });
+    final invitacion = await vinculos.invitar(widget.contacto);
+    if (mounted) await enviarInvitacion(context, invitacion);
+  });
 
   Future<void> _dejarDeCompartir(Vinculos vinculos, Vinculo vinculo) async {
     final nombre = primerNombre(widget.contacto.nombre);
@@ -89,14 +90,23 @@ class _FilaCuidadorState extends State<_FilaCuidador> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('¿Dejar de compartir con $nombre?'),
-        content: Text('Desde ya, $nombre no verá tu estado. Si cambias de opinión, puedes invitarlo otra vez.'),
+        content: Text(
+          'Desde ya, $nombre no verá tu estado. Si cambias de opinión, puedes invitarlo otra vez.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Dejar de compartir')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Dejar de compartir'),
+          ),
         ],
       ),
     );
-    if (confirmar == true) await _hacer(() => vinculos.dejarDeCompartir(vinculo));
+    if (confirmar == true)
+      await _hacer(() => vinculos.dejarDeCompartir(vinculo));
   }
 
   @override
@@ -106,25 +116,40 @@ class _FilaCuidadorState extends State<_FilaCuidador> {
     final vinculos = context.watch<Vinculos>();
     final contacto = widget.contacto;
     final vinculo = vinculos.vinculoCon(contacto.celular);
-    final invitacion = vinculo == null ? vinculos.invitacionPendiente(contacto.celular) : null;
+    final invitacion = vinculo == null
+        ? vinculos.invitacionPendiente(contacto.celular)
+        : null;
 
     final (estado, color) = switch ((vinculo, invitacion)) {
       (Vinculo(), _) => ('Te cuida', c.accentLink),
-      (_, Invitacion(:final codigo)) => ('Invitación enviada · código $codigo', c.textSecondary),
+      (_, Invitacion(:final codigo)) => (
+        'Invitación enviada · código $codigo',
+        c.textSecondary,
+      ),
       _ => ('Sin invitar', c.textSecondary),
     };
 
     final acciones = <Widget>[
       if (vinculo != null)
-        TextButton(onPressed: () => _dejarDeCompartir(vinculos, vinculo), child: const Text('Dejar de compartir'))
-      else if (invitacion != null) ...[
-        TextButton(onPressed: () => enviarInvitacion(context, invitacion), child: const Text('Reenviar SMS')),
         TextButton(
-          onPressed: () => _hacer(() => vinculos.cancelarInvitacion(invitacion)),
+          onPressed: () => _dejarDeCompartir(vinculos, vinculo),
+          child: const Text('Dejar de compartir'),
+        )
+      else if (invitacion != null) ...[
+        TextButton(
+          onPressed: () => enviarInvitacion(context, invitacion),
+          child: const Text('Reenviar SMS'),
+        ),
+        TextButton(
+          onPressed: () =>
+              _hacer(() => vinculos.cancelarInvitacion(invitacion)),
           child: const Text('Cancelar invitación'),
         ),
       ] else
-        TextButton(onPressed: () => _invitar(vinculos), child: const Text('Invitar a cuidarme')),
+        TextButton(
+          onPressed: () => _invitar(vinculos),
+          child: const Text('Invitar a cuidarme'),
+        ),
     ];
 
     return Padding(
@@ -140,15 +165,26 @@ class _FilaCuidadorState extends State<_FilaCuidador> {
               children: [
                 Text(
                   contacto.nombre,
-                  style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: t.titleMedium,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(estado, style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400, color: color)),
+                Text(
+                  estado,
+                  style: t.labelLarge!.copyWith(
+                    fontWeight: FontWeight.w400,
+                    color: color,
+                  ),
+                ),
                 if (_ocupado)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                  // Del tamaño de los botones que va a reemplazar (alto mínimo 44).
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Semantics(
+                      label: 'Actualizando…',
+                      liveRegion: true,
+                      child: const Skeleton(width: 120, height: 44, radius: 22),
+                    ),
                   )
                 else
                   // Los botones bajan de línea si no caben (texto grande).

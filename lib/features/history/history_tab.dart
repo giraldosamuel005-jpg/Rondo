@@ -119,9 +119,14 @@ class _SelectorFiltro extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         child: Text(
                           filtro.etiqueta,
-                          style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                                fontWeight: filtro == actual ? FontWeight.w700 : FontWeight.w500,
-                                color: filtro == actual ? c.accentLink : c.textSecondary,
+                          style: Theme.of(context).textTheme.labelLarge!
+                              .copyWith(
+                                fontWeight: filtro == actual
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: filtro == actual
+                                    ? c.accentLink
+                                    : c.textSecondary,
                               ),
                         ),
                       ),
@@ -148,25 +153,61 @@ class _FilaEvento extends StatelessWidget {
 
     // Color del ícono: turquesa (normal), neutro (pausa) o ámbar (alerta enviada).
     final (icono, titulo, fondo, color) = switch (evento.tipo) {
-      TipoEvento.rondaActivada => (Icons.shield_rounded, 'Ronda activada', c.accentSoft, c.accent),
-      TipoEvento.rondaPausada => (Icons.pause_rounded, 'Ronda en pausa', c.neutralSoft, c.textSecondary),
-      TipoEvento.rondaReanudada => (Icons.play_arrow_rounded, 'Ronda reanudada', c.accentSoft, c.accent),
-      TipoEvento.alertaCancelada => (Icons.check_rounded, 'Posible caída: estabas bien', c.accentSoft, c.accent),
-      TipoEvento.estoyBien => (Icons.favorite_rounded, 'Confirmaste que estás bien', c.accentSoft, c.accent),
-      TipoEvento.tomaRegistrada => (Icons.medication_rounded, 'Tomaste tu medicamento', c.accentSoft, c.accent),
-      TipoEvento.tomaOmitida => (Icons.medication_outlined, 'No tomaste tu medicamento', c.neutralSoft, c.textSecondary),
+      TipoEvento.rondaActivada => (
+        Icons.shield_rounded,
+        'Ronda activada',
+        c.accentSoft,
+        c.accent,
+      ),
+      TipoEvento.rondaPausada => (
+        Icons.pause_rounded,
+        'Ronda en pausa',
+        c.neutralSoft,
+        c.textSecondary,
+      ),
+      TipoEvento.rondaReanudada => (
+        Icons.play_arrow_rounded,
+        'Ronda reanudada',
+        c.accentSoft,
+        c.accent,
+      ),
+      TipoEvento.alertaCancelada => (
+        Icons.check_rounded,
+        'Posible caída: estabas bien',
+        c.accentSoft,
+        c.accent,
+      ),
+      TipoEvento.estoyBien => (
+        Icons.favorite_rounded,
+        'Confirmaste que estás bien',
+        c.accentSoft,
+        c.accent,
+      ),
+      TipoEvento.tomaRegistrada => (
+        Icons.medication_rounded,
+        'Tomaste tu medicamento',
+        c.accentSoft,
+        c.accent,
+      ),
+      TipoEvento.tomaOmitida => (
+        Icons.medication_outlined,
+        'No tomaste tu medicamento',
+        c.neutralSoft,
+        c.textSecondary,
+      ),
       TipoEvento.alertaEnviada => (
-          Icons.notifications_active_rounded,
-          'Alerta enviada',
-          c.alert.withValues(alpha: 0.18),
-          c.alertText,
-        ),
+        Icons.notifications_active_rounded,
+        'Alerta enviada',
+        c.alert.withValues(alpha: 0.18),
+        c.alertText,
+      ),
     };
     // El día ya está en el título del grupo.
     final cuando = horaCorta(evento.fecha);
 
     return Semantics(
-      label: '$titulo, ${diaRelativo(evento.fecha)} a las ${horaCorta(evento.fecha)}'
+      label:
+          '$titulo, ${diaRelativo(evento.fecha)} a las ${horaCorta(evento.fecha)}'
           '${evento.detalle != null ? '. ${evento.detalle}' : ''}',
       excludeSemantics: true,
       child: Padding(
@@ -187,13 +228,12 @@ class _FilaEvento extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    titulo,
-                    style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                  Text(titulo, style: t.titleMedium),
                   const SizedBox(height: 2),
                   Text(
-                    evento.detalle == null ? cuando : '$cuando · ${evento.detalle}',
+                    evento.detalle == null
+                        ? cuando
+                        : '$cuando · ${evento.detalle}',
                     style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
                   ),
                 ],
@@ -218,15 +258,15 @@ class _SinResultados extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final (icono, titulo, texto) = switch (filtro) {
       FiltroHistorial.medicamentos => (
-          Icons.medication_outlined,
-          'Sin tomas registradas',
-          'Cuando marques una toma de tus medicamentos, la verás aquí.',
-        ),
+        Icons.medication_outlined,
+        'Sin tomas registradas',
+        'Cuando marques una toma de tus medicamentos, la verás aquí.',
+      ),
       _ => (
-          Icons.shield_outlined,
-          'Sin alertas',
-          'Si alguna vez detectamos una posible caída, la verás aquí.',
-        ),
+        Icons.shield_outlined,
+        'Sin alertas',
+        'Si alguna vez detectamos una posible caída, la verás aquí.',
+      ),
     };
 
     return Glass(

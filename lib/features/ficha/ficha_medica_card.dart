@@ -17,11 +17,12 @@ class FichaMedicaCard extends StatelessWidget {
 
   Future<void> _abrir(BuildContext context) async {
     final mensajero = ScaffoldMessenger.of(context);
-    final guardada = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const FichaMedicaPage()),
-    );
+    final guardada = await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (_) => const FichaMedicaPage()));
     if (guardada == true) {
-      mensajero.showSnackBar(const SnackBar(content: Text('Guardamos tu ficha médica.')));
+      mensajero.showSnackBar(
+        const SnackBar(content: Text('Guardamos tu ficha médica.')),
+      );
     }
   }
 
@@ -48,7 +49,8 @@ class FichaMedicaCard extends StatelessWidget {
         ],
       ),
     );
-    if (confirmar == true) estado.retirarConsentimiento(TipoConsentimiento.datosMedicos);
+    if (confirmar == true)
+      estado.retirarConsentimiento(TipoConsentimiento.datosMedicos);
   }
 
   @override
@@ -57,7 +59,8 @@ class FichaMedicaCard extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final estado = context.watch<AppState>();
     final ficha = estado.fichaMedica;
-    final sinContacto = ficha != null && ficha.contactoEmergenciaEn(estado.contactos) == null;
+    final sinContacto =
+        ficha != null && ficha.contactoEmergenciaEn(estado.contactos) == null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -67,24 +70,29 @@ class FichaMedicaCard extends StatelessWidget {
             type: MaterialType.transparency,
             child: InkWell(
               onTap: () => _abrir(context),
-              customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              customBorder: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                 child: Row(
                   children: [
-                    Icon(Icons.medical_information_outlined, size: 26, color: c.accent),
+                    Icon(
+                      Icons.medical_information_outlined,
+                      size: 26,
+                      color: c.accent,
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Ficha médica',
-                            style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
+                          Text('Ficha médica', style: t.titleMedium),
                           const SizedBox(height: 3),
                           Text(
-                            sinContacto ? FichaMedica.errorContacto : _resumen(ficha, estado),
+                            sinContacto
+                                ? FichaMedica.errorContacto
+                                : _resumen(ficha, estado),
                             style: t.labelLarge!.copyWith(
                               fontWeight: FontWeight.w400,
                               color: sinContacto ? c.errorText : null,
@@ -105,9 +113,8 @@ class FichaMedicaCard extends StatelessWidget {
           SecondaryButton(
             label: 'Ver mi código QR',
             icon: Icons.qr_code_2_rounded,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const CodigoQrPage()),
-            ),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const CodigoQrPage())),
           ),
         ],
         if (estado.tieneConsentimiento(TipoConsentimiento.datosMedicos))

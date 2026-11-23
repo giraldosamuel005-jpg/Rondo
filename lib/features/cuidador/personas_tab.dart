@@ -11,6 +11,7 @@ import '../../core/widgets/avatar.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/secondary_button.dart';
+import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/tab_page.dart';
 import 'aceptar_invitacion_page.dart';
@@ -31,7 +32,9 @@ class PersonasTab extends StatelessWidget {
       MaterialPageRoute(builder: (_) => const AceptarInvitacionPage()),
     );
     if (nombre != null) {
-      mensajero.showSnackBar(SnackBar(content: Text('Listo. Ahora cuidas a $nombre.')));
+      mensajero.showSnackBar(
+        SnackBar(content: Text('Listo. Ahora cuidas a $nombre.')),
+      );
     }
   }
 
@@ -43,7 +46,10 @@ class PersonasTab extends StatelessWidget {
     // Sin servidor (pruebas, o plataformas sin Firebase) no hay códigos.
     final vinculos = context.watch<Vinculos?>();
     final personas = estado.personasACargo;
-    final conAlerta = [for (final p in personas) if (p.estado == EstadoPersona.alerta) p];
+    final conAlerta = [
+      for (final p in personas)
+        if (p.estado == EstadoPersona.alerta) p,
+    ];
 
     return BlobBackground(
       blobs: BlobBackground.inicio,
@@ -62,7 +68,10 @@ class PersonasTab extends StatelessWidget {
                     children: [
                       Text(fechaLarga(DateTime.now()), style: t.bodyMedium),
                       const SizedBox(height: 4),
-                      Text('Hola, ${primerNombre(estado.nombre)}', style: t.headlineLarge),
+                      Text(
+                        'Hola, ${primerNombre(estado.nombre)}',
+                        style: t.headlineLarge,
+                      ),
                     ],
                   ),
                 ),
@@ -72,7 +81,10 @@ class PersonasTab extends StatelessWidget {
                   excludeSemantics: true,
                   child: GestureDetector(
                     onTap: onVerAjustes,
-                    child: RondoAvatar(iniciales: inicialesDe(estado.nombre), size: 44),
+                    child: RondoAvatar(
+                      iniciales: inicialesDe(estado.nombre),
+                      size: 44,
+                    ),
                   ),
                 ),
               ],
@@ -88,11 +100,19 @@ class PersonasTab extends StatelessWidget {
             // RF-27: alguien dejó de compartir con este cuidador.
             if (vinculos != null)
               for (final nombre in vinculos.retirados) ...[
-                _AvisoRetirado(nombre: nombre, onCerrar: vinculos.descartarRetirados),
+                _AvisoRetirado(
+                  nombre: nombre,
+                  onCerrar: vinculos.descartarRetirados,
+                ),
                 const SizedBox(height: 12),
               ],
 
-            if (personas.isEmpty)
+            if (personas.isEmpty && (vinculos?.cargandoPersonas ?? false))
+              // Primera respuesta del servidor: se ve la forma de lo que viene.
+              const Glass(
+                child: SkeletonFila(etiqueta: 'Cargando tus personas…'),
+              )
+            else if (personas.isEmpty)
               const _SinPersonas()
             else ...[
               const SectionLabel('Personas que cuidas'),
@@ -121,7 +141,11 @@ class PersonasTab extends StatelessWidget {
 
 /// Tarjeta de una persona: nombre, estado y un resumen. Al tocarla, el detalle.
 class _TarjetaPersona extends StatelessWidget {
-  const _TarjetaPersona({required this.persona, required this.orden, required this.blur});
+  const _TarjetaPersona({
+    required this.persona,
+    required this.orden,
+    required this.blur,
+  });
 
   final PersonaACargo persona;
   final int orden;
@@ -140,9 +164,13 @@ class _TarjetaPersona extends StatelessWidget {
         type: MaterialType.transparency,
         child: InkWell(
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => PersonaDetallePage(personaId: persona.id)),
+            MaterialPageRoute(
+              builder: (_) => PersonaDetallePage(personaId: persona.id),
+            ),
           ),
-          customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -150,7 +178,11 @@ class _TarjetaPersona extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    RondoAvatar(iniciales: inicialesDe(persona.nombre), size: 44, variante: orden),
+                    RondoAvatar(
+                      iniciales: inicialesDe(persona.nombre),
+                      size: 44,
+                      variante: orden,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -160,7 +192,9 @@ class _TarjetaPersona extends StatelessWidget {
                           if (persona.relacion.isNotEmpty)
                             Text(
                               persona.relacion,
-                              style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                              style: t.labelLarge!.copyWith(
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
                         ],
                       ),
@@ -169,12 +203,16 @@ class _TarjetaPersona extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Align(alignment: Alignment.centerLeft, child: EstadoPersonaChip(estado: persona.estado)),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: EstadoPersonaChip(estado: persona.estado),
+                ),
                 const SizedBox(height: 12),
                 if (ubicacion != null)
                   _Dato(
                     icono: Icons.place_rounded,
-                    texto: '${ubicacion.descripcion} · ${haceCuanto(ubicacion.fecha)}',
+                    texto:
+                        '${ubicacion.descripcion} · ${haceCuanto(ubicacion.fecha)}',
                   ),
                 _Dato(
                   icono: Icons.favorite_rounded,
@@ -185,7 +223,8 @@ class _TarjetaPersona extends StatelessWidget {
                 if (persona.cumplimiento != null)
                   _Dato(
                     icono: Icons.medication_rounded,
-                    texto: 'Medicamentos: ${persona.cumplimiento} % de tomas cumplidas',
+                    texto:
+                        'Medicamentos: ${persona.cumplimiento} % de tomas cumplidas',
                   ),
               ],
             ),
@@ -205,10 +244,22 @@ class EstadoPersonaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (estado) {
-      EstadoPersona.activa => const StatusChip(label: 'Ronda activa', variant: StatusChipVariant.activa),
-      EstadoPersona.enPausa => const StatusChip(label: 'En pausa', variant: StatusChipVariant.pausa),
-      EstadoPersona.alerta => const StatusChip(label: 'Alerta', variant: StatusChipVariant.alerta),
-      EstadoPersona.sinDatos => const StatusChip(label: 'Sin datos aún', variant: StatusChipVariant.pausa),
+      EstadoPersona.activa => const StatusChip(
+        label: 'Ronda activa',
+        variant: StatusChipVariant.activa,
+      ),
+      EstadoPersona.enPausa => const StatusChip(
+        label: 'En pausa',
+        variant: StatusChipVariant.pausa,
+      ),
+      EstadoPersona.alerta => const StatusChip(
+        label: 'Alerta',
+        variant: StatusChipVariant.alerta,
+      ),
+      EstadoPersona.sinDatos => const StatusChip(
+        label: 'Sin datos aún',
+        variant: StatusChipVariant.pausa,
+      ),
     };
   }
 }
@@ -234,7 +285,8 @@ class _Dato extends StatelessWidget {
           Expanded(
             child: Text(
               texto,
-              style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: c.text),
+              style: Theme.of(context).textTheme.bodyMedium!
+                  .copyWith(color: c.text),
             ),
           ),
         ],
@@ -271,7 +323,9 @@ class AvisoAlertaPersona extends StatelessWidget {
                 builder: (_) => AlertaEntrantePage(personaId: persona.id),
               ),
             ),
-            customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            customBorder: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -283,7 +337,10 @@ class AvisoAlertaPersona extends StatelessWidget {
                       color: c.alert.withValues(alpha: 0.22),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(Icons.notifications_active_rounded, color: c.alertText),
+                    child: Icon(
+                      Icons.notifications_active_rounded,
+                      color: c.alertText,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -299,7 +356,9 @@ class AvisoAlertaPersona extends StatelessWidget {
                           alerta == null
                               ? 'Toca para ver qué hacer.'
                               : 'Alerta ${haceCuanto(alerta.fecha)} · Toca para ver qué hacer.',
-                          style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400),
+                          style: t.labelLarge!.copyWith(
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ],
                     ),
@@ -338,7 +397,8 @@ class _AvisoRetirado extends StatelessWidget {
             Expanded(
               child: Text(
                 '$nombre ya no comparte su información contigo.',
-                style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: c.text),
+                style: Theme.of(context).textTheme.bodyMedium!
+                    .copyWith(color: c.text),
               ),
             ),
             IconButton(
@@ -372,8 +432,15 @@ class _SinPersonas extends StatelessWidget {
               Container(
                 width: 64,
                 height: 64,
-                decoration: BoxDecoration(color: c.accentSoft, shape: BoxShape.circle),
-                child: Icon(Icons.volunteer_activism_rounded, size: 30, color: c.accent),
+                decoration: BoxDecoration(
+                  color: c.accentSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.volunteer_activism_rounded,
+                  size: 30,
+                  color: c.accent,
+                ),
               ),
               const SizedBox(height: 14),
               Text(

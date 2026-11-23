@@ -90,7 +90,6 @@ class _AnilloPainter extends CustomPainter {
     if (restante <= 0) return;
 
     final barrido = 2 * math.pi * restante;
-    final suave = color.withValues(alpha: 0.55);
     canvas.drawArc(
       area,
       -math.pi / 2,
@@ -100,13 +99,7 @@ class _AnilloPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = grosor
         ..strokeCap = StrokeCap.round
-        // Igual que en StatusRing: el degradado vuelve al inicio después del
-        // arco para que el borde redondeado no tome el color del final.
-        ..shader = SweepGradient(
-          colors: [suave, color, suave],
-          stops: [0, restante.clamp(0.001, 1.0), 1],
-          transform: const GradientRotation(-math.pi / 2),
-        ).createShader(area),
+        ..color = color, // un solo color: la cuenta regresiva se lee mejor
     );
   }
 

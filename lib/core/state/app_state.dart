@@ -74,13 +74,16 @@ class AppState extends ChangeNotifier {
 
   /// Preferencia de la persona; no se borra al cerrar sesión.
   ThemeMode _modoTema = ThemeMode.system;
+  bool _vidrioReducido = false;
 
   // ---------- Lectura (las pantallas leen por aquí) ----------
 
   /// Ya terminó el registro: al abrir la app va a Inicio. Quien se cuida
   /// termina al activar su ronda; el cuidador, al elegir su tipo de cuenta.
   bool get registroCompleto =>
-      _celular != null && _tipo != null && (esCuidador || _rondaActivaDesde != null);
+      _celular != null &&
+      _tipo != null &&
+      (esCuidador || _rondaActivaDesde != null);
 
   bool get esCuidador => _tipo == TipoCuenta.cuidador;
 
@@ -111,14 +114,16 @@ class AppState extends ChangeNotifier {
   bool get permisoUbicacion => _permisoUbicacion;
   bool get permisoSensores => _permisoSensores;
   bool tienePermiso(PermisoSistema permiso) => switch (permiso) {
-        PermisoSistema.ubicacion => _permisoUbicacion,
-        PermisoSistema.sensores => _permisoSensores,
-        PermisoSistema.sms => _permisoSms,
-      };
-  bool tieneConsentimiento(TipoConsentimiento tipo) => _consentimientos.containsKey(tipo);
+    PermisoSistema.ubicacion => _permisoUbicacion,
+    PermisoSistema.sensores => _permisoSensores,
+    PermisoSistema.sms => _permisoSms,
+  };
+  bool tieneConsentimiento(TipoConsentimiento tipo) =>
+      _consentimientos.containsKey(tipo);
 
   /// `null` si no lo ha dado.
-  DateTime? fechaConsentimiento(TipoConsentimiento tipo) => _consentimientos[tipo];
+  DateTime? fechaConsentimiento(TipoConsentimiento tipo) =>
+      _consentimientos[tipo];
   DateTime? get avisoAceptadoEn => _avisoAceptadoEn;
 
   /// `null` si todavía no la ha llenado.
@@ -171,14 +176,19 @@ class AppState extends ChangeNotifier {
     ({Medicamento medicamento, DateTime hora})? mejor;
     for (final m in _medicamentos) {
       final hora = proximaPendiente(m, ahora);
-      if (mejor == null || hora.isBefore(mejor.hora)) mejor = (medicamento: m, hora: hora);
+      if (mejor == null || hora.isBefore(mejor.hora))
+        mejor = (medicamento: m, hora: hora);
     }
     return mejor;
   }
 
   /// ¿Ya se registró (tomada o no) la dosis de esa hora?
   bool tomaYaRegistrada(String medicamentoId, DateTime horaProgramada) =>
-      _tomas.any((t) => t.medicamentoId == medicamentoId && t.horaProgramada == horaProgramada);
+      _tomas.any(
+        (t) =>
+            t.medicamentoId == medicamentoId &&
+            t.horaProgramada == horaProgramada,
+      );
 
   /// Última vez que tocó "Estoy bien" en Inicio (RF-12). `null` si nunca.
   DateTime? get ultimoEstoyBien {
@@ -224,10 +234,10 @@ class AppState extends ChangeNotifier {
 
   /// Lo que la persona decide con el interruptor.
   void cambiarPermiso(PermisoSistema permiso, bool valor) => switch (permiso) {
-        PermisoSistema.ubicacion => cambiarPermisoUbicacion(valor),
-        PermisoSistema.sensores => cambiarPermisoSensores(valor),
-        PermisoSistema.sms => cambiarPermisoSms(valor),
-      };
+    PermisoSistema.ubicacion => cambiarPermisoUbicacion(valor),
+    PermisoSistema.sensores => cambiarPermisoSensores(valor),
+    PermisoSistema.sms => cambiarPermisoSms(valor),
+  };
 
   /// La persona quitó el permiso desde los ajustes del celular (RF-32).
   /// Se apaga el interruptor, pero el consentimiento que dio en Rondó se
@@ -299,7 +309,9 @@ class AppState extends ChangeNotifier {
 
   void alternarPausa() {
     _rondaEnPausa = !_rondaEnPausa;
-    _registrar(_rondaEnPausa ? TipoEvento.rondaPausada : TipoEvento.rondaReanudada);
+    _registrar(
+      _rondaEnPausa ? TipoEvento.rondaPausada : TipoEvento.rondaReanudada,
+    );
     notifyListeners();
   }
 
@@ -336,7 +348,10 @@ class AppState extends ChangeNotifier {
     final p = _personas[i];
     _personas[i] = p.copyWith(
       estado: EstadoPersona.alerta,
-      alertas: [AlertaPersona(fecha: DateTime.now(), atendida: false), ...p.alertas],
+      alertas: [
+        AlertaPersona(fecha: DateTime.now(), atendida: false),
+        ...p.alertas,
+      ],
     );
     notifyListeners();
   }
@@ -350,7 +365,14 @@ class AppState extends ChangeNotifier {
       estado: EstadoPersona.activa,
       alertas: [
         for (final a in p.alertas)
-          a.atendida ? a : AlertaPersona(id: a.id, fecha: a.fecha, atendida: true, estabaBien: a.estabaBien),
+          a.atendida
+              ? a
+              : AlertaPersona(
+                  id: a.id,
+                  fecha: a.fecha,
+                  atendida: true,
+                  estabaBien: a.estabaBien,
+                ),
       ],
     );
     notifyListeners();
@@ -382,21 +404,30 @@ class AppState extends ChangeNotifier {
 
   /// RF-22: registra la dosis que toca ahora. Si la tomó, descuenta las
   /// unidades (RF-21). Devuelve `false` si esa dosis ya estaba registrada.
-  bool registrarToma(String medicamentoId, {required bool tomada, DateTime? ahora}) {
+  bool registrarToma(
+    String medicamentoId, {
+    required bool tomada,
+    DateTime? ahora,
+  }) {
     final m = medicamento(medicamentoId);
     if (m == null) return false;
     final momento = ahora ?? DateTime.now();
     final hora = m.dosisActual(momento);
     if (tomaYaRegistrada(m.id, hora)) return false;
 
-    _tomas.add(TomaMedicamento(
-      medicamentoId: m.id,
-      horaProgramada: hora,
-      tomada: tomada,
-      horaReal: tomada ? momento : null,
-    ));
+    _tomas.add(
+      TomaMedicamento(
+        medicamentoId: m.id,
+        horaProgramada: hora,
+        tomada: tomada,
+        horaReal: tomada ? momento : null,
+      ),
+    );
     if (tomada) {
-      final quedan = (m.unidadesDisponibles - m.unidadesPorToma).clamp(0, m.unidadesDisponibles);
+      final quedan = (m.unidadesDisponibles - m.unidadesPorToma).clamp(
+        0,
+        m.unidadesDisponibles,
+      );
       _reemplazarSinAviso(m.copyWith(unidadesDisponibles: quedan));
     }
     _registrar(
@@ -425,6 +456,14 @@ class AppState extends ChangeNotifier {
   /// Ajustes → Apariencia: automático, claro u oscuro.
   void cambiarModoTema(ThemeMode modo) {
     _modoTema = modo;
+    notifyListeners();
+  }
+
+  /// Ajustes → Apariencia → "Vidrio reducido": vidrio sin desenfoque
+  /// (más fluido y gasta menos batería en celulares lentos).
+  bool get vidrioReducido => _vidrioReducido;
+  void cambiarVidrioReducido(bool valor) {
+    _vidrioReducido = valor;
     notifyListeners();
   }
 
@@ -474,26 +513,28 @@ class AppState extends ChangeNotifier {
 
   /// Todo menos la ficha médica (que va aparte y cifrada).
   Map<String, Object?> aJson() => {
-        'version': 1,
-        'celular': _celular,
-        'nombre': _nombre,
-        'tipo': _tipo?.name,
-        'contactos': [for (final c in _contactos) contactoAJson(c)],
-        'permisoUbicacion': _permisoUbicacion,
-        'permisoSensores': _permisoSensores,
-        'permisoSms': _permisoSms,
-        'consentimientos': {
-          for (final e in _consentimientos.entries) e.key.name: e.value.toIso8601String(),
-        },
-        'avisoAceptadoEn': _avisoAceptadoEn?.toIso8601String(),
-        'medicamentos': [for (final m in _medicamentos) medicamentoAJson(m)],
-        'tomas': [for (final t in _tomas) tomaAJson(t)],
-        'personasACargo': [for (final p in _personas) personaAJson(p)],
-        'rondaActivaDesde': _rondaActivaDesde?.toIso8601String(),
-        'rondaEnPausa': _rondaEnPausa,
-        'eventos': [for (final e in _eventos) eventoAJson(e)],
-        'modoTema': _modoTema.name,
-      };
+    'version': 1,
+    'celular': _celular,
+    'nombre': _nombre,
+    'tipo': _tipo?.name,
+    'contactos': [for (final c in _contactos) contactoAJson(c)],
+    'permisoUbicacion': _permisoUbicacion,
+    'permisoSensores': _permisoSensores,
+    'permisoSms': _permisoSms,
+    'consentimientos': {
+      for (final e in _consentimientos.entries)
+        e.key.name: e.value.toIso8601String(),
+    },
+    'avisoAceptadoEn': _avisoAceptadoEn?.toIso8601String(),
+    'medicamentos': [for (final m in _medicamentos) medicamentoAJson(m)],
+    'tomas': [for (final t in _tomas) tomaAJson(t)],
+    'personasACargo': [for (final p in _personas) personaAJson(p)],
+    'rondaActivaDesde': _rondaActivaDesde?.toIso8601String(),
+    'rondaEnPausa': _rondaEnPausa,
+    'eventos': [for (final e in _eventos) eventoAJson(e)],
+    'modoTema': _modoTema.name,
+    'vidrioReducido': _vidrioReducido,
+  };
 
   void _cargarDesde(Map<String, Object?> j, Map<String, Object?>? ficha) {
     _celular = j['celular'] as String?;
@@ -518,12 +559,15 @@ class AppState extends ChangeNotifier {
     _rondaActivaDesde = fechaDe(j['rondaActivaDesde']);
     _rondaEnPausa = j['rondaEnPausa'] as bool? ?? false;
     _eventos.addAll(listaDe(j['eventos'], eventoDeJson));
-    _modoTema = enumPorNombre(ThemeMode.values, j['modoTema']) ?? ThemeMode.system;
+    _modoTema =
+        enumPorNombre(ThemeMode.values, j['modoTema']) ?? ThemeMode.system;
+    _vidrioReducido = j['vidrioReducido'] as bool? ?? false;
     // La ficha solo se carga si sigue el consentimiento de datos médicos.
     if (ficha != null && tieneConsentimiento(TipoConsentimiento.datosMedicos)) {
       _fichaMedica = fichaDeJson(ficha);
       // Fichas guardadas antes de que existiera el QR reciben uno nuevo.
-      if (_fichaMedica != null) _codigoQr = codigoQrDeJson(ficha['codigoQr']) ?? CodigoQr.nuevo();
+      if (_fichaMedica != null)
+        _codigoQr = codigoQrDeJson(ficha['codigoQr']) ?? CodigoQr.nuevo();
     }
   }
 

@@ -37,7 +37,9 @@ class CheckCard extends StatelessWidget {
           type: MaterialType.transparency,
           child: InkWell(
             onTap: () => onChanged(!value),
-            customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            customBorder: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -53,27 +55,39 @@ class CheckCard extends StatelessWidget {
                       border: value
                           ? null
                           : Border.all(
-                              color: hayError ? c.error : c.textSecondary.withValues(alpha: 0.55),
+                              color: hayError
+                                  ? c.error
+                                  : c.textSecondary.withValues(alpha: 0.55),
                               width: 1.5,
                             ),
                     ),
-                    child: value ? Icon(Icons.check_rounded, size: 16, color: c.onAccent) : null,
+                    child: value
+                        ? Icon(Icons.check_rounded, size: 16, color: c.onAccent)
+                        : null,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title, style: t.bodyLarge!.copyWith(fontSize: 16, fontWeight: FontWeight.w600)),
+                        Text(title, style: t.titleMedium),
                         if (detail != null) ...[
                           const SizedBox(height: 4),
-                          Text(detail!, style: t.labelLarge!.copyWith(fontWeight: FontWeight.w400)),
+                          Text(
+                            detail!,
+                            style: t.labelLarge!.copyWith(
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
                         ],
                         if (hayError) ...[
                           const SizedBox(height: 6),
                           Semantics(
                             liveRegion: true,
-                            child: Text(error!, style: t.labelLarge!.copyWith(color: c.errorText)),
+                            child: Text(
+                              error!,
+                              style: t.labelLarge!.copyWith(color: c.errorText),
+                            ),
                           ),
                         ],
                       ],

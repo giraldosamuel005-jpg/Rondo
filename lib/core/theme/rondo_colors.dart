@@ -124,18 +124,22 @@ class RondoColors extends ThemeExtension<RondoColors> {
     tintBorder: Color(0x40FFFFFF), // 25 %
     avatarBlueTop: Color(0xFF60A5FA),
     avatarBlueBottom: Color(0xFF2563EB),
+    // Formas planas y nítidas (sin difuminar) en tonos de la marca: turquesa,
+    // cielo y verde. Sin índigo ni violeta: esa mezcla es el "degradado de IA".
     blobs: [
-      Color(0xFF5EEAD4), // turquesa
-      Color(0xFF93C5FD), // azul
-      Color(0xFFA7F3D0), // menta
-      Color(0xFFC4B5FD), // violeta (opcional)
+      Color(0xFF2DD4BF), // turquesa
+      Color(0xFF7DD3FC), // cielo
+      Color(0xFF86EFAC), // verde
+      Color(0xFF5EEAD4), // turquesa claro
     ],
-    blobOpacity: 0.62,
-    blobSigma: 28, // ≈ blur 56 px del diseño
+    blobOpacity: 0.5,
+    blobSigma: 0, // 0 = sin difuminar
   );
 
   static const dark = RondoColors(
-    bg: Color(0xFF06110F),
+    bg: Color(
+      0xFF07131F,
+    ), // azul noche con un punto de verde (antes casi negro verdoso)
     text: Color(0xFFEEF5F4),
     textSecondary: Color(0xFFA3B5B2),
     accent: Color(0xFF2DD4BF),
@@ -153,10 +157,10 @@ class RondoColors extends ThemeExtension<RondoColors> {
     onAlert: Color(0xFF3B2300),
     alertBlobs: [Color(0xFFB45309), Color(0xFF92400E), Color(0xFF78350F)],
     toggleOff: Color(0x2EFFFFFF), // 18 %
-    glassTop: Color(0x1CFFFFFF), // 11 %
-    glassBottom: Color(0x0AFFFFFF), // 4 %
-    glassBorder: Color(0x29FFFFFF), // 16 %
-    glassHighlight: Color(0x38FFFFFF), // 22 %
+    glassTop: Color(0x2EFFFFFF), // 18 %
+    glassBottom: Color(0x0DFFFFFF), // 5 %
+    glassBorder: Color(0x38FFFFFF), // 22 %
+    glassHighlight: Color(0x66FFFFFF), // 40 %
     glassShadow: Color(0x59000000), // 35 %
     tintTop: Color(0xFF5EEAD4),
     tintBottom: Color(0xFF2DD4BF),
@@ -165,13 +169,15 @@ class RondoColors extends ThemeExtension<RondoColors> {
     avatarBlueTop: Color(0xFF3B82F6),
     avatarBlueBottom: Color(0xFF1E40AF),
     blobs: [
-      Color(0xFF0F766E),
-      Color(0xFF1E40AF),
-      Color(0xFF065F46),
-      Color(0xFF4C1D95),
+      Color(0xFF0F766E), // turquesa
+      Color(0xFF0369A1), // cielo
+      Color(0xFF047857), // verde
+      Color(0xFF115E59), // turquesa oscuro
     ],
-    blobOpacity: 0.55,
-    blobSigma: 34, // ≈ blur 64–70 px del diseño
+    // En oscuro las formas son solo una insinuación: con más opacidad
+    // competían con el contenido (se probó en el emulador).
+    blobOpacity: 0.26,
+    blobSigma: 0, // 0 = sin difuminar
   );
 
   @override

@@ -21,12 +21,14 @@ import 'vinculo.dart';
 ///   las pone en el [AppState], así las pantallas de cuidador funcionan igual
 ///   que antes. Cada alerta nueva sale por [alertasNuevas].
 class Vinculos extends ChangeNotifier {
-  Vinculos(this._servicio, this._estado, {DateTime Function()? reloj}) : _reloj = reloj ?? DateTime.now {
+  Vinculos(this._servicio, this._estado, {DateTime Function()? reloj})
+    : _reloj = reloj ?? DateTime.now {
     _estado.addListener(_alCambiarEstado);
     _alCambiarEstado();
   }
 
-  static const errorConexion = 'No pudimos conectarnos. Revisa tu internet e intenta otra vez.';
+  static const errorConexion =
+      'No pudimos conectarnos. Revisa tu internet e intenta otra vez.';
 
   final ServicioVinculos _servicio;
   final AppState _estado;
@@ -51,12 +53,16 @@ class Vinculos extends ChangeNotifier {
 
   // Cuidador
   List<Vinculo> _personas = const [];
+
+  /// Ya llegó la primera lista de personas del servidor (aunque venga vacía).
+  bool _llegaronPersonas = false;
   final Map<String, StreamSubscription<EstadoCompartido?>> _subsEstado = {};
   final Map<String, EstadoCompartido?> _estados = {};
   final List<String> _retirados = [];
 
   // Cuidador: alertas de cada persona (RF-15, RF-26)
-  final Map<String, StreamSubscription<List<AlertaCompartida>>> _subsAlertas = {};
+  final Map<String, StreamSubscription<List<AlertaCompartida>>> _subsAlertas =
+      {};
   final Map<String, List<AlertaCompartida>> _alertas = {};
 
   /// "{personaUid}/{alertaId}" de las que ya llegaron en esta sesión.
@@ -73,7 +79,14 @@ class Vinculos extends ChangeNotifier {
   /// atender. La app abre con esto la pantalla de alerta.
   Stream<String> get alertasNuevas => _alertasNuevas.stream;
 
-  List<Vinculo> get cuidadoresActivos => [for (final v in _cuidadores) if (v.activo) v];
+  /// Cuidador: sigue esperando la primera respuesta del servidor. Las pantallas
+  /// muestran un skeleton en vez de "Aún no tienes personas a tu cargo".
+  bool get cargandoPersonas => _sesion?.cuidador == true && !_llegaronPersonas;
+
+  List<Vinculo> get cuidadoresActivos => [
+    for (final v in _cuidadores)
+      if (v.activo) v,
+  ];
 
   /// El vínculo activo con ese contacto, si lo hay.
   Vinculo? vinculoCon(String celular) =>
@@ -106,7 +119,8 @@ class Vinculos extends ChangeNotifier {
 
   /// Crea la invitación. Después hay que enviar el SMS con [Invitacion.mensajeSms].
   Future<Invitacion> invitar(Contacto contacto) async {
-    if (vinculoCon(contacto.celular) != null || invitacionPendiente(contacto.celular) != null) {
+    if (vinculoCon(contacto.celular) != null ||
+        invitacionPendiente(contacto.celular) != null) {
       throw const ErrorVinculo(Invitacion.errorYaInvitado);
     }
     final uid = await _uidOError();
@@ -130,7 +144,11 @@ class Vinculos extends ChangeNotifier {
         throw const ErrorVinculo(errorConexion);
       }
       // Se muestra ya, sin esperar a que el servidor la devuelva.
-      _invitaciones = [for (final i in _invitaciones) if (i.codigo != invitacion.codigo) i, invitacion];
+      _invitaciones = [
+        for (final i in _invitaciones)
+          if (i.codigo != invitacion.codigo) i,
+        invitacion,
+      ];
       notifyListeners();
       return invitacion;
     }
@@ -141,7 +159,8 @@ class Vinculos extends ChangeNotifier {
       _accion(() => _servicio.revocarInvitacion(invitacion.codigo));
 
   /// RF-27: desde este momento el cuidador ya no ve nada.
-  Future<void> dejarDeCompartir(Vinculo vinculo) => _accion(() => _servicio.revocarVinculo(vinculo));
+  Future<void> dejarDeCompartir(Vinculo vinculo) =>
+      _accion(() => _servicio.revocarVinculo(vinculo));
 
   /// Al quitar un contacto: corta su vínculo y anula su invitación, si hay.
   Future<void> olvidarContacto(String celular) async {
@@ -157,14 +176,21 @@ class Vinculos extends ChangeNotifier {
 
   /// RF-15: sube la alerta que la persona no canceló, para sus cuidadores.
   /// Devuelve `true` cuando el servidor la recibió. Sin cuidadores no sube nada.
-  Future<bool> publicarAlerta({required DateTime fecha, Posicion? posicion}) async {
+  Future<bool> publicarAlerta({
+    required DateTime fecha,
+    Posicion? posicion,
+  }) async {
     final sesion = _sesion;
     if (sesion == null || sesion.cuidador) return false;
     final uid = await _conectar();
     if (cuidadoresActivos.isEmpty) return false;
     await _servicio.publicarAlerta(
       uid,
-      AlertaCompartida(id: AlertaCompartida.nuevoId(_reloj()), fecha: fecha, posicion: posicion),
+      AlertaCompartida(
+        id: AlertaCompartida.nuevoId(_reloj()),
+        fecha: fecha,
+        posicion: posicion,
+      ),
     );
     return true;
   }
@@ -177,17 +203,23 @@ class Vinculos extends ChangeNotifier {
     final uid = _uid;
     if (uid == null) return;
     for (final a in _alertas[personaUid] ?? const <AlertaCompartida>[]) {
-      if (!a.atendida) _servicio.atenderAlerta(personaUid, a.id, cuidadorUid: uid).ignore();
+      if (!a.atendida)
+        _servicio.atenderAlerta(personaUid, a.id, cuidadorUid: uid).ignore();
     }
   }
 
   /// Acepta con el código que le llegó por SMS. Devuelve el vínculo creado.
   Future<Vinculo> aceptar(String texto) async {
     final codigo = Invitacion.normalizarCodigo(texto);
-    if (!Invitacion.codigoValido(codigo)) throw const ErrorVinculo(Invitacion.errorCodigo);
+    if (!Invitacion.codigoValido(codigo))
+      throw const ErrorVinculo(Invitacion.errorCodigo);
     final uid = await _uidOError();
     try {
-      return await _servicio.aceptarInvitacion(codigo, cuidadorUid: uid, cuidadorNombre: _estado.nombre);
+      return await _servicio.aceptarInvitacion(
+        codigo,
+        cuidadorUid: uid,
+        cuidadorNombre: _estado.nombre,
+      );
     } on ErrorVinculo {
       rethrow;
     } catch (_) {
@@ -239,19 +271,25 @@ class Vinculos extends ChangeNotifier {
 
   void _escuchar(String uid, {required bool comoCuidador}) {
     if (comoCuidador) {
-      _subs.add(_servicio.personasDe(uid).listen(_alCambiarPersonas, onError: _ignorar));
+      _subs.add(
+        _servicio.personasDe(uid).listen(_alCambiarPersonas, onError: _ignorar),
+      );
       return;
     }
     _subs
-      ..add(_servicio.invitacionesDe(uid).listen((lista) {
-        _invitaciones = lista;
-        notifyListeners();
-      }, onError: _ignorar))
-      ..add(_servicio.cuidadoresDe(uid).listen((lista) {
-        _cuidadores = lista;
-        _publicarSiCambio();
-        notifyListeners();
-      }, onError: _ignorar));
+      ..add(
+        _servicio.invitacionesDe(uid).listen((lista) {
+          _invitaciones = lista;
+          notifyListeners();
+        }, onError: _ignorar),
+      )
+      ..add(
+        _servicio.cuidadoresDe(uid).listen((lista) {
+          _cuidadores = lista;
+          _publicarSiCambio();
+          notifyListeners();
+        }, onError: _ignorar),
+      );
   }
 
   /// Sin permiso (vínculo cortado) o sin red: se sigue con lo que había.
@@ -260,16 +298,22 @@ class Vinculos extends ChangeNotifier {
   void _alCambiarEstado() {
     if (_cerrado) return;
     final celular = _estado.celular;
-    final sesion = (celular == null || _estado.tipo == null) ? null : (celular: celular, cuidador: _estado.esCuidador);
+    final sesion = (celular == null || _estado.tipo == null)
+        ? null
+        : (celular: celular, cuidador: _estado.esCuidador);
 
     if (sesion != _sesion) {
       final anterior = _sesion;
       _sesion = sesion;
-      _reiniciar(personaCerroSesion: anterior != null && !anterior.cuidador && sesion == null);
+      _reiniciar(
+        personaCerroSesion:
+            anterior != null && !anterior.cuidador && sesion == null,
+      );
     }
     if (_sesion == null) return;
     if (_uid == null) {
-      if (_conectando == null) _conectar().ignore(); // Sin red: se reintenta en el próximo cambio
+      if (_conectando == null)
+        _conectar().ignore(); // Sin red: se reintenta en el próximo cambio
     } else if (!_sesion!.cuidador) {
       _publicarSiCambio();
       _publicarFichaSiCambio();
@@ -281,13 +325,17 @@ class Vinculos extends ChangeNotifier {
     final uidAnterior = _uid;
     final cuidadores = cuidadoresActivos;
     final ahora = _reloj();
-    final pendientes = [for (final i in _invitaciones) if (i.vigente(ahora)) i];
+    final pendientes = [
+      for (final i in _invitaciones)
+        if (i.vigente(ahora)) i,
+    ];
     final habiaPublicado = _publicado != null;
     final fichaToken = _fichaToken;
 
     for (final s in _subs) {
       s.cancel();
     }
+    _llegaronPersonas = false;
     _subConsultas?.cancel();
     _subConsultas = null;
     _consultas = const [];
@@ -323,9 +371,15 @@ class Vinculos extends ChangeNotifier {
           for (final i in pendientes) {
             await _servicio.revocarInvitacion(i.codigo).catchError((_) {});
           }
-          if (habiaPublicado) await _servicio.publicarEstado(uidAnterior, null).catchError((_) {});
+          if (habiaPublicado)
+            await _servicio
+                .publicarEstado(uidAnterior, null)
+                .catchError((_) {});
           // Y el QR que tenga impreso ya no muestra nada.
-          if (fichaToken != null) await _servicio.revocarFicha(uidAnterior, fichaToken).catchError((_) {});
+          if (fichaToken != null)
+            await _servicio
+                .revocarFicha(uidAnterior, fichaToken)
+                .catchError((_) {});
           await _servicio.borrarAlertas(uidAnterior).catchError((_) {});
         }
         await _servicio.cerrarSesion().catchError((_) {});
@@ -353,7 +407,9 @@ class Vinculos extends ChangeNotifier {
           );
     if (nuevo == _publicado) return;
     _publicado = nuevo;
-    _servicio.publicarEstado(uid, nuevo).ignore(); // Sin red, Firestore lo envía después
+    _servicio
+        .publicarEstado(uid, nuevo)
+        .ignore(); // Sin red, Firestore lo envía después
   }
 
   /// Mantiene en el servidor la ficha del QR igual a la del celular. Si el
@@ -375,7 +431,8 @@ class Vinculos extends ChangeNotifier {
       // Las consultas se leen cuando la ficha ya existe: antes, las reglas no
       // saben de quién es y no dejan leerlas.
       _servicio.publicarFicha(uid, token, ficha!).then((_) {
-        if (_fichaToken == token && _subConsultas == null && !_cerrado) _escucharConsultas(token);
+        if (_fichaToken == token && _subConsultas == null && !_cerrado)
+          _escucharConsultas(token);
       }, onError: _ignorar);
     }
     if (anterior != null && anterior != token) {
@@ -397,6 +454,10 @@ class Vinculos extends ChangeNotifier {
   // ---------- Cuidador: las personas que cuida ----------
 
   void _alCambiarPersonas(List<Vinculo> nuevos) {
+    if (!_llegaronPersonas) {
+      _llegaronPersonas = true;
+      notifyListeners(); // Las pantallas cambian el skeleton por la lista (o el vacío).
+    }
     final siguen = {for (final v in nuevos) v.personaUid};
     for (final antes in _personas) {
       if (siguen.contains(antes.personaUid)) continue;
@@ -416,8 +477,12 @@ class Vinculos extends ChangeNotifier {
       );
       _subsAlertas.putIfAbsent(
         v.personaUid,
-        () => _servicio.alertasDe(v.personaUid).listen((lista) => _alCambiarAlertas(v.personaUid, lista),
-            onError: _ignorar),
+        () => _servicio
+            .alertasDe(v.personaUid)
+            .listen(
+              (lista) => _alCambiarAlertas(v.personaUid, lista),
+              onError: _ignorar,
+            ),
       );
     }
     _personas = nuevos;
@@ -431,7 +496,10 @@ class Vinculos extends ChangeNotifier {
     var hayNueva = false;
     for (final a in lista) {
       final primeraVez = _alertasVistas.add('$personaUid/${a.id}');
-      if (primeraVez && !a.atendida && ahora.difference(a.fecha) < alertaReciente) hayNueva = true;
+      if (primeraVez &&
+          !a.atendida &&
+          ahora.difference(a.fecha) < alertaReciente)
+        hayNueva = true;
     }
     // Primero la lista al día, después el aviso: la pantalla ya la encuentra.
     _ponerPersonas();
@@ -439,13 +507,13 @@ class Vinculos extends ChangeNotifier {
   }
 
   void _ponerPersonas() => _estado.ponerPersonasVinculadas([
-        for (final v in _personas)
-          EstadoCompartido.comoPersona(
-            v,
-            _estados[v.personaUid],
-            alertas: _alertas[v.personaUid] ?? const [],
-          ),
-      ]);
+    for (final v in _personas)
+      EstadoCompartido.comoPersona(
+        v,
+        _estados[v.personaUid],
+        alertas: _alertas[v.personaUid] ?? const [],
+      ),
+  ]);
 
   @override
   void dispose() {
