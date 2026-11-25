@@ -113,9 +113,11 @@ class CodigoQrPage extends StatelessWidget {
                       ),
               ),
               const SizedBox(height: 12),
-              if (vinculos != null)
-                _Consultas(vinculos.consultasFicha)
-              else
+              if (vinculos != null) ...[
+                _EstadoDelCodigo(vinculos.estadoFicha, sinConexion: vinculos.sinConexion),
+                const SizedBox(height: 12),
+                _Consultas(vinculos.consultasFicha),
+              ] else
                 // Sin servidor (por ejemplo, en el computador) el QR no abre nada.
                 Glass(
                   padding: const EdgeInsets.all(16),
@@ -154,6 +156,57 @@ class CodigoQrPage extends StatelessWidget {
               const SizedBox(height: 24),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Si el QR ya se puede escanear. Sin esto, un código que todavía no está en
+/// el servidor se ve igual que uno que sí sirve.
+class _EstadoDelCodigo extends StatelessWidget {
+  const _EstadoDelCodigo(this.estado, {required this.sinConexion});
+
+  final EstadoFicha estado;
+  final bool sinConexion;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.rondo;
+    final t = Theme.of(context).textTheme;
+    final (icono, color, texto) = switch (estado) {
+      EstadoFicha.lista => (
+          Icons.check_circle_rounded,
+          c.accent,
+          'Listo para escanear. Quien lo escanee necesita internet.',
+        ),
+      EstadoFicha.subiendo when !sinConexion => (
+          Icons.cloud_upload_outlined,
+          c.accent,
+          'Estamos subiendo tu ficha. Espera unos segundos antes de escanearlo.',
+        ),
+      EstadoFicha.subiendo => (
+          Icons.cloud_off_rounded,
+          c.errorText,
+          'Sin conexión. Tu ficha se subirá cuando vuelva el internet; mientras tanto, el código puede no abrir.',
+        ),
+      EstadoFicha.fallo => (
+          Icons.error_outline_rounded,
+          c.errorText,
+          'No pudimos subir tu ficha: el código todavía no sirve. Reintentando…',
+        ),
+    };
+    return Semantics(
+      liveRegion: true,
+      child: Glass(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icono, size: 22, color: color),
+            const SizedBox(width: 12),
+            Expanded(child: Text(texto, style: t.bodyLarge)),
+          ],
         ),
       ),
     );

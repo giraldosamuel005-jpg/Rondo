@@ -78,11 +78,43 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Nadie ha abierto tu ficha con este código.'), findsOneWidget);
+    expect(find.textContaining('Listo para escanear'), findsOneWidget);
 
     servidor.abrirFicha(estado.codigoQr!.token, DateTime.now());
     await tester.pumpAndSettle();
     expect(find.text('La abrieron 1 vez:'), findsOneWidget);
     expect(find.textContaining('no se puede consultar'), findsNothing);
+  });
+
+  testWidgets('si la ficha no se pudo subir, dice que el código no sirve', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final servidor = ServidorFalso()..fichasFallan = true;
+    estado
+      ..iniciarSesion('3104567890')
+      ..guardarPerfil(nombre: 'Rosa', tipo: TipoCuenta.paraMi);
+    final vinculos = Vinculos(servidor.celular('rosa'), estado);
+    addTearDown(vinculos.dispose);
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: estado),
+          ChangeNotifierProvider.value(value: vinculos),
+        ],
+        child: MaterialApp(
+          theme: ThemeData(extensions: [RondoColors.light]),
+          home: const Scaffold(body: CodigoQrPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('el código todavía no sirve'), findsOneWidget);
+
+    servidor.fichasFallan = false;
+    await tester.pump(Vinculos.cadaReintentoFicha);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Listo para escanear'), findsOneWidget);
   });
 
   testWidgets('crear un código nuevo pide confirmación y cambia el QR', (tester) async {
