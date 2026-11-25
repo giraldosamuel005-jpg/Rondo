@@ -90,7 +90,7 @@ service cloud.firestore {
         allow read: if soyYo(uid) || laCuido(uid);
 
         allow create: if soyYo(uid)
-          && request.resource.data.keys().hasOnly(['fecha', 'latitud', 'longitud', 'atendida', 'creadaEn'])
+          && request.resource.data.keys().hasOnly(['fecha', 'latitud', 'longitud', 'atendida', 'prueba', 'creadaEn'])
           && request.resource.data.fecha is timestamp
           && request.resource.data.atendida == false;
 
@@ -100,6 +100,22 @@ service cloud.firestore {
           && request.resource.data.atendida == true
           && request.resource.data.atendidaPor == request.auth.uid;
 
+        // La persona avisa que está bien.
+        allow update: if soyYo(uid)
+          && cambiaSolo(['atendida', 'estabaBien'])
+          && request.resource.data.atendida == true
+          && request.resource.data.estabaBien == true;
+
+        allow delete: if soyYo(uid);
+      }
+
+      // ---------- Un cuidador pide que actualice su ubicación (RF-26) ----------
+      match /solicitudes/{cuidadorUid} {
+        allow read: if soyYo(uid);
+        allow create, update: if laCuido(uid)
+          && cuidadorUid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['pedidaEn'])
+          && request.resource.data.pedidaEn == request.time;
         allow delete: if soyYo(uid);
       }
     }

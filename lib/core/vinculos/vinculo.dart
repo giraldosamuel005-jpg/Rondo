@@ -128,6 +128,10 @@ class EstadoCompartido {
     required this.enPausa,
     this.ultimoEstoyBien,
     this.cumplimiento,
+    this.comparteUbicacion = false,
+    this.ubicacion,
+    this.ubicacionEn,
+    this.ultimaTomaOmitida,
   });
 
   final String nombre;
@@ -136,36 +140,73 @@ class EstadoCompartido {
   final DateTime? ultimoEstoyBien;
   final int? cumplimiento;
 
+  /// Autorizó que sus cuidadores vean dónde está.
+  final bool comparteUbicacion;
+
+  /// Dónde estaba en [ubicacionEn]. `null` si no comparte, pausó su ronda o
+  /// todavía no se ha podido leer.
+  final Posicion? ubicacion;
+  final DateTime? ubicacionEn;
+
+  /// Cuándo marcó que no tomó un medicamento, por última vez.
+  final DateTime? ultimaTomaOmitida;
+
   /// Cómo la ve su cuidador. Sin estado publicado todavía: "Sin datos aún".
-  /// Con una alerta sin atender, está en alerta; su ubicación es la de la
-  /// última alerta que la tenía (RF-15: solo se comparte dentro de una alerta).
+  /// Con una alerta sin atender, está en alerta. Su ubicación es la más
+  /// reciente entre la que comparte y la de su última alerta.
   static PersonaACargo comoPersona(
     Vinculo vinculo,
     EstadoCompartido? estado, {
     List<AlertaCompartida> alertas = const [],
+    String relacion = '',
   }) {
-    final conPosicion = alertas.where((a) => a.posicion != null).firstOrNull;
     return PersonaACargo(
       id: vinculo.personaUid,
       nombre: estado?.nombre ?? vinculo.personaNombre,
       celular: estado?.celular ?? vinculo.personaCelular,
+      relacion: relacion,
       estado: switch (estado) {
         _ when alertas.any((a) => !a.atendida) => EstadoPersona.alerta,
         null => EstadoPersona.sinDatos,
         EstadoCompartido(enPausa: true) => EstadoPersona.enPausa,
         _ => EstadoPersona.activa,
       },
-      ubicacion: conPosicion == null
-          ? null
-          : Ubicacion(
-              latitud: conPosicion.posicion!.latitud,
-              longitud: conPosicion.posicion!.longitud,
-              descripcion: 'Donde sonó la alerta',
-              fecha: conPosicion.fecha,
-            ),
+      ubicacion: _ubicacion(estado, alertas),
+      comparteUbicacion: estado?.comparteUbicacion ?? false,
+      ultimaTomaOmitida: estado?.ultimaTomaOmitida,
       ultimoEstoyBien: estado?.ultimoEstoyBien,
       cumplimiento: estado?.cumplimiento,
-      alertas: [for (final a in alertas) AlertaPersona(id: a.id, fecha: a.fecha, atendida: a.atendida)],
+      alertas: [
+        for (final a in alertas)
+          AlertaPersona(
+            id: a.id,
+            fecha: a.fecha,
+            atendida: a.atendida,
+            estabaBien: a.estabaBien,
+            prueba: a.prueba,
+          ),
+      ],
+    );
+  }
+
+  static Ubicacion? _ubicacion(EstadoCompartido? estado, List<AlertaCompartida> alertas) {
+    final alerta = alertas.where((a) => a.posicion != null).firstOrNull;
+    final posicion = estado?.ubicacion, en = estado?.ubicacionEn;
+    if (posicion != null && en != null && (alerta == null || !alerta.fecha.isAfter(en))) {
+      return Ubicacion(
+        latitud: posicion.latitud,
+        longitud: posicion.longitud,
+        descripcion: 'Ubicación compartida',
+        fecha: en,
+      );
+    }
+    if (alerta == null) return null;
+    return Ubicacion(
+      latitud: alerta.posicion!.latitud,
+      longitud: alerta.posicion!.longitud,
+      // Si la última alerta salió sin ubicación, esta es de antes: que se note.
+      descripcion: alertas.first.posicion == null ? 'Última ubicación conocida' : 'Donde sonó la alerta',
+      fecha: alerta.fecha,
     );
   }
 
@@ -176,8 +217,22 @@ class EstadoCompartido {
       other.celular == celular &&
       other.enPausa == enPausa &&
       other.ultimoEstoyBien == ultimoEstoyBien &&
-      other.cumplimiento == cumplimiento;
+      other.cumplimiento == cumplimiento &&
+      other.comparteUbicacion == comparteUbicacion &&
+      other.ubicacion == ubicacion &&
+      other.ubicacionEn == ubicacionEn &&
+      other.ultimaTomaOmitida == ultimaTomaOmitida;
 
   @override
-  int get hashCode => Object.hash(nombre, celular, enPausa, ultimoEstoyBien, cumplimiento);
+  int get hashCode => Object.hash(
+        nombre,
+        celular,
+        enPausa,
+        ultimoEstoyBien,
+        cumplimiento,
+        comparteUbicacion,
+        ubicacion,
+        ubicacionEn,
+        ultimaTomaOmitida,
+      );
 }

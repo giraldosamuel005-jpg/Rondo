@@ -12,6 +12,10 @@ enum PermisoSistema {
   /// Enviar SMS, para avisar a los contactos sin que la persona toque nada
   /// (RF-15, RF-16). Solo en Android.
   sms,
+
+  /// Mostrar notificaciones: las alertas, los avisos de toma y que Rondó siga
+  /// pendiente con la app cerrada.
+  notificaciones,
 }
 
 /// Lo que respondió el sistema, resumido a lo que le importa a la app.
@@ -54,6 +58,7 @@ class PermisosSistema {
             ? Permission.sensors
             : Permission.activityRecognition,
         PermisoSistema.sms => Permission.sms,
+        PermisoSistema.notificaciones => Permission.notification,
       };
 
   EstadoPermiso _resumir(PermissionStatus estado) => switch (estado) {

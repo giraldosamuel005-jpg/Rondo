@@ -35,7 +35,13 @@ class Ubicacion {
 
 /// Una alerta de la persona, como la ve el cuidador.
 class AlertaPersona {
-  const AlertaPersona({this.id, required this.fecha, required this.atendida, this.estabaBien = false});
+  const AlertaPersona({
+    this.id,
+    required this.fecha,
+    required this.atendida,
+    this.estabaBien = false,
+    this.prueba = false,
+  });
 
   /// La del servidor; `null` en las de ejemplo.
   final String? id;
@@ -45,8 +51,11 @@ class AlertaPersona {
   /// El cuidador ya la marcó como atendida.
   final bool atendida;
 
-  /// La persona respondió "Estoy bien" a tiempo (no se avisó a nadie).
+  /// La persona avisó que estaba bien.
   final bool estabaBien;
+
+  /// Estaba probando la alerta: no es una emergencia.
+  final bool prueba;
 }
 
 /// Alguien que invitó a este usuario como cuidador (RF-05, RF-26).
@@ -61,6 +70,8 @@ class PersonaACargo {
     this.ubicacion,
     this.ultimoEstoyBien,
     this.cumplimiento,
+    this.comparteUbicacion = false,
+    this.ultimaTomaOmitida,
     this.alertas = const [],
   });
 
@@ -79,20 +90,28 @@ class PersonaACargo {
   /// Porcentaje de tomas de medicamentos cumplidas (RF-22). `null` si no usa.
   final int? cumplimiento;
 
+  /// La persona autorizó que sus cuidadores vean dónde está.
+  final bool comparteUbicacion;
+
+  /// Cuándo marcó que no tomó un medicamento, por última vez.
+  final DateTime? ultimaTomaOmitida;
+
   /// Alertas recientes, de la más nueva a la más vieja.
   final List<AlertaPersona> alertas;
 
   Uri get enlaceLlamada => Uri(scheme: 'tel', path: '+57$celular');
 
-  PersonaACargo copyWith({EstadoPersona? estado, List<AlertaPersona>? alertas}) => PersonaACargo(
+  PersonaACargo copyWith({EstadoPersona? estado, List<AlertaPersona>? alertas, String? relacion}) => PersonaACargo(
         id: id,
         nombre: nombre,
         celular: celular,
-        relacion: relacion,
+        relacion: relacion ?? this.relacion,
         estado: estado ?? this.estado,
         ubicacion: ubicacion,
         ultimoEstoyBien: ultimoEstoyBien,
         cumplimiento: cumplimiento,
+        comparteUbicacion: comparteUbicacion,
+        ultimaTomaOmitida: ultimaTomaOmitida,
         alertas: alertas ?? this.alertas,
       );
 

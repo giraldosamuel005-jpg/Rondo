@@ -22,6 +22,18 @@ class ServidorFalso {
   /// personas/{uid}/alertas: por persona, en el orden en que llegaron.
   final Map<String, List<AlertaCompartida>> alertas = {};
 
+  /// personas/{uid}/solicitudes: cuándo le pidieron la ubicación.
+  final Map<String, DateTime> solicitudes = {};
+
+  /// Si es `true`, escuchar las alertas falla (como con reglas sin publicar).
+  bool alertasFallan = false;
+
+  /// Si es `true`, el servidor rechaza las fichas.
+  bool fichasFallan = false;
+
+  /// Despierta a todas las escuchas.
+  void avisar() => _avisar();
+
   /// Lo que haría la página web al abrir el QR.
   void abrirFicha(String token, DateTime en) {
     final f = fichas[token];
@@ -66,8 +78,14 @@ class ServicioFalso implements ServicioVinculos {
     return _uid;
   }
 
+  /// Cuánto se demora en cerrar (para probar entrar otra vez enseguida).
+  Duration demoraAlCerrar = Duration.zero;
+
   @override
-  Future<void> cerrarSesion() async => sesionAbierta = false;
+  Future<void> cerrarSesion() async {
+    if (demoraAlCerrar > Duration.zero) await Future<void>.delayed(demoraAlCerrar);
+    sesionAbierta = false;
+  }
 
   @override
   Future<void> crearInvitacion(Invitacion invitacion) async {
@@ -163,6 +181,7 @@ class ServicioFalso implements ServicioVinculos {
   @override
   Future<void> publicarFicha(String personaUid, String token, FichaPublica ficha) async {
     _red();
+    if (_servidor.fichasFallan) throw StateError('permission-denied');
     final actual = _servidor.fichas[token];
     if (personaUid != _uid || (actual != null && (actual.duenoUid != _uid || actual.ficha == null))) {
       throw StateError('permission-denied');
@@ -199,6 +218,7 @@ class ServicioFalso implements ServicioVinculos {
   @override
   /// Como en [estadoDe]: sin permiso no ve nada.
   Stream<List<AlertaCompartida>> alertasDe(String personaUid) => _vigilar(() {
+        if (_servidor.alertasFallan) throw StateError('permission-denied');
         if (personaUid != _uid && !_laCuido(personaUid)) return const <AlertaCompartida>[];
         final lista = [...?_servidor.alertas[personaUid]]..sort((a, b) => b.fecha.compareTo(a.fecha));
         return lista;
@@ -213,6 +233,36 @@ class ServicioFalso implements ServicioVinculos {
     lista[i] = AlertaCompartida(id: lista[i].id, fecha: lista[i].fecha, posicion: lista[i].posicion, atendida: true);
     _servidor._avisar();
   }
+
+  @override
+  Future<void> resolverAlerta(String personaUid, String alertaId) async {
+    _red();
+    if (personaUid != _uid) throw StateError('permission-denied');
+    final lista = _servidor.alertas[personaUid]!;
+    final i = lista.indexWhere((a) => a.id == alertaId);
+    lista[i] = AlertaCompartida(
+      id: lista[i].id,
+      fecha: lista[i].fecha,
+      posicion: lista[i].posicion,
+      atendida: true,
+      estabaBien: true,
+    );
+    _servidor._avisar();
+  }
+
+  @override
+  Future<void> pedirUbicacion(String personaUid, {required String cuidadorUid}) async {
+    _red();
+    if (!_laCuido(personaUid) || cuidadorUid != _uid) throw StateError('permission-denied');
+    _servidor.solicitudes[personaUid] = _servidor.reloj();
+    _servidor._avisar();
+  }
+
+  @override
+  Stream<DateTime?> ubicacionPedida(String personaUid) => _vigilar(() => _servidor.solicitudes[personaUid]);
+
+  @override
+  Stream<bool> enLinea(String uid, {required bool cuidador}) => _vigilar(() => !_servidor.sinRed);
 
   @override
   Future<void> borrarAlertas(String personaUid) async {

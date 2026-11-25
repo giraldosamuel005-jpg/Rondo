@@ -1,17 +1,21 @@
 import 'dart:math';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rondo/core/alertas/alerta_compartida.dart';
+import 'package:rondo/core/alertas/alertas_cuidador.dart';
 import 'package:rondo/core/models/consentimiento.dart';
 import 'package:rondo/core/models/contacto.dart';
 import 'package:rondo/core/models/ficha_medica.dart';
 import 'package:rondo/core/models/persona_a_cargo.dart';
 import 'package:rondo/core/models/tipo_cuenta.dart';
+import 'package:rondo/core/permisos/permisos_sistema.dart';
 import 'package:rondo/core/state/app_state.dart';
 import 'package:rondo/core/vinculos/servicio_vinculos.dart';
 import 'package:rondo/core/vinculos/vinculo.dart';
 import 'package:rondo/core/vinculos/vinculos.dart';
 
+import '../../support/alertas_falsas.dart';
 import '../../support/servidor_vinculos_falso.dart';
 
 void main() {
@@ -246,33 +250,51 @@ void main() {
     group('alertas', () {
       const casa = Posicion(3.4372, -76.5225);
 
+      AlertaCompartida alerta({DateTime? fecha, Posicion? posicion}) =>
+          AlertaCompartida(id: 'a1', fecha: fecha ?? DateTime.now(), posicion: posicion);
+
       test('la alerta de la persona le llega al cuidador con su ubicación', () async {
         await invitarYAceptar();
         final nuevas = <String>[];
         final sub = deAndres.alertasNuevas.listen(nuevas.add);
         addTearDown(sub.cancel);
 
-        final subio = await deRosa.publicarAlerta(fecha: DateTime.now(), posicion: casa);
+        final entrega = await deRosa.publicarAlerta(alerta(posicion: casa));
         await pumpEventQueue();
 
-        expect(subio, isTrue);
+        expect(entrega, EntregaServidor.recibida);
         final persona = andres.personasACargo.single;
         expect(persona.estado, EstadoPersona.alerta);
         expect(persona.alertas.single.atendida, isFalse);
         expect(persona.ubicacion!.latitud, casa.latitud);
-        expect(nuevas, ['uid-rosa']); // Abre la pantalla de alerta
+        expect(nuevas, ['uid-rosa']); // Suena y abre la pantalla de alerta
       });
 
       test('sin cuidadores no se sube nada', () async {
         await pumpEventQueue();
 
-        expect(await deRosa.publicarAlerta(fecha: DateTime.now()), isFalse);
+        expect(await deRosa.publicarAlerta(alerta()), EntregaServidor.sinCuidadores);
         expect(servidor.alertas, isEmpty);
+      });
+
+      test('recién abierta la app espera la lista de cuidadores en vez de perder la alerta', () async {
+        await invitarYAceptar();
+        // Rosa cierra y vuelve a abrir la app, y se cae de inmediato.
+        final otraVez = Vinculos(servidor.celular('uid-rosa'), rosa);
+        addTearDown(otraVez.dispose);
+
+        expect(await otraVez.publicarAlerta(alerta()), EntregaServidor.recibida);
+      });
+
+      test('sin red dice que falló, para que se reintente', () async {
+        await invitarYAceptar();
+        servidor.sinRed = true;
+        expect(await deRosa.publicarAlerta(alerta()), EntregaServidor.fallo);
       });
 
       test('el cuidador la atiende y deja de estar en alerta', () async {
         await invitarYAceptar();
-        await deRosa.publicarAlerta(fecha: DateTime.now());
+        await deRosa.publicarAlerta(alerta());
         await pumpEventQueue();
 
         deAndres.atenderAlertas('uid-rosa');
@@ -282,13 +304,24 @@ void main() {
         expect(andres.personasACargo.single.estado, EstadoPersona.activa);
       });
 
+      test('si la persona avisa que está bien, el cuidador lo ve', () async {
+        await invitarYAceptar();
+        await deRosa.publicarAlerta(alerta());
+        await deRosa.resolverAlerta('a1');
+        await pumpEventQueue();
+
+        final persona = andres.personasACargo.single;
+        expect(persona.estado, EstadoPersona.activa);
+        expect(persona.alertas.single.estabaBien, isTrue);
+      });
+
       test('una alerta vieja no abre la pantalla, pero sale en la lista', () async {
         await invitarYAceptar();
         final nuevas = <String>[];
         final sub = deAndres.alertasNuevas.listen(nuevas.add);
         addTearDown(sub.cancel);
 
-        await deRosa.publicarAlerta(fecha: DateTime.now().subtract(const Duration(hours: 2)));
+        await deRosa.publicarAlerta(alerta(fecha: DateTime.now().subtract(const Duration(hours: 2))));
         await pumpEventQueue();
 
         expect(nuevas, isEmpty);
@@ -297,13 +330,147 @@ void main() {
 
       test('cerrar sesión borra las alertas del servidor', () async {
         await invitarYAceptar();
-        await deRosa.publicarAlerta(fecha: DateTime.now());
+        await deRosa.publicarAlerta(alerta());
 
         rosa.cerrarSesion();
         await pumpEventQueue();
 
         expect(servidor.alertas, isEmpty);
       });
+
+      test('al cuidador le suena, y se calla cuando alguien la atiende', () async {
+        await invitarYAceptar();
+        final alarma = AlarmaFalsa();
+        final avisos = NotificacionesFalsas();
+        final control = AlertasCuidador(andres, deAndres, alarma: alarma, notificaciones: avisos);
+        addTearDown(control.dispose);
+        final abiertas = <String>[];
+        control.abrir.listen(abiertas.add);
+
+        await deRosa.publicarAlerta(alerta());
+        await pumpEventQueue();
+        expect(alarma.sonando, isTrue);
+        expect(avisos.alertas, ['Rosa necesita ayuda']);
+        expect(abiertas, ['uid-rosa']);
+
+        await deRosa.resolverAlerta('a1'); // Rosa avisó que está bien
+        await pumpEventQueue();
+        expect(alarma.sonando, isFalse);
+        expect(avisos.quitadas, ['uid-rosa']);
+      });
+    });
+
+    group('ubicación (RF-26)', () {
+      const casa = Posicion(3.4372, -76.5225);
+      const parque = Posicion(3.4476, -76.5418);
+      late UbicacionFalsa gps;
+
+      setUp(() {
+        gps = UbicacionFalsa(casa);
+        deRosa.dispose();
+        deRosa = Vinculos(servidor.celular('uid-rosa'), rosa, ubicacion: gps);
+      });
+
+      Future<void> autorizar() async {
+        rosa
+          ..cambiarPermiso(PermisoSistema.ubicacion, true)
+          ..darConsentimiento(TipoConsentimiento.ubicacionCuidadores);
+        await pumpEventQueue();
+      }
+
+      test('sin autorizarlo, el cuidador no la ve y ni se lee el GPS', () async {
+        rosa.cambiarPermiso(PermisoSistema.ubicacion, true); // Solo para alertas
+        await invitarYAceptar();
+
+        expect(gps.lecturas, 0);
+        expect(andres.personasACargo.single.ubicacion, isNull);
+        expect(andres.personasACargo.single.comparteUbicacion, isFalse);
+      });
+
+      test('al autorizarlo, el cuidador ve dónde está', () async {
+        await invitarYAceptar();
+        await autorizar();
+
+        final persona = andres.personasACargo.single;
+        expect(persona.comparteUbicacion, isTrue);
+        expect(persona.ubicacion!.latitud, casa.latitud);
+      });
+
+      test('el cuidador la pide y llega la nueva', () async {
+        await autorizar();
+        await invitarYAceptar();
+        gps.posicion = parque;
+
+        await deAndres.pedirUbicacion('uid-rosa');
+        await pumpEventQueue();
+
+        expect(andres.personasACargo.single.ubicacion!.latitud, parque.latitud);
+      });
+
+      test('"Estoy bien" también la actualiza', () async {
+        await autorizar();
+        await invitarYAceptar();
+        gps.posicion = parque;
+
+        rosa.confirmarEstoyBien();
+        await pumpEventQueue();
+
+        expect(andres.personasACargo.single.ubicacion!.latitud, parque.latitud);
+      });
+
+      test('en pausa, o al quitar la autorización, deja de verse', () async {
+        await autorizar();
+        await invitarYAceptar();
+
+        rosa.alternarPausa();
+        await pumpEventQueue();
+        expect(andres.personasACargo.single.ubicacion, isNull);
+
+        rosa.alternarPausa();
+        await pumpEventQueue();
+        expect(andres.personasACargo.single.ubicacion, isNotNull);
+
+        rosa.retirarConsentimiento(TipoConsentimiento.ubicacionCuidadores);
+        await pumpEventQueue();
+        expect(andres.personasACargo.single.ubicacion, isNull);
+        expect(andres.personasACargo.single.comparteUbicacion, isFalse);
+      });
+
+      test('quien ya no la cuida no la puede pedir', () async {
+        await autorizar();
+        await invitarYAceptar();
+        await deRosa.dejarDeCompartir(deRosa.vinculoCon(ana.celular)!);
+        await pumpEventQueue();
+
+        await expectLater(deAndres.pedirUbicacion('uid-rosa'), throwsA(isA<ErrorVinculo>()));
+      });
+    });
+
+    test('novedades: pausa, reanuda, "Estoy bien"; ponerse al día no es novedad', () async {
+      final novedades = <TipoNovedad>[];
+      final sub = deAndres.novedades.listen((n) => novedades.add(n.tipo));
+      addTearDown(sub.cancel);
+      rosa.confirmarEstoyBien(); // Antes de vincularse
+      await invitarYAceptar();
+      expect(novedades, isEmpty);
+
+      rosa.alternarPausa();
+      await pumpEventQueue();
+      rosa.alternarPausa();
+      await pumpEventQueue();
+      rosa.confirmarEstoyBien();
+      await pumpEventQueue();
+
+      expect(novedades, [TipoNovedad.pauso, TipoNovedad.reanudo, TipoNovedad.estoyBien]);
+    });
+
+    test('el parentesco que escribió el cuidador se conserva con cada cambio', () async {
+      await invitarYAceptar();
+      andres.ponerParentesco('uid-rosa', 'Mamá');
+      rosa.confirmarEstoyBien();
+      await pumpEventQueue();
+
+      expect(andres.personasACargo.single.relacion, 'Mamá');
     });
 
     test('las personas de ejemplo no se mezclan con las reales', () async {
@@ -407,6 +574,112 @@ void main() {
 
       expect(() => servidor.abrirFicha(viejo, DateTime(2026)), throwsStateError);
       expect(deRosa.consultasFicha, isEmpty); // Las del código nuevo: ninguna
+    });
+  });
+
+  test('si el servidor rechaza la ficha del QR, lo dice y la vuelve a subir sola', () {
+    fakeAsync((tiempo) {
+      final servidor = ServidorFalso()..fichasFallan = true;
+      final rosa = AppState()
+        ..iniciarSesion('3104567890')
+        ..guardarPerfil(nombre: 'Rosa', tipo: TipoCuenta.paraMi)
+        ..agregarContacto(const Contacto(nombre: 'Ana', celular: '3001234567'))
+        ..darConsentimiento(TipoConsentimiento.datosMedicos)
+        ..guardarFichaMedica(
+          FichaMedica(tipoSangre: TipoSangre.oPositivo, celularContactoEmergencia: '3001234567'),
+        );
+      final deRosa = Vinculos(servidor.celular('rosa'), rosa);
+      tiempo.flushMicrotasks();
+      expect(deRosa.estadoFicha, EstadoFicha.fallo);
+      tiempo.elapse(const Duration(minutes: 1));
+      expect(deRosa.estadoFicha, EstadoFicha.fallo);
+      expect(servidor.fichas, isEmpty);
+
+      servidor.fichasFallan = false; // Se arregló en el servidor
+      tiempo.elapse(Vinculos.cadaReintentoFicha);
+      expect(deRosa.estadoFicha, EstadoFicha.lista);
+      expect(servidor.fichas[rosa.codigoQr!.token]!.ficha, isNotNull);
+
+      // Un código nuevo que falla y luego sale: el viejo queda revocado.
+      final viejo = rosa.codigoQr!.token;
+      servidor.fichasFallan = true;
+      rosa.regenerarCodigoQr();
+      tiempo.flushMicrotasks();
+      expect(deRosa.estadoFicha, EstadoFicha.fallo);
+      servidor.fichasFallan = false;
+      tiempo.elapse(Vinculos.cadaReintentoFicha);
+      expect(deRosa.estadoFicha, EstadoFicha.lista);
+      expect(servidor.fichas[viejo]!.ficha, isNull);
+      deRosa.dispose();
+    });
+  });
+
+  test('si la escucha de alertas falla, se vuelve a intentar sola', () {
+    fakeAsync((tiempo) {
+      final servidor = ServidorFalso()..alertasFallan = true;
+      final rosa = AppState()
+        ..iniciarSesion('3104567890')
+        ..guardarPerfil(nombre: 'Rosa', tipo: TipoCuenta.paraMi)
+        ..agregarContacto(const Contacto(nombre: 'Ana', celular: '3001234567'))
+        ..activarRonda();
+      final ana = AppState()
+        ..iniciarSesion('3001234567')
+        ..guardarPerfil(nombre: 'Ana', tipo: TipoCuenta.cuidador);
+      final deRosa = Vinculos(servidor.celular('rosa'), rosa);
+      final deAna = Vinculos(servidor.celular('ana'), ana);
+      tiempo.flushMicrotasks();
+      deRosa.invitar(rosa.contactos.single).then((i) => deAna.aceptar(i.codigo));
+      tiempo.elapse(const Duration(seconds: 1));
+      deRosa.publicarAlerta(AlertaCompartida(id: 'a1', fecha: DateTime.now()));
+      tiempo.elapse(const Duration(seconds: 1));
+      expect(ana.personasACargo.single.alertas, isEmpty);
+
+      servidor.alertasFallan = false; // Se arregló en el servidor
+      tiempo.elapse(const Duration(minutes: 1));
+      expect(ana.personasACargo.single.alertas, hasLength(1));
+
+      deRosa.dispose();
+      deAna.dispose();
+    });
+  });
+
+  test('cerrar sesión y entrar enseguida: la sesión nueva no se queda sin servidor', () {
+    fakeAsync((tiempo) {
+      final servidor = ServidorFalso();
+      final celular = servidor.celular('uid')..demoraAlCerrar = const Duration(seconds: 2);
+      final estado = AppState()
+        ..iniciarSesion('3104567890')
+        ..guardarPerfil(nombre: 'Rosa', tipo: TipoCuenta.paraMi);
+      final vinculos = Vinculos(celular, estado);
+      tiempo.elapse(const Duration(seconds: 1));
+      expect(celular.sesionAbierta, isTrue);
+
+      estado
+        ..cerrarSesion()
+        ..iniciarSesion('3001234567')
+        ..guardarPerfil(nombre: 'Ana', tipo: TipoCuenta.cuidador);
+      tiempo.elapse(const Duration(seconds: 10));
+
+      expect(celular.sesionAbierta, isTrue);
+      vinculos.dispose();
+    });
+  });
+
+  test('sin internet al abrir, se conecta solo cuando vuelve', () {
+    fakeAsync((tiempo) {
+      final servidor = ServidorFalso()..sinRed = true;
+      final celular = servidor.celular('uid');
+      final estado = AppState()
+        ..iniciarSesion('3001234567')
+        ..guardarPerfil(nombre: 'Ana', tipo: TipoCuenta.cuidador);
+      final vinculos = Vinculos(celular, estado);
+      tiempo.elapse(const Duration(seconds: 1));
+      expect(celular.sesionAbierta, isFalse);
+
+      servidor.sinRed = false;
+      tiempo.elapse(const Duration(seconds: 15));
+      expect(celular.sesionAbierta, isTrue);
+      vinculos.dispose();
     });
   });
 

@@ -169,9 +169,16 @@ Map<String, Object?> personaAJson(PersonaACargo p) => {
             },
       'ultimoEstoyBien': p.ultimoEstoyBien?.toIso8601String(),
       'cumplimiento': p.cumplimiento,
+      'comparteUbicacion': p.comparteUbicacion,
       'alertas': [
         for (final a in p.alertas)
-          {'fecha': a.fecha.toIso8601String(), 'atendida': a.atendida, 'estabaBien': a.estabaBien},
+          {
+            'id': a.id,
+            'fecha': a.fecha.toIso8601String(),
+            'atendida': a.atendida,
+            'estabaBien': a.estabaBien,
+            'prueba': a.prueba,
+          },
       ],
     };
 
@@ -203,14 +210,17 @@ PersonaACargo? personaDeJson(Map<String, Object?> j) {
     ubicacion: ubicacion,
     ultimoEstoyBien: fechaDe(j['ultimoEstoyBien']),
     cumplimiento: j['cumplimiento'] as int?,
+    comparteUbicacion: j['comparteUbicacion'] as bool? ?? false,
     alertas: listaDe(j['alertas'], (a) {
       final fecha = fechaDe(a['fecha']);
       return fecha == null
           ? null
           : AlertaPersona(
+              id: a['id'] as String?,
               fecha: fecha,
               atendida: a['atendida'] as bool? ?? true,
               estabaBien: a['estabaBien'] as bool? ?? false,
+              prueba: a['prueba'] as bool? ?? false,
             );
     }),
   );

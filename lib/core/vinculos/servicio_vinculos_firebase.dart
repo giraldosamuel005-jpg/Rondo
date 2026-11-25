@@ -16,8 +16,9 @@ import 'vinculo.dart';
 /// Colecciones:
 /// - `invitaciones/{codigo}`
 /// - `vinculos/{personaUid}_{cuidadorUid}`
-/// - `personas/{uid}`: lo que la persona comparte con sus cuidadores, y en
-///   `alertas` las alertas que no canceló.
+/// - `personas/{uid}`: lo que la persona comparte con sus cuidadores; en
+///   `alertas` las alertas que no canceló, y en `solicitudes` quién pidió que
+///   actualice su ubicación.
 /// - `fichas/{token}`: la ficha médica pública del QR, y en `consultas` cada
 ///   vez que alguien la abrió.
 class ServicioVinculosFirebase implements ServicioVinculos {
@@ -144,8 +145,17 @@ class ServicioVinculosFirebase implements ServicioVinculos {
       'enPausa': estado.enPausa,
       'ultimoEstoyBien': _fecha(estado.ultimoEstoyBien),
       'cumplimiento': estado.cumplimiento,
+      'comparteUbicacion': estado.comparteUbicacion,
+      // Comparte pero todavía no se ha podido leer (recién abrió la app): se
+      // queda la última. Si no comparte o pausó, se borra.
+      if (estado.ubicacion != null || !estado.comparteUbicacion || estado.enPausa) ...{
+        'latitud': estado.ubicacion?.latitud,
+        'longitud': estado.ubicacion?.longitud,
+        'ubicacionEn': _fecha(estado.ubicacionEn),
+      },
+      'ultimaTomaOmitida': _fecha(estado.ultimaTomaOmitida),
       'actualizadoEn': FieldValue.serverTimestamp(),
-    });
+    }, SetOptions(merge: true));
   }
 
   // ---------- Ficha médica del QR ----------
@@ -196,8 +206,13 @@ class ServicioVinculosFirebase implements ServicioVinculos {
         'latitud': alerta.posicion?.latitud,
         'longitud': alerta.posicion?.longitud,
         'atendida': false,
+        'prueba': alerta.prueba,
         'creadaEn': FieldValue.serverTimestamp(),
       });
+
+  @override
+  Future<void> resolverAlerta(String personaUid, String alertaId) =>
+      _alertas(personaUid).doc(alertaId).update({'atendida': true, 'estabaBien': true});
 
   @override
   Stream<List<AlertaCompartida>> alertasDe(String personaUid) => _alertas(personaUid)
@@ -230,8 +245,37 @@ class ServicioVinculosFirebase implements ServicioVinculos {
       fecha: fecha.toDate(),
       posicion: lat is num && lng is num ? Posicion(lat.toDouble(), lng.toDouble()) : null,
       atendida: m['atendida'] == true,
+      estabaBien: m['estabaBien'] == true,
+      prueba: m['prueba'] == true,
     );
   }
+
+  // ---------- Ubicación: personas/{uid}/solicitudes/{cuidadorUid} ----------
+
+  CollectionReference<Map<String, dynamic>> _solicitudes(String personaUid) =>
+      _personas.doc(personaUid).collection('solicitudes');
+
+  /// Espera al servidor: si no llega, el cuidador debe saberlo.
+  @override
+  Future<void> pedirUbicacion(String personaUid, {required String cuidadorUid}) => _solicitudes(personaUid)
+      .doc(cuidadorUid)
+      .set({'pedidaEn': FieldValue.serverTimestamp()}).timeout(_espera);
+
+  @override
+  Stream<DateTime?> ubicacionPedida(String personaUid) => _solicitudes(personaUid)
+      .orderBy('pedidaEn', descending: true)
+      .limit(1)
+      .snapshots()
+      .map((q) => (q.docs.firstOrNull?.data()['pedidaEn'] as Timestamp?)?.toDate());
+
+  // ---------- Conexión ----------
+
+  @override
+  Stream<bool> enLinea(String uid, {required bool cuidador}) => _vinculos
+      .where(cuidador ? 'cuidadorUid' : 'personaUid', isEqualTo: uid)
+      .snapshots(includeMetadataChanges: true)
+      .map((q) => !q.metadata.isFromCache)
+      .distinct();
 
   // ---------- Mapas de Firestore ----------
 
@@ -295,5 +339,12 @@ class ServicioVinculosFirebase implements ServicioVinculos {
         enPausa: m['enPausa'] == true,
         ultimoEstoyBien: (m['ultimoEstoyBien'] as Timestamp?)?.toDate(),
         cumplimiento: (m['cumplimiento'] as num?)?.toInt(),
+        comparteUbicacion: m['comparteUbicacion'] == true,
+        ubicacion: switch ((m['latitud'], m['longitud'])) {
+          (final num lat, final num lng) => Posicion(lat.toDouble(), lng.toDouble()),
+          _ => null,
+        },
+        ubicacionEn: (m['ubicacionEn'] as Timestamp?)?.toDate(),
+        ultimaTomaOmitida: (m['ultimaTomaOmitida'] as Timestamp?)?.toDate(),
       );
 }

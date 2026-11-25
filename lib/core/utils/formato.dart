@@ -66,3 +66,6 @@ String listaNatural(List<String> partes) {
   if (partes.length == 1) return partes.first;
   return '${partes.sublist(0, partes.length - 1).join(', ')} y ${partes.last}';
 }
+
+/// Celular de Colombia: 10 dígitos que empiezan por 3.
+bool celularValido(String celular) => RegExp(r'^3\d{9}$').hasMatch(celular);

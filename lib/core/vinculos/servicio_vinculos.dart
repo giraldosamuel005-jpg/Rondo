@@ -81,6 +81,22 @@ abstract interface class ServicioVinculos {
   /// Un cuidador marca la alerta como atendida.
   Future<void> atenderAlerta(String personaUid, String alertaId, {required String cuidadorUid});
 
+  /// La persona avisa que está bien después de una alerta.
+  Future<void> resolverAlerta(String personaUid, String alertaId);
+
   /// Al cerrar sesión la persona borra sus alertas del servidor.
   Future<void> borrarAlertas(String personaUid);
+
+  // ---------- Ubicación (RF-26) ----------
+
+  /// Un cuidador le pide al celular de la persona que actualice su ubicación.
+  Future<void> pedirUbicacion(String personaUid, {required String cuidadorUid});
+
+  /// Cuándo se la pidieron por última vez. `null` si nunca.
+  Stream<DateTime?> ubicacionPedida(String personaUid);
+
+  // ---------- Conexión ----------
+
+  /// `true` mientras el celular esté hablando con el servidor.
+  Stream<bool> enLinea(String uid, {required bool cuidador});
 }

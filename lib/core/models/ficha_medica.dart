@@ -77,6 +77,17 @@ class FichaMedica {
     return ahora.year - nacio.year - (yaCumplio ? 0 : 1);
   }
 
+  /// La misma ficha con otro contacto de emergencia (le cambiaron el celular).
+  FichaMedica conContacto(String celular) => FichaMedica(
+        tipoSangre: tipoSangre,
+        celularContactoEmergencia: celular,
+        alergias: alergias,
+        enfermedades: enfermedades,
+        fechaNacimiento: fechaNacimiento,
+        notas: notas,
+        mostrarMedicamentos: mostrarMedicamentos,
+      );
+
   /// Busca el contacto en la lista actual. `null` si ya no está (lo quitaron).
   Contacto? contactoEmergenciaEn(List<Contacto> contactos) {
     for (final contacto in contactos) {

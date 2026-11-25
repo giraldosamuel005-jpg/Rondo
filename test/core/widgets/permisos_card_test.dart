@@ -50,7 +50,7 @@ void main() {
     final sistema = _SistemaFalso(EstadoPermiso.concedido);
     await montar(tester, sistema);
 
-    await tester.tap(find.text('Ubicación siempre'));
+    await tester.tap(find.text('Ubicación'));
     await tester.pumpAndSettle();
 
     expect(sistema.pedidos, [PermisoSistema.ubicacion]);
@@ -77,7 +77,7 @@ void main() {
     final sistema = _SistemaFalso(EstadoPermiso.bloqueado);
     await montar(tester, sistema);
 
-    await tester.tap(find.text('Ubicación siempre'));
+    await tester.tap(find.text('Ubicación'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Abrir ajustes'));
     await tester.pumpAndSettle();
@@ -91,7 +91,7 @@ void main() {
     estado.cambiarPermisoUbicacion(true);
     await montar(tester, sistema);
 
-    await tester.tap(find.text('Ubicación siempre'));
+    await tester.tap(find.text('Ubicación'));
     await tester.pumpAndSettle();
 
     expect(sistema.pedidos, isEmpty);

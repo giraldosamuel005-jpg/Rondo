@@ -38,6 +38,8 @@ class _VigilantePermisosState extends State<VigilantePermisos> {
         'Desactivaste el permiso de sensores. La detección de caídas funcionará de forma limitada.',
     PermisoSistema.sms:
         'Desactivaste el permiso de SMS. Si hay una alerta, solo les llegará a tus cuidadores con Rondó.',
+    PermisoSistema.notificaciones:
+        'Desactivaste las notificaciones. No te podremos avisar con la app cerrada.',
   };
 
   @override
@@ -60,6 +62,15 @@ class _VigilantePermisosState extends State<VigilantePermisos> {
     try {
       final estado = context.read<AppState>();
       for (final permiso in PermisoSistema.values) {
+        // Las notificaciones también se piden por otros lados (avisos de
+        // toma): si el sistema ya las permite, el interruptor lo refleja.
+        if (permiso == PermisoSistema.notificaciones && !estado.tienePermiso(permiso)) {
+          if (estado.tipo == null) continue;
+          final actual = await widget.permisos.consultar(permiso);
+          if (!mounted) return;
+          if (actual == EstadoPermiso.concedido) estado.cambiarPermisoNotificaciones(true);
+          continue;
+        }
         // Solo importan los que Rondó cree que tiene.
         if (!estado.tienePermiso(permiso)) continue;
 

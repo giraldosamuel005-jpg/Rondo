@@ -49,6 +49,15 @@ class AppState extends ChangeNotifier {
   bool _permisoUbicacion = false;
   bool _permisoSensores = false;
   bool _permisoSms = false;
+  bool _permisoNotificaciones = false;
+
+  /// La última alerta que salió y que la persona todavía no ha cerrado con
+  /// "Ya estoy bien".
+  ({String id, DateTime fecha})? _alertaAbierta;
+
+  /// Cuidador: qué es cada persona para él ("Mamá"), por el ID de la persona.
+  /// Lo escribe él y solo queda en su celular.
+  final Map<String, String> _parentescos = {};
 
   /// Cada consentimiento dado, con la fecha en que se dio (RF-30).
   final Map<TipoConsentimiento, DateTime> _consentimientos = {};
@@ -123,6 +132,7 @@ class AppState extends ChangeNotifier {
     PermisoSistema.ubicacion => _permisoUbicacion,
     PermisoSistema.sensores => _permisoSensores,
     PermisoSistema.sms => _permisoSms,
+    PermisoSistema.notificaciones => _permisoNotificaciones,
   };
   bool tieneConsentimiento(TipoConsentimiento tipo) =>
       _consentimientos.containsKey(tipo);
@@ -131,6 +141,23 @@ class AppState extends ChangeNotifier {
   DateTime? fechaConsentimiento(TipoConsentimiento tipo) =>
       _consentimientos[tipo];
   DateTime? get avisoAceptadoEn => _avisoAceptadoEn;
+
+  /// Sus cuidadores ven dónde está (RF-26): lo autorizó y su ronda está activa.
+  bool get comparteUbicacion =>
+      tieneConsentimiento(TipoConsentimiento.ubicacionCuidadores) &&
+      _permisoUbicacion;
+
+  /// La alerta enviada que sigue abierta. Pasado un día ya no se muestra.
+  ({String id, DateTime fecha})? get alertaAbierta {
+    final a = _alertaAbierta;
+    if (a == null) return null;
+    return DateTime.now().difference(a.fecha) > const Duration(days: 1)
+        ? null
+        : a;
+  }
+
+  /// "Mamá", o vacío si no lo escribió.
+  String parentescoDe(String personaId) => _parentescos[personaId] ?? '';
 
   /// `null` si todavía no la ha llenado.
   FichaMedica? get fichaMedica => _fichaMedica;
@@ -208,6 +235,9 @@ class AppState extends ChangeNotifier {
 
   /// Después de escribir bien el código SMS.
   void iniciarSesion(String celular) {
+    // Entró otro número sin haber cerrado la sesión anterior (por ejemplo, un
+    // registro a medias): lo de antes no es suyo.
+    if (_celular != null && _celular != celular) _borrarCuenta();
     _celular = celular;
     notifyListeners();
   }
@@ -230,6 +260,18 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// RF-31. Si cambia el celular, la ficha médica sigue apuntando a él.
+  void editarContacto(Contacto anterior, Contacto nuevo) {
+    final i = _contactos.indexWhere((c) => c.celular == anterior.celular);
+    if (i == -1) return;
+    _contactos[i] = nuevo;
+    final ficha = _fichaMedica;
+    if (ficha != null && ficha.celularContactoEmergencia == anterior.celular) {
+      _fichaMedica = ficha.conContacto(nuevo.celular);
+    }
+    notifyListeners();
+  }
+
   /// El interruptor de ubicación, con su razón al lado, es el consentimiento
   /// explícito de ubicación (RF-30).
   void cambiarPermisoUbicacion(bool valor) {
@@ -243,6 +285,7 @@ class AppState extends ChangeNotifier {
     PermisoSistema.ubicacion => cambiarPermisoUbicacion(valor),
     PermisoSistema.sensores => cambiarPermisoSensores(valor),
     PermisoSistema.sms => cambiarPermisoSms(valor),
+    PermisoSistema.notificaciones => cambiarPermisoNotificaciones(valor),
   };
 
   /// La persona quitó el permiso desde los ajustes del celular (RF-32).
@@ -257,6 +300,8 @@ class AppState extends ChangeNotifier {
         _permisoSensores = false;
       case PermisoSistema.sms:
         _permisoSms = false;
+      case PermisoSistema.notificaciones:
+        _permisoNotificaciones = false;
     }
     notifyListeners();
   }
@@ -305,6 +350,29 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void cambiarPermisoNotificaciones(bool valor) {
+    _permisoNotificaciones = valor;
+    notifyListeners();
+  }
+
+  /// RF-15: salió una alerta y sigue abierta.
+  void abrirAlerta(String id, DateTime fecha) {
+    _alertaAbierta = (id: id, fecha: fecha);
+    notifyListeners();
+  }
+
+  void ponerParentesco(String personaId, String parentesco) {
+    final limpio = parentesco.trim();
+    if (limpio.isEmpty) {
+      _parentescos.remove(personaId);
+    } else {
+      _parentescos[personaId] = limpio;
+    }
+    final i = _personas.indexWhere((p) => p.id == personaId);
+    if (i != -1) _personas[i] = _personas[i].copyWith(relacion: limpio);
+    notifyListeners();
+  }
+
   /// Botón "Activar mi ronda".
   void activarRonda() {
     _rondaActivaDesde = DateTime.now();
@@ -324,6 +392,7 @@ class AppState extends ChangeNotifier {
   /// RF-12: la persona confirma que está sin novedad. Queda con su hora en
   /// el Historial; más adelante también la verá su cuidador.
   void confirmarEstoyBien() {
+    _alertaAbierta = null;
     _registrar(TipoEvento.estoyBien);
     notifyListeners();
   }
@@ -333,7 +402,7 @@ class AppState extends ChangeNotifier {
   /// Modo de pruebas: carga personas de ejemplo (mientras no hay servidor).
   void cargarPersonasDeEjemplo() {
     _personas
-      ..clear()
+      ..removeWhere((p) => p.id.startsWith(PersonaACargo.prefijoEjemplo))
       ..addAll(PersonaACargo.ejemplos(DateTime.now()));
     notifyListeners();
   }
@@ -378,6 +447,7 @@ class AppState extends ChangeNotifier {
                   fecha: a.fecha,
                   atendida: true,
                   estabaBien: a.estabaBien,
+                  prueba: a.prueba,
                 ),
       ],
     );
@@ -494,6 +564,11 @@ class AppState extends ChangeNotifier {
   /// Borra los datos de la cuenta y vuelve al estado inicial.
   /// La preferencia de apariencia se conserva.
   void cerrarSesion() {
+    _borrarCuenta();
+    notifyListeners();
+  }
+
+  void _borrarCuenta() {
     _celular = null;
     _nombre = '';
     _tipo = null;
@@ -501,6 +576,9 @@ class AppState extends ChangeNotifier {
     _permisoUbicacion = false;
     _permisoSensores = false;
     _permisoSms = false;
+    _permisoNotificaciones = false;
+    _alertaAbierta = null;
+    _parentescos.clear();
     _consentimientos.clear();
     _avisoAceptadoEn = null;
     _fichaMedica = null;
@@ -513,7 +591,6 @@ class AppState extends ChangeNotifier {
     _eventos.clear();
     _huellaActivada = false;
     _huellaOfrecida = false;
-    notifyListeners();
   }
 
   // ---------- Guardar y cargar ----------
@@ -547,6 +624,14 @@ class AppState extends ChangeNotifier {
     'permisoUbicacion': _permisoUbicacion,
     'permisoSensores': _permisoSensores,
     'permisoSms': _permisoSms,
+    'permisoNotificaciones': _permisoNotificaciones,
+    'alertaAbierta': _alertaAbierta == null
+        ? null
+        : {
+            'id': _alertaAbierta!.id,
+            'fecha': _alertaAbierta!.fecha.toIso8601String(),
+          },
+    'parentescos': {..._parentescos},
     'consentimientos': {
       for (final e in _consentimientos.entries)
         e.key.name: e.value.toIso8601String(),
@@ -572,6 +657,20 @@ class AppState extends ChangeNotifier {
     _permisoUbicacion = j['permisoUbicacion'] as bool? ?? false;
     _permisoSensores = j['permisoSensores'] as bool? ?? false;
     _permisoSms = j['permisoSms'] as bool? ?? false;
+    _permisoNotificaciones = j['permisoNotificaciones'] as bool? ?? false;
+    final abierta = j['alertaAbierta'];
+    if (abierta is Map) {
+      final id = abierta['id'], fecha = fechaDe(abierta['fecha']);
+      if (id is String && fecha != null) _alertaAbierta = (id: id, fecha: fecha);
+    }
+    final parentescos = j['parentescos'];
+    if (parentescos is Map) {
+      for (final e in parentescos.entries) {
+        if (e.key is String && e.value is String) {
+          _parentescos[e.key as String] = e.value as String;
+        }
+      }
+    }
     final consentimientos = j['consentimientos'];
     if (consentimientos is Map) {
       for (final e in consentimientos.entries) {
@@ -610,7 +709,12 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// El Historial guarda los últimos: todo se escribe en cada cambio, y sin
+  /// tope la app se iría poniendo lenta con los meses.
+  static const maximoEventos = 500;
+
   void _registrar(TipoEvento tipo, {String? detalle}) {
     _eventos.add(Evento(tipo: tipo, fecha: DateTime.now(), detalle: detalle));
+    if (_eventos.length > maximoEventos) _eventos.removeAt(0);
   }
 }

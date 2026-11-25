@@ -11,9 +11,16 @@ import 'permission_row.dart';
 /// Ajustes. Al encenderlos se pide el permiso real del sistema; si la persona
 /// dice que no, el error se muestra aquí mismo, debajo de la tarjeta.
 class PermisosCard extends StatefulWidget {
-  const PermisosCard({super.key, this.permisos = const PermisosSistema()});
+  const PermisosCard({
+    super.key,
+    this.permisos = const PermisosSistema(),
+    this.mostrar = const {...PermisoSistema.values},
+  });
 
   final PermisosSistema permisos;
+
+  /// Cuáles se muestran (el cuidador solo usa notificaciones).
+  final Set<PermisoSistema> mostrar;
 
   @override
   State<PermisosCard> createState() => _PermisosCardState();
@@ -26,10 +33,26 @@ class _PermisosCardState extends State<PermisosCard> {
   /// Evita abrir dos ventanas del sistema con dos toques seguidos.
   bool _pidiendo = false;
 
+  static const _titulos = {
+    PermisoSistema.ubicacion: 'Ubicación',
+    PermisoSistema.sensores: 'Sensores de movimiento',
+    PermisoSistema.sms: 'Enviar SMS',
+    PermisoSistema.notificaciones: 'Notificaciones',
+  };
+
+  /// Para qué se usa cada uno (RF-30).
+  static const _razones = {
+    PermisoSistema.ubicacion: 'Se envía en una alerta, y a tus cuidadores solo si tú lo activas.',
+    PermisoSistema.sensores: 'Detectan la caída en el teléfono.',
+    PermisoSistema.sms: 'Solo para avisar a tus contactos en una alerta.',
+    PermisoSistema.notificaciones: 'Para avisarte aunque tengas la app cerrada.',
+  };
+
   static const _mensajes = {
     PermisoSistema.ubicacion: 'Necesitamos tu permiso de ubicación para enviar alertas con tu posición.',
     PermisoSistema.sensores: 'Activa el permiso de sensores de movimiento para usar la detección de caídas.',
     PermisoSistema.sms: 'La app no tiene permiso para enviar SMS. Actívalo en ajustes.',
+    PermisoSistema.notificaciones: 'Sin notificaciones no te podemos avisar con la app cerrada.',
   };
 
   void _guardar(PermisoSistema permiso, bool valor) =>
@@ -38,6 +61,11 @@ class _PermisosCardState extends State<PermisosCard> {
   Future<void> _cambiar(PermisoSistema permiso, bool encender) async {
     // Apagar no le quita el permiso a Android (eso solo lo hace la persona en
     // los ajustes del celular); Rondó simplemente deja de usarlo.
+    if (!encender && permiso == PermisoSistema.notificaciones) {
+      // Las notificaciones sí son del sistema: solo se apagan allá.
+      await widget.permisos.abrirAjustes();
+      return;
+    }
     if (!encender) {
       _guardar(permiso, false);
       if (_error?.permiso == permiso) setState(() => _error = null);
@@ -67,26 +95,15 @@ class _PermisosCardState extends State<PermisosCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              PermissionRow(
-                title: 'Ubicación siempre',
-                reason: 'Solo se envía dentro de una alerta.',
-                value: estado.tienePermiso(PermisoSistema.ubicacion),
-                onChanged: (v) => _cambiar(PermisoSistema.ubicacion, v),
-              ),
-              const GlassDivider(indent: 18),
-              PermissionRow(
-                title: 'Sensores de movimiento',
-                reason: 'Detectan la caída en el teléfono.',
-                value: estado.tienePermiso(PermisoSistema.sensores),
-                onChanged: (v) => _cambiar(PermisoSistema.sensores, v),
-              ),
-              const GlassDivider(indent: 18),
-              PermissionRow(
-                title: 'Enviar SMS',
-                reason: 'Solo para avisar a tus contactos en una alerta.',
-                value: estado.tienePermiso(PermisoSistema.sms),
-                onChanged: (v) => _cambiar(PermisoSistema.sms, v),
-              ),
+              for (final (i, permiso) in PermisoSistema.values.where(widget.mostrar.contains).indexed) ...[
+                if (i > 0) const GlassDivider(indent: 18),
+                PermissionRow(
+                  title: _titulos[permiso]!,
+                  reason: _razones[permiso]!,
+                  value: estado.tienePermiso(permiso),
+                  onChanged: (v) => _cambiar(permiso, v),
+                ),
+              ],
             ],
           ),
         ),
