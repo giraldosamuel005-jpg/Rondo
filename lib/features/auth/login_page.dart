@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/rondo_colors.dart';
+import '../../core/utils/formato.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
 import '../../core/widgets/glass_field.dart';
@@ -32,7 +33,7 @@ class _LoginPageState extends State<LoginPage> {
   void _enviarCodigo() {
     final celular = _celularController.text;
 
-    if (celular.length != 10) {
+    if (!celularValido(celular)) {
       setState(() => _error = 'Ingresa un número de celular válido.');
       return;
     }

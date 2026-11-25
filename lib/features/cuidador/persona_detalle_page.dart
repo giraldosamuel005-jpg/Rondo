@@ -5,6 +5,8 @@ import '../../core/models/persona_a_cargo.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
+import '../../core/vinculos/servicio_vinculos.dart';
+import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
@@ -28,7 +30,8 @@ class PersonaDetallePage extends StatelessWidget {
     final c = context.rondo;
     final t = Theme.of(context).textTheme;
     final persona = context.watch<AppState>().personaACargo(personaId);
-    if (persona == null) return const Scaffold(); // Se cerró la sesión
+    // Se cerró la sesión, o dejó de compartir mientras la miraba (RF-27).
+    if (persona == null) return const PersonaNoDisponible();
 
     final ubicacion = persona.ubicacion;
     final estoyBien = persona.ultimoEstoyBien;
@@ -105,7 +108,10 @@ class PersonaDetallePage extends StatelessWidget {
                         padding: const EdgeInsets.all(16),
                         child: ubicacion == null
                             ? Text(
-                                'Todavía no conocemos su ubicación.',
+                                persona.comparteUbicacion
+                                    ? 'Todavía no conocemos su ubicación.'
+                                    : '$nombre no comparte su ubicación contigo. Puede activarlo en su Rondó: '
+                                          'Contactos → Quién te cuida → Compartir mi ubicación.',
                                 style: t.bodyMedium,
                               )
                             : Column(
@@ -155,6 +161,10 @@ class PersonaDetallePage extends StatelessWidget {
                                 ],
                               ),
                       ),
+                      if (persona.comparteUbicacion) ...[
+                        const SizedBox(height: 10),
+                        _PedirUbicacion(persona: persona),
+                      ],
                       const SizedBox(height: 22),
 
                       // ---------- Cómo está ----------
@@ -243,6 +253,75 @@ class PersonaDetallePage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Ya no se puede ver a esta persona (RF-27).
+class PersonaNoDisponible extends StatelessWidget {
+  const PersonaNoDisponible({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: BlobBackground(
+      blobs: BlobBackground.paso,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const RondoBackButton(),
+              const SizedBox(height: 22),
+              Text(
+                'No tienes permiso para ver esta información.',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Le pide al celular de la persona que diga dónde está AHORA.
+class _PedirUbicacion extends StatefulWidget {
+  const _PedirUbicacion({required this.persona});
+
+  final PersonaACargo persona;
+
+  @override
+  State<_PedirUbicacion> createState() => _PedirUbicacionState();
+}
+
+class _PedirUbicacionState extends State<_PedirUbicacion> {
+  bool _pidiendo = false;
+
+  Future<void> _pedir() async {
+    final vinculos = context.read<Vinculos?>();
+    if (vinculos == null) return;
+    final mensajero = ScaffoldMessenger.of(context);
+    setState(() => _pidiendo = true);
+    try {
+      await vinculos.pedirUbicacion(widget.persona.id);
+      mensajero.showSnackBar(
+        const SnackBar(
+          content: Text('Listo. Cuando su celular responda, la verás aquí.'),
+        ),
+      );
+    } on ErrorVinculo catch (e) {
+      mensajero.showSnackBar(SnackBar(content: Text(e.mensaje)));
+    } finally {
+      if (mounted) setState(() => _pidiendo = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SecondaryButton(
+    label: _pidiendo ? 'Pidiendo…' : 'Actualizar ubicación',
+    icon: Icons.my_location_rounded,
+    blur: false,
+    onPressed: _pidiendo ? null : _pedir,
+  );
 }
 
 class _Fila extends StatelessWidget {

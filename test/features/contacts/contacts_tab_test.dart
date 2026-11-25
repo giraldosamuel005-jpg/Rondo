@@ -59,13 +59,46 @@ void main() {
     expect(estado.contactos, hasLength(2));
   });
 
-  testWidgets('tocar el nombre no llama: sigue siendo para quitarlo', (tester) async {
+  testWidgets('tocar el nombre no llama: ofrece editar o quitar', (tester) async {
     await mostrar(tester);
 
     await tester.tap(find.text('Ana'));
     await tester.pumpAndSettle();
-
     expect(abierto, isNull);
+
+    await tester.tap(find.text('Quitar'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('¿Quitar'), findsOneWidget);
+  });
+
+  testWidgets('editar cambia los datos del contacto (RF-31)', (tester) async {
+    await mostrar(tester);
+
+    await tester.tap(find.text('Ana'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Editar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Editar contacto'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'Ana María');
+    await tester.tap(find.text('Guardar contacto'));
+    await tester.pumpAndSettle();
+
+    expect(estado.contactos.map((c) => c.nombre), ['Ana María', 'Luis']);
+    expect(estado.contactos.first.celular, '3001234567');
+  });
+
+  testWidgets('al editar no se puede repetir el número de otro contacto', (tester) async {
+    await mostrar(tester);
+
+    await tester.tap(find.text('Ana'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Editar'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '3104445566');
+    await tester.tap(find.text('Guardar contacto'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Este contacto ya está registrado.'), findsOneWidget);
+    expect(estado.contactos.first.celular, '3001234567');
   });
 }

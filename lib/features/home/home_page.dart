@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/alertas/control_alerta.dart';
 import '../../core/deteccion/vigilante_caidas.dart';
 import '../../core/models/contacto.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
+import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/glass.dart';
@@ -13,6 +15,7 @@ import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/status_mark.dart';
 import '../cuidador/abrir_enlace.dart';
 import '../medicamentos/medicamentos_page.dart';
+import 'proteccion.dart';
 
 /// 05 · Inicio (pestaña 1): estado de la ronda (activa o en pausa).
 /// La barra de pestañas la pone [MainShell]; esta pantalla solo es el contenido.
@@ -46,14 +49,51 @@ class HomePage extends StatelessWidget {
   /// RF-12: confirma que está sin novedad.
   void _estoyBien(BuildContext context) {
     final estado = context.read<AppState>();
-    estado.confirmarEstoyBien();
+    final vinculos = context.read<Vinculos?>();
+    final control = context.read<ControlAlerta?>();
+    // Si hay una alerta abierta, esto también les avisa a quienes la recibieron.
+    if (estado.alertaAbierta != null && control != null) {
+      control.yaEstoyBien();
+    } else {
+      estado.confirmarEstoyBien();
+    }
+    final sinConexion =
+        vinculos != null &&
+        vinculos.sinConexion &&
+        vinculos.cuidadoresActivos.isNotEmpty;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Listo. Quedó registrado que estás bien (${horaCorta(DateTime.now())}).',
+          sinConexion
+              ? 'No se pudo registrar tu confirmación. Se reintentará cuando haya conexión.'
+              : 'Listo. Quedó registrado que estás bien (${horaCorta(DateTime.now())}).',
         ),
       ),
     );
+  }
+
+  /// "las 8:29 p. m." si fue hoy; si no, también el día.
+  static String _desde(DateTime fecha) {
+    final ahora = DateTime.now();
+    final hoy =
+        fecha.year == ahora.year &&
+        fecha.month == ahora.month &&
+        fecha.day == ahora.day;
+    return hoy
+        ? 'las ${horaCorta(fecha)}'
+        : '${diaRelativo(fecha).toLowerCase()}, ${horaCorta(fecha)}';
+  }
+
+  /// "Avisamos a 2 contactos · 1 te cuida en Rondó". Un contacto recibe el
+  /// SMS; solo quien aceptó la invitación cuida desde la app.
+  static String _quienes(int contactos, int? cuidadores) {
+    final avisamos = contactos == 1
+        ? 'Avisamos a 1 contacto'
+        : 'Avisamos a $contactos contactos';
+    if (cuidadores == null || cuidadores == 0) return avisamos;
+    return cuidadores == 1
+        ? '$avisamos · 1 te cuida en Rondó'
+        : '$avisamos · $cuidadores te cuidan en Rondó';
   }
 
   @override
@@ -71,6 +111,9 @@ class HomePage extends StatelessWidget {
     final ultimoEstoyBien = estado.ultimoEstoyBien;
     // No hay en web, Windows ni en pruebas: ahí no se detectan caídas.
     final vigilante = context.watch<VigilanteCaidas?>();
+    final conAlertas = context.watch<ControlAlerta?>() != null;
+    final abierta = estado.alertaAbierta;
+    final cuidadores = context.watch<Vinculos?>()?.cuidadoresActivos.length;
 
     return BlobBackground(
       blobs: BlobBackground.inicio,
@@ -112,6 +155,11 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
+            if (abierta != null && conAlertas) ...[
+              AlertaAbierta(fecha: abierta.fecha),
+              const SizedBox(height: 12),
+            ],
+
             // ---------- Estado de la ronda ----------
             // Marca a la izquierda y texto a la derecha: así ocupa un tercio de
             // la pantalla y Medicamentos se ve sin tener que desplazarse.
@@ -138,7 +186,11 @@ class HomePage extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              enPausa ? 'Ronda en pausa' : 'Todo en orden',
+                              enPausa
+                                  ? 'Ronda en pausa'
+                                  : abierta != null
+                                  ? 'Alerta enviada'
+                                  : 'Todo en orden',
                               style: t.titleLarge,
                             ),
                           ],
@@ -150,7 +202,7 @@ class HomePage extends StatelessWidget {
                   Text(
                     enPausa
                         ? 'Nadie recibirá alertas hasta que la reanudes.'
-                        : 'Desde las ${horaCorta(activaDesde)} · sin novedades',
+                        : 'Activa desde ${_desde(activaDesde)}${abierta == null ? ' · sin novedades' : ''}',
                     style: t.bodyMedium,
                   ),
                   if (!enPausa && vigilante != null) ...[
@@ -161,6 +213,16 @@ class HomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
+
+            AvisosProteccion(
+              onVerAjustes: onVerAjustes,
+              onVerContactos: onVerContactos,
+            ),
+
+            if (conAlertas) ...[
+              const BotonPedirAyuda(),
+              const SizedBox(height: 12),
+            ],
 
             // ---------- Bloques: uno grande y dos pequeños ----------
             // "Estoy bien" es la acción que más se usa: ocupa el bloque alto.
@@ -237,9 +299,7 @@ class HomePage extends StatelessWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                cuantos == 1
-                                    ? 'Te cuida 1 persona'
-                                    : 'Te cuidan $cuantos personas',
+                                _quienes(cuantos, cuidadores),
                                 style: t.titleMedium,
                               ),
                             ),

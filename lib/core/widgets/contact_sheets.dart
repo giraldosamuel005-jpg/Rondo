@@ -3,20 +3,64 @@ import 'package:flutter/services.dart';
 
 import '../models/contacto.dart';
 import '../theme/rondo_colors.dart';
+import '../utils/formato.dart';
 import 'glass.dart';
 import 'glass_field.dart';
 import 'primary_button.dart';
 
-/// Abre el formulario "Agregar contacto" desde abajo.
-/// Devuelve el contacto nuevo, o null si la persona lo cerró sin guardar.
+/// Abre el formulario de contacto desde abajo: para agregar, o para editar
+/// [editando]. Devuelve el contacto, o null si la persona lo cerró sin guardar.
+/// [celularPropio]: nadie puede ser su propio contacto de emergencia.
 Future<Contacto?> mostrarFormularioContacto(
   BuildContext context, {
   required List<String> celularesRegistrados,
+  String? celularPropio,
+  Contacto? editando,
 }) {
   return showModalBottomSheet<Contacto>(
     context: context,
     isScrollControlled: true, // Para que suba con el teclado
-    builder: (_) => _FormularioContacto(celularesRegistrados: celularesRegistrados),
+    builder: (_) => _FormularioContacto(
+      celularesRegistrados: celularesRegistrados,
+      celularPropio: celularPropio,
+      editando: editando,
+    ),
+  );
+}
+
+enum AccionContacto { editar, quitar }
+
+/// Al tocar un contacto: editarlo o quitarlo (RF-31).
+Future<AccionContacto?> mostrarAccionesContacto(BuildContext context, Contacto contacto) {
+  final c = context.rondo;
+  final t = Theme.of(context).textTheme;
+  return showModalBottomSheet<AccionContacto>(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text(contacto.nombre, style: t.titleLarge),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            leading: Icon(Icons.edit_outlined, color: c.accent),
+            title: Text('Editar', style: t.bodyLarge),
+            onTap: () => Navigator.of(context).pop(AccionContacto.editar),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            leading: Icon(Icons.person_remove_outlined, color: c.errorText),
+            title: Text('Quitar', style: t.bodyLarge!.copyWith(color: c.errorText)),
+            onTap: () => Navigator.of(context).pop(AccionContacto.quitar),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
   );
 }
 
@@ -44,18 +88,22 @@ Future<bool> confirmarQuitarContacto(BuildContext context, Contacto contacto) as
 }
 
 class _FormularioContacto extends StatefulWidget {
-  const _FormularioContacto({required this.celularesRegistrados});
+  const _FormularioContacto({required this.celularesRegistrados, this.celularPropio, this.editando});
 
   final List<String> celularesRegistrados;
+  final String? celularPropio;
+
+  /// `null` = contacto nuevo.
+  final Contacto? editando;
 
   @override
   State<_FormularioContacto> createState() => _FormularioContactoState();
 }
 
 class _FormularioContactoState extends State<_FormularioContacto> {
-  final _nombreController = TextEditingController();
-  final _relacionController = TextEditingController();
-  final _celularController = TextEditingController();
+  late final _nombreController = TextEditingController(text: widget.editando?.nombre);
+  late final _relacionController = TextEditingController(text: widget.editando?.relacion);
+  late final _celularController = TextEditingController(text: widget.editando?.celular);
   String? _error;
 
   @override
@@ -70,11 +118,15 @@ class _FormularioContactoState extends State<_FormularioContacto> {
     final nombre = _nombreController.text.trim();
     final celular = _celularController.text;
 
-    if (nombre.isEmpty || celular.length != 10) {
+    if (nombre.isEmpty || !celularValido(celular)) {
       setState(() => _error = 'Ingresa un nombre y un número de celular válidos.');
       return;
     }
-    if (widget.celularesRegistrados.contains(celular)) {
+    if (celular == widget.celularPropio) {
+      setState(() => _error = 'Ese es tu propio número. Escribe el de otra persona.');
+      return;
+    }
+    if (celular != widget.editando?.celular && widget.celularesRegistrados.contains(celular)) {
       setState(() => _error = 'Este contacto ya está registrado.');
       return;
     }
@@ -85,6 +137,7 @@ class _FormularioContactoState extends State<_FormularioContacto> {
         nombre: nombre,
         relacion: _relacionController.text.trim(),
         celular: celular,
+        esCuidador: widget.editando?.esCuidador ?? false,
       ),
     );
   }
@@ -107,7 +160,7 @@ class _FormularioContactoState extends State<_FormularioContacto> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Agregar contacto', style: t.titleLarge),
+            Text(widget.editando == null ? 'Agregar contacto' : 'Editar contacto', style: t.titleLarge),
             const SizedBox(height: 6),
             Text('Recibirá tus alertas si algo te pasa.', style: t.bodyMedium),
             const SizedBox(height: 18),

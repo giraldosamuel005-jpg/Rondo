@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/alertas/control_alerta.dart';
+import '../../core/models/persona_a_cargo.dart';
+import '../../core/permisos/permisos_sistema.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
@@ -12,7 +15,6 @@ import '../../core/widgets/glass.dart';
 import '../../core/widgets/permisos_card.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/tab_page.dart';
-import '../alert/fall_alert_page.dart';
 import '../auth/login_page.dart';
 import '../cuidador/alerta_entrante_page.dart';
 import '../ficha/ficha_medica_card.dart';
@@ -57,31 +59,41 @@ class SettingsTab extends StatelessWidget {
     estado.cerrarSesion();
   }
 
-  /// Abre la alerta de caída sin sensores, para probarla y para la demo.
-  void _simularCaida(BuildContext context) {
-    if (context.read<AppState>().rondaEnPausa) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Tu ronda está en pausa. Reanúdala para probar la alerta.',
-          ),
+  /// Prueba la alerta de principio a fin, sin sensores: a los contactos les
+  /// llega de verdad, pero diciendo que es una prueba.
+  Future<void> _probarAlerta(BuildContext context) async {
+    final control = context.read<ControlAlerta>();
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Probar la alerta?'),
+        content: const Text(
+          'Verás la cuenta regresiva como en una caída. Si la dejas terminar, a tus '
+          'contactos y cuidadores les llega un mensaje que dice que es una prueba.',
         ),
-      );
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true, // Entra desde abajo, como una alerta
-        builder: (_) => FallAlertPage(detectadaA: DateTime.now()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Probar'),
+          ),
+        ],
       ),
     );
+    if (confirmar == true) control.iniciar(prueba: true);
   }
 
-  /// Cuidador: a la primera persona "se le detecta una caída" y le llega la alerta.
+  /// Cuidador: a una persona DE EJEMPLO "se le detecta una caída". Nunca a una
+  /// real: la alerta sería inventada.
   void _simularAlertaDePersona(BuildContext context) {
     final estado = context.read<AppState>();
-    if (estado.personasACargo.isEmpty) estado.cargarPersonasDeEjemplo();
-    final persona = estado.personasACargo.first;
+    bool esEjemplo(PersonaACargo p) =>
+        p.id.startsWith(PersonaACargo.prefijoEjemplo);
+    if (!estado.personasACargo.any(esEjemplo)) estado.cargarPersonasDeEjemplo();
+    final persona = estado.personasACargo.firstWhere(esEjemplo);
     estado.simularAlertaDe(persona.id);
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -178,9 +190,21 @@ class SettingsTab extends StatelessWidget {
         const SizedBox(height: 22),
 
         // ---------- Permisos (RF-31): el cuidador no usa sensores ----------
+        const SectionLabel('Permisos'),
+        estado.esCuidador
+            ? const PermisosCard(mostrar: {PermisoSistema.notificaciones})
+            : const PermisosCard(),
+        const SizedBox(height: 22),
+
+        // ---------- Probar la alerta ----------
         if (!estado.esCuidador) ...[
-          const SectionLabel('Permisos'),
-          const PermisosCard(),
+          const SectionLabel('Alerta'),
+          SecondaryButton(
+            label: 'Probar la alerta',
+            icon: Icons.notifications_active_rounded,
+            blur: false,
+            onPressed: () => _probarAlerta(context),
+          ),
           const SizedBox(height: 22),
         ],
 
@@ -224,30 +248,22 @@ class SettingsTab extends StatelessWidget {
         ),
 
         // ---------- Solo en desarrollo ----------
-        if (kDebugMode) ...[
+        if (kDebugMode && estado.esCuidador) ...[
           const SizedBox(height: 22),
           const SectionLabel('Modo de pruebas'),
-          if (estado.esCuidador) ...[
-            SecondaryButton(
-              label: 'Cargar personas de ejemplo',
-              icon: Icons.group_add_rounded,
-              blur: false,
-              onPressed: estado.cargarPersonasDeEjemplo,
-            ),
-            const SizedBox(height: 10),
-            SecondaryButton(
-              label: 'Simular alerta',
-              icon: Icons.warning_amber_rounded,
-              blur: false,
-              onPressed: () => _simularAlertaDePersona(context),
-            ),
-          ] else
-            SecondaryButton(
-              label: 'Simular caída',
-              icon: Icons.warning_amber_rounded,
-              blur: false,
-              onPressed: () => _simularCaida(context),
-            ),
+          SecondaryButton(
+            label: 'Cargar personas de ejemplo',
+            icon: Icons.group_add_rounded,
+            blur: false,
+            onPressed: estado.cargarPersonasDeEjemplo,
+          ),
+          const SizedBox(height: 10),
+          SecondaryButton(
+            label: 'Simular alerta',
+            icon: Icons.warning_amber_rounded,
+            blur: false,
+            onPressed: () => _simularAlertaDePersona(context),
+          ),
           const SizedBox(height: 6),
           Text(
             'Solo aparece mientras desarrollamos la app.',

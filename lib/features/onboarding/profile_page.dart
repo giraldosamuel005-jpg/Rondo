@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/tipo_cuenta.dart';
+import '../../core/permisos/permisos_sistema.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
@@ -69,6 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
     // Guarda el perfil y la fecha en que se aceptó el aviso (RF-34).
     context.read<AppState>().guardarPerfil(nombre: nombre, tipo: _tipo!);
     if (_tipo == TipoCuenta.cuidador) {
+      _pedirNotificaciones(context.read<AppState>());
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainShell()),
         (ruta) => false,
@@ -76,6 +78,21 @@ class _ProfilePageState extends State<ProfilePage> {
     } else {
       Navigator.of(context)
           .push(MaterialPageRoute(builder: (_) => const ContactsPage()));
+    }
+  }
+
+  /// Para que le suene una alerta con la app cerrada.
+  static Future<void> _pedirNotificaciones(AppState estado) async {
+    try {
+      final respuesta = await const PermisosSistema().pedir(
+        PermisoSistema.notificaciones,
+      );
+      estado.cambiarPermiso(
+        PermisoSistema.notificaciones,
+        respuesta == EstadoPermiso.concedido,
+      );
+    } catch (_) {
+      // Sin el plugin (web, Windows, pruebas) no hay nada que pedir.
     }
   }
 
@@ -99,7 +116,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 'Rondó guarda tu nombre, tu celular y tus contactos de emergencia '
                 'para avisarles si algo te pasa. Tus datos médicos solo se guardan '
                 'si tú los agregas, y solo los ve quien escanee tu código QR en una '
-                'emergencia.\n\n'
+                'emergencia. Tu ubicación se envía dentro de una alerta, y a tus '
+                'cuidadores solo si tú lo activas.\n\n'
                 'Puedes pedir que borremos tus datos cuando quieras. Este tratamiento '
                 'sigue la Ley 1581 de 2012 de protección de datos personales.',
                 style: t.bodyLarge,
@@ -153,7 +171,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       Text('¿Para quién es la cuenta?', style: t.headlineLarge),
                       const SizedBox(height: 8),
                       Text(
-                        'Puedes cambiarlo después.',
+                        'Elige para qué la vas a usar.',
                         style: t.bodyMedium!.copyWith(fontSize: 16),
                       ),
                       const SizedBox(height: 22),

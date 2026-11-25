@@ -75,6 +75,10 @@ void main() {
 
       expect(find.text('Sin invitar'), findsOneWidget);
       await tocar(tester, 'Invitar a cuidarme');
+      expect(find.text('¿Compartir tu ubicación?'), findsOneWidget); // Aparte (RF-30)
+      await tester.tap(find.text('Ahora no'));
+      await tester.pumpAndSettle();
+      expect(estado.comparteUbicacion, isFalse);
 
       final codigo = servidor.invitaciones.keys.single;
       expect(abierto, startsWith('sms:+573001234567?body='));
@@ -87,6 +91,8 @@ void main() {
       final vinculos = Vinculos(servidor.celular('rosa'), estado);
       await mostrar(tester, estado, vinculos, const ContactsTab());
       await tocar(tester, 'Invitar a cuidarme');
+      await tester.tap(find.text('Ahora no'));
+      await tester.pumpAndSettle();
 
       // Ana acepta en su celular.
       await tester.runAsync(() => servidor.celular('ana').aceptarInvitacion(
@@ -141,11 +147,13 @@ void main() {
       await mostrar(tester, estado, Vinculos(servidor.celular('ana'), estado), PersonasTab(onVerAjustes: () {}));
 
       await tocar(tester, 'Tengo un código de invitación');
-      await tester.enterText(find.byType(TextField), codigo.toLowerCase());
+      await tester.enterText(find.byType(TextField).first, codigo.toLowerCase());
+      await tester.enterText(find.byType(TextField).last, 'Mamá');
       await tocar(tester, 'Aceptar invitación');
 
       expect(find.text('Listo. Ahora cuidas a Rosa.'), findsOneWidget);
       expect(find.text('Rosa Gómez'), findsOneWidget);
+      expect(find.text('Mamá'), findsOneWidget);
       expect(find.text('Sin datos aún'), findsOneWidget); // Rosa todavía no ha compartido nada
     });
 
@@ -154,7 +162,7 @@ void main() {
       await mostrar(tester, estado, Vinculos(servidor.celular('ana'), estado), PersonasTab(onVerAjustes: () {}));
 
       await tocar(tester, 'Tengo un código de invitación');
-      await tester.enterText(find.byType(TextField), 'ZZZZZZ');
+      await tester.enterText(find.byType(TextField).first, 'ZZZZZZ');
       await tocar(tester, 'Aceptar invitación');
 
       expect(find.text(Invitacion.errorNoValida), findsOneWidget);

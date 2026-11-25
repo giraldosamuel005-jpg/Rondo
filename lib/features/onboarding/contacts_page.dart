@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/contacto.dart';
+import '../../core/permisos/permisos_sistema.dart';
 import '../../core/state/app_state.dart';
 import '../../core/widgets/blob_background.dart';
 import '../../core/widgets/contact_row.dart';
@@ -18,13 +19,16 @@ import '../shell/main_shell.dart';
 /// RF-04 (contactos de emergencia) y RF-30 (permisos con su razón).
 /// Los contactos y permisos viven en [AppState]; esta pantalla solo los muestra.
 class ContactsPage extends StatelessWidget {
-  const ContactsPage({super.key});
+  const ContactsPage({super.key, this.permisos = const PermisosSistema()});
+
+  final PermisosSistema permisos;
 
   Future<void> _agregarContacto(BuildContext context) async {
     final estado = context.read<AppState>();
     final nuevo = await mostrarFormularioContacto(
       context,
       celularesRegistrados: estado.contactos.map((k) => k.celular).toList(),
+      celularPropio: estado.celular,
     );
     if (nuevo != null) estado.agregarContacto(nuevo);
   }
@@ -36,8 +40,45 @@ class ContactsPage extends StatelessWidget {
     }
   }
 
-  void _activarRonda(BuildContext context) {
-    context.read<AppState>().activarRonda();
+  /// Sin permisos la ronda no protege: se explica y se piden, uno por uno
+  /// (RF-30). Puede seguir sin ellos; Inicio le dirá qué falta.
+  Future<void> _activarRonda(BuildContext context) async {
+    final estado = context.read<AppState>();
+    final faltan = [
+      for (final p in PermisoSistema.values)
+        if (!estado.tienePermiso(p)) p,
+    ];
+    if (faltan.isNotEmpty) {
+      final activar = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Faltan permisos'),
+          content: const Text(
+            'Sin ellos Rondó no puede detectar una caída, enviar el SMS a tus contactos '
+            'ni decirles dónde estás. Android te los va a pedir uno por uno.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Seguir sin ellos'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Darlos ahora'),
+            ),
+          ],
+        ),
+      );
+      if (activar == null) return; // Cerró el aviso: se queda aquí
+      if (activar) {
+        for (final p in faltan) {
+          final respuesta = await permisos.pedir(p);
+          estado.cambiarPermiso(p, respuesta == EstadoPermiso.concedido);
+        }
+      }
+    }
+    if (!context.mounted) return;
+    estado.activarRonda();
 
     // Entra a la app (pestañas) y borra todo el registro del historial:
     // "atrás" ya no vuelve a estas pantallas.

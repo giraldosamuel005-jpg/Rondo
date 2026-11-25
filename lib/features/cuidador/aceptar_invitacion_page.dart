@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
 import '../../core/vinculos/servicio_vinculos.dart';
@@ -25,17 +26,21 @@ class AceptarInvitacionPage extends StatefulWidget {
 
 class _AceptarInvitacionPageState extends State<AceptarInvitacionPage> {
   final _codigo = TextEditingController();
+  final _parentesco = TextEditingController();
   bool _ocupado = false;
   String? _error;
 
   @override
   void dispose() {
     _codigo.dispose();
+    _parentesco.dispose();
     super.dispose();
   }
 
   Future<void> _aceptar() async {
+    if (_ocupado) return;
     final vinculos = context.read<Vinculos>();
+    final estado = context.read<AppState>();
     final navegador = Navigator.of(context);
     setState(() {
       _ocupado = true;
@@ -43,6 +48,7 @@ class _AceptarInvitacionPageState extends State<AceptarInvitacionPage> {
     });
     try {
       final vinculo = await vinculos.aceptar(_codigo.text);
+      estado.ponerParentesco(vinculo.personaUid, _parentesco.text);
       navegador.pop(primerNombre(vinculo.personaNombre));
     } on ErrorVinculo catch (e) {
       if (mounted) setState(() => _error = e.mensaje);
@@ -90,7 +96,7 @@ class _AceptarInvitacionPageState extends State<AceptarInvitacionPage> {
                           hint: 'Ej. K7M2QX',
                           errorText: _error,
                           textCapitalization: TextCapitalization.characters,
-                          textInputAction: TextInputAction.done,
+                          textInputAction: TextInputAction.next,
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(
                               RegExp('[A-Za-z0-9]'),
@@ -102,6 +108,17 @@ class _AceptarInvitacionPageState extends State<AceptarInvitacionPage> {
                           onChanged: (_) {
                             if (_error != null) setState(() => _error = null);
                           },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Glass(
+                        blur: false,
+                        child: GlassField(
+                          label: '¿Quién es para ti? (opcional)',
+                          controller: _parentesco,
+                          hint: 'Ej. Mamá',
+                          textCapitalization: TextCapitalization.sentences,
+                          textInputAction: TextInputAction.done,
                           onSubmitted: (_) => _aceptar(),
                         ),
                       ),

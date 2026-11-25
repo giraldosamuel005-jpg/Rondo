@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/models/consentimiento.dart';
 import '../../core/models/contacto.dart';
+import '../../core/permisos/permisos_sistema.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/rondo_colors.dart';
 import '../../core/utils/formato.dart';
@@ -10,6 +12,7 @@ import '../../core/vinculos/vinculo.dart';
 import '../../core/vinculos/vinculos.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/glass.dart';
+import '../../core/widgets/permission_row.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/tab_page.dart';
 import '../cuidador/abrir_enlace.dart';
@@ -18,12 +21,49 @@ import '../cuidador/abrir_enlace.dart';
 /// cuidarte, ver si ya aceptó y dejar de compartir cuando quieras.
 /// Solo aparece si hay servidor de vínculos.
 class QuienTeCuida extends StatelessWidget {
-  const QuienTeCuida({super.key});
+  const QuienTeCuida({super.key, this.permisos = const PermisosSistema()});
+
+  final PermisosSistema permisos;
+
+  /// RF-26 / RF-30: consentimiento aparte del de las alertas. Sin el permiso
+  /// del celular no sirve, así que se pide de una.
+  static Future<void> compartirUbicacion(
+    BuildContext context,
+    bool valor, {
+    PermisosSistema permisos = const PermisosSistema(),
+  }) async {
+    final estado = context.read<AppState>();
+    final mensajero = ScaffoldMessenger.of(context);
+    if (!valor) {
+      estado.retirarConsentimiento(TipoConsentimiento.ubicacionCuidadores);
+      return;
+    }
+    if (!estado.permisoUbicacion) {
+      final respuesta = await permisos.pedir(PermisoSistema.ubicacion);
+      if (respuesta != EstadoPermiso.concedido) {
+        mensajero.showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Sin este permiso no podemos activar esta función.',
+            ),
+            action: SnackBarAction(
+              label: 'Abrir ajustes',
+              onPressed: permisos.abrirAjustes,
+            ),
+          ),
+        );
+        return;
+      }
+      estado.cambiarPermiso(PermisoSistema.ubicacion, true);
+    }
+    estado.darConsentimiento(TipoConsentimiento.ubicacionCuidadores);
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final contactos = context.watch<AppState>().contactos;
+    final estado = context.watch<AppState>();
+    final contactos = estado.contactos;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -39,13 +79,23 @@ class QuienTeCuida extends StatelessWidget {
                 if (i > 0) const GlassDivider(indent: 68),
                 _FilaCuidador(contacto: contactos[i], orden: i),
               ],
+              const GlassDivider(indent: 18),
+              PermissionRow(
+                title: 'Compartir mi ubicación',
+                reason:
+                    'Tus cuidadores ven dónde estás mientras tu ronda esté activa.',
+                value: estado.comparteUbicacion,
+                onChanged: (v) =>
+                    compartirUbicacion(context, v, permisos: permisos),
+              ),
             ],
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Quien acepte tu invitación verá si tu ronda está activa, cuándo dijiste '
-          '"Estoy bien" y cómo vas con tus medicamentos. Puedes dejar de compartir cuando quieras.',
+          '"Estoy bien" y cómo vas con tus medicamentos. Tu ubicación, solo si la activas aquí '
+          '(en una alerta siempre se envía). Puedes dejar de compartir cuando quieras.',
           style: t.bodySmall,
         ),
       ],
@@ -79,10 +129,44 @@ class _FilaCuidadorState extends State<_FilaCuidador> {
     }
   }
 
-  Future<void> _invitar(Vinculos vinculos) => _hacer(() async {
-    final invitacion = await vinculos.invitar(widget.contacto);
-    if (mounted) await enviarInvitacion(context, invitacion);
-  });
+  Future<void> _invitar(Vinculos vinculos) async {
+    Invitacion? invitacion;
+    await _hacer(
+      () async => invitacion = await vinculos.invitar(widget.contacto),
+    );
+    if (invitacion == null || !mounted) return;
+    await _ofrecerUbicacion();
+    if (mounted) await enviarInvitacion(context, invitacion!);
+  }
+
+  /// Al invitar se pregunta, con su razón, si también comparte su ubicación.
+  Future<void> _ofrecerUbicacion() async {
+    if (context.read<AppState>().comparteUbicacion) return;
+    final nombre = primerNombre(widget.contacto.nombre);
+    final acepto = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Compartir tu ubicación?'),
+        content: Text(
+          '$nombre podrá ver dónde estás mientras tu ronda esté activa. '
+          'Puedes quitarlo cuando quieras. En una alerta siempre se envía.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Ahora no'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Compartir'),
+          ),
+        ],
+      ),
+    );
+    if (acepto == true && mounted) {
+      await QuienTeCuida.compartirUbicacion(context, true);
+    }
+  }
 
   Future<void> _dejarDeCompartir(Vinculos vinculos, Vinculo vinculo) async {
     final nombre = primerNombre(widget.contacto.nombre);

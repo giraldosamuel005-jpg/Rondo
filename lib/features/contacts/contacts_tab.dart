@@ -22,8 +22,45 @@ class ContactsTab extends StatelessWidget {
     final nuevo = await mostrarFormularioContacto(
       context,
       celularesRegistrados: estado.contactos.map((k) => k.celular).toList(),
+      celularPropio: estado.celular,
     );
     if (nuevo != null) estado.agregarContacto(nuevo);
+  }
+
+  Future<void> _tocar(BuildContext context, Contacto contacto) async {
+    final accion = await mostrarAccionesContacto(context, contacto);
+    if (!context.mounted) return;
+    switch (accion) {
+      case AccionContacto.editar:
+        await _editar(context, contacto);
+      case AccionContacto.quitar:
+        await _quitar(context, contacto);
+      case null:
+    }
+  }
+
+  /// RF-31. Con otro celular ya es otra persona para el servidor: si lo
+  /// cuidaba, ese vínculo se corta y hay que invitarlo otra vez.
+  Future<void> _editar(BuildContext context, Contacto contacto) async {
+    final estado = context.read<AppState>();
+    final vinculos = context.read<Vinculos?>();
+    final mensajero = ScaffoldMessenger.of(context);
+    final nuevo = await mostrarFormularioContacto(
+      context,
+      celularesRegistrados: estado.contactos.map((k) => k.celular).toList(),
+      celularPropio: estado.celular,
+      editando: contacto,
+    );
+    if (nuevo == null) return;
+    estado.editarContacto(contacto, nuevo);
+    if (nuevo.celular == contacto.celular) return;
+    final teniaVinculo = vinculos?.vinculoCon(contacto.celular) != null;
+    await vinculos?.olvidarContacto(contacto.celular);
+    if (teniaVinculo) {
+      mensajero.showSnackBar(
+        SnackBar(content: Text('Cambió su número: invita otra vez a ${nuevo.nombre} a cuidarte.')),
+      );
+    }
   }
 
   Future<void> _quitar(BuildContext context, Contacto contacto) async {
@@ -55,7 +92,7 @@ class ContactsTab extends StatelessWidget {
 
     return TabPage(
       title: 'Contactos',
-      subtitle: 'Reciben tus alertas si algo te pasa. Toca el teléfono para llamar, o el nombre para quitarlo.',
+      subtitle: 'Reciben tus alertas si algo te pasa. Toca el teléfono para llamar, o el nombre para editarlo o quitarlo.',
       blobs: BlobBackground.paso,
       children: [
         Glass(
@@ -67,7 +104,7 @@ class ContactsTab extends StatelessWidget {
                 ContactRow(
                   contacto: contactos[i],
                   orden: i + 1,
-                  onTap: () => _quitar(context, contactos[i]),
+                  onTap: () => _tocar(context, contactos[i]),
                   onLlamar: () => llamarAContacto(context, contactos[i]),
                 ),
               ],
@@ -85,7 +122,7 @@ class ContactsTab extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Les avisamos a todos a la vez. Si no tienes datos, les llega un SMS.',
+                  'Les avisamos a todos a la vez por SMS. Funciona sin internet.',
                   style: t.bodyMedium,
                 ),
               ),

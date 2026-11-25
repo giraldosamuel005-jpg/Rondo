@@ -107,6 +107,12 @@ class PersonasTab extends StatelessWidget {
                 const SizedBox(height: 12),
               ],
 
+            // RF-26: sin conexión se sigue mostrando lo último que se supo.
+            if (vinculos != null && vinculos.sinConexion) ...[
+              _SinConexion(desde: vinculos.ultimaVezEnLinea),
+              const SizedBox(height: 12),
+            ],
+
             if (personas.isEmpty && (vinculos?.cargandoPersonas ?? false))
               // Primera respuesta del servidor: se ve la forma de lo que viene.
               const Glass(
@@ -305,7 +311,9 @@ class AvisoAlertaPersona extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.rondo;
     final t = Theme.of(context).textTheme;
-    final alerta = persona.alertas.isEmpty ? null : persona.alertas.first;
+    final alerta =
+        persona.alertas.where((a) => !a.atendida).firstOrNull ??
+        persona.alertas.firstOrNull;
 
     return Semantics(
       button: true,
@@ -348,7 +356,9 @@ class AvisoAlertaPersona extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${primerNombre(persona.nombre)} podría haberse caído',
+                          alerta?.prueba ?? false
+                              ? 'Prueba de alerta de ${primerNombre(persona.nombre)}'
+                              : '${primerNombre(persona.nombre)} necesita ayuda',
                           style: t.titleMedium!.copyWith(color: c.alertText),
                         ),
                         const SizedBox(height: 2),
@@ -368,6 +378,47 @@ class AvisoAlertaPersona extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// RF-26: "Sin conexión. Mostrando datos de hace X minutos."
+class _SinConexion extends StatelessWidget {
+  const _SinConexion({required this.desde});
+
+  final DateTime? desde;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.rondo;
+    final minutos = desde == null
+        ? null
+        : DateTime.now().difference(desde!).inMinutes;
+    final cuando = switch (minutos) {
+      null => '',
+      0 => ' Mostrando datos de hace un momento.',
+      1 => ' Mostrando datos de hace 1 minuto.',
+      _ => ' Mostrando datos de hace $minutos minutos.',
+    };
+    return Semantics(
+      liveRegion: true,
+      child: Glass(
+        blur: false,
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off_rounded, size: 22, color: c.textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Sin conexión.$cuando',
+                style: Theme.of(context).textTheme.bodyMedium!
+                    .copyWith(color: c.text),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -467,7 +518,7 @@ class _SinPersonas extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Modo de pruebas: mientras no hay servidor.',
+            'Modo de pruebas.',
             textAlign: TextAlign.center,
             style: t.bodySmall,
           ),
