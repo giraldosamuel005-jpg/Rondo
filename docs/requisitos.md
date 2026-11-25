@@ -55,7 +55,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - **Activar:** antes de guardar la preferencia se pide la huella una vez, para saber que funciona.
   - **Reingresar:** si está activada, al abrir la app aparece una pantalla que pide la huella sola. Con la huella válida entra a Inicio. Si falla, muestra el mensaje de arriba, se puede reintentar, y el botón "Entrar con mi código SMS" lleva al código y de ahí directo a Inicio, sin repetir el registro.
   - **Cerrar sesión** borra la preferencia: la huella era de esa cuenta.
-  - **Límite:** solo se pide al abrir la app desde cero, no cada vez que vuelve del fondo.
+  - **Límite:** se pide al abrir la app desde cero o después de quitarla de las recientes, no cada vez que vuelve del fondo. Si hay una alerta en curso, primero se muestra la alerta.
 
 #### RF-03 — Al registrarse, elegir si la cuenta es "para mí" o "para cuidar a alguien"
 - **Cómo funciona:** Al terminar el registro, la persona elige "para mí" o "para cuidar a alguien". Esto define qué módulos se activan y si se muestra el dashboard de cuidador.
@@ -103,8 +103,8 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - "Activa el permiso de sensores de movimiento para usar la detección de caídas."
   - "No pudimos acceder a los sensores del celular. La detección de caídas está desactivada."
-- **Cómo está hecho (2026-11-13):** Con la ronda activa y el permiso de sensores encendido, la app lee el acelerómetro y el giroscopio unas 50 veces por segundo. Una caída es un golpe de 2,5 g o más seguido de 2,5 s casi sin movimiento (se dejan pasar 1 s de rebotes). Cuando la detecta abre sola la alerta de RF-13. Inicio muestra "Detección de caídas activa", o el error si falta el permiso o fallan los sensores. Dos límites:
-  - **Solo funciona con la app abierta.** Con la app cerrada Android corta los sensores; falta un servicio en segundo plano.
+- **Cómo está hecho (2026-11-24):** Con la ronda activa y el permiso de sensores encendido, la app lee el acelerómetro y el giroscopio unas 50 veces por segundo. Una caída es un golpe de 2,5 g o más seguido de 2,5 s casi sin movimiento (se dejan pasar 1 s de rebotes). Al detectarla arranca sola la alerta de RF-13. Inicio muestra "Detección de caídas activa", o el error si falta el permiso o fallan los sensores (se reintenta cada 30 s).
+  - **Con la app cerrada también funciona:** un servicio en primer plano (`ServicioFondo.kt`) mantiene viva la app aunque la quiten de las recientes, con la pantalla apagada y después de reiniciar el celular. Muestra una notificación fija, "Tu ronda está activa". Se apaga al pausar la ronda o cerrar sesión.
   - **Los umbrales son valores típicos, no medidos.** Falta ajustarlos con caídas reales, como pide este requisito.
 
 #### RF-07 — Detectar inactividad prolongada (posible desmayo sin impacto)
@@ -170,6 +170,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - confirmación: `DateTime` (hora en que tocó el botón)
 - **Errores:**
   - "No se pudo registrar tu confirmación. Se reintentará cuando haya conexión."
+- **Cómo está hecho (2026-11-24):** Si hay una alerta abierta, "Estoy bien" también les avisa a quienes la recibieron. Sin conexión se muestra el error de arriba y se envía al volver la red. El cuidador recibe una notificación.
 
 ---
 
@@ -184,6 +185,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - "No se pudo reproducir la alarma sonora. Revisa el volumen de tu celular."
   - "No se pudo mostrar la alerta. Se avisará directamente a tus contactos."
+- **Cómo está hecho (2026-11-24):** La cuenta regresiva va con el reloj del celular y no con la pantalla (`ControlAlerta`): la alerta se envía aunque la pantalla se apague, la persona salga de la app o tenga las animaciones apagadas. Si la app no está a la vista, sale una notificación a pantalla completa que prende la pantalla, aunque el celular esté bloqueado, con los botones "Estoy bien" y "Pedir ayuda". La alerta se puede probar en Ajustes → "Probar la alerta": llega de verdad, pero dice que es una prueba.
 
 #### RF-14 — Permitir cancelar la alerta durante la cuenta regresiva con el botón "Estoy bien"
 - **Cómo funciona:** Durante los 10 s se puede cancelar con el botón "Estoy bien". Al cancelar, la alarma se detiene y la alerta queda como cancelada. El botón "Pedir ayuda ahora" hace lo contrario: avisa de inmediato, sin esperar.
@@ -192,6 +194,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - No muestra errores: el botón siempre está disponible durante la cuenta regresiva.
 - *Cancelar con PIN, huella o voz quedó **fuera de alcance** el 2026-10-25.*
+- **Cómo está hecho (2026-11-24):** Además del botón durante la cuenta, Inicio tiene "Pedir ayuda", que avisa de una después de confirmar. Cuando la alerta ya salió, "Ya estoy bien, avísales" le manda un SMS a los mismos contactos y se lo muestra a los cuidadores.
 
 #### RF-15 — Si la alerta no se cancela, notificar por push a todos los contactos con la ubicación
 - **Cómo funciona:** Cuando la cuenta regresiva termina sin cancelar, la app envía un push a todos los contactos al mismo tiempo, con el tipo de evento, la hora y la ubicación.
@@ -203,12 +206,12 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se pudo notificar a [nombre del contacto]. Reintentando…"
   - "No se pudo obtener tu ubicación. Se avisó a tus contactos sin ella."
   - "No se pudo notificar a ningún contacto. Se intentará por SMS."
-- **Cómo está hecho (2026-11-10):** Todavía no hay push (necesita el plan Blaze de Firebase). Al enviarse la alerta pasan tres cosas a la vez:
-  - La app lee el GPS; si no responde en 8 s, usa la última ubicación conocida.
-  - Le envía un SMS a cada contacto sin abrir la app de mensajes, con la hora y el enlace a Google Maps. Esto pide el permiso de SMS, que ahora está en el panel de permisos.
-  - Sube la alerta a Firestore, en `personas/{uid}/alertas`, solo si la persona tiene cuidadores vinculados.
+- **Cómo está hecho (2026-11-24):** Todavía no hay push (necesita el plan Blaze de Firebase), pero el cuidador recibe la alerta con la app cerrada gracias al mismo servicio en primer plano de RF-06. Al enviarse la alerta pasa esto a la vez:
+  - **Ubicación:** se empieza a buscar desde que arranca la cuenta. Si el GPS no contesta, va la última conocida. Después de reiniciar el celular, y hasta que se abra la app, Android no deja leerla: la alerta sale sin ella.
+  - **SMS** a cada contacto, sin abrir la app de mensajes. La app espera a que Android confirme que salió.
+  - **Servidor:** la alerta se sube a `personas/{uid}/alertas` si hay cuidadores vinculados.
 
-  Al cuidador se le abre la pantalla de alerta cuando la app está abierta o al abrirla. Su botón "Ya la atendí" la marca como atendida en el servidor, y eso lo ven los demás cuidadores. Si la persona cierra sesión, sus alertas se borran del servidor.
+  Lo que no salió se reintenta cada 30 s, hasta 10 veces, aunque la persona cierre la pantalla ("No se pudo notificar a [nombre]. Reintentando…"). Al cuidador le suena la alarma y se le abre la pantalla de alerta, también con el celular bloqueado. Si otro cuidador la atiende, o la persona avisa que está bien, se calla sola. En las pruebas con dos emuladores tardó unos 16 s desde el golpe (10 son la cuenta regresiva).
 
 #### RF-16 — Si no hay datos, enviar un SMS con enlace a Google Maps
 - **Cómo funciona:** Si el celular no tiene datos, la app envía un SMS a cada contacto con un enlace a Google Maps con la ubicación.
@@ -219,7 +222,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "Sin conexión de datos. Enviando alerta por SMS."
   - "No se pudo enviar el SMS. Verifica tu señal y tu saldo."
   - "La app no tiene permiso para enviar SMS. Actívalo en ajustes."
-- **Cómo está hecho (2026-11-10):** El SMS no espera a que se caigan los datos: siempre se envía, junto con la alerta al servidor (ver RF-15). Si a un contacto no le llega, la app le muestra a la persona "No se pudo enviar el SMS a [nombre]. Verifica tu señal y tu saldo.".
+- **Cómo está hecho (2026-11-24):** El SMS no espera a que se caigan los datos: siempre se envía, junto con la alerta al servidor (ver RF-15). Si falta el permiso, la pantalla de la alerta lo dice y deja darlo ahí mismo ("Permitir SMS y reintentar").
 
 #### RF-17 — Si no hay datos ni SMS, activar una alarma sonora local
 - **Cómo funciona:** Si tampoco se puede enviar SMS, se activa una alarma sonora local para llamar la atención de las personas cercanas.
@@ -227,13 +230,13 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - alarma activa: `bool`
 - **Errores:**
   - "Sin conexión ni señal. Activando alarma sonora para pedir ayuda cercana."
-- **Cómo está hecho (2026-11-10):** La alarma vuelve a sonar cuando no salió ningún SMS y el servidor no confirmó la alerta en 10 s. La pantalla muestra un botón para llamar al 123 y otro para apagar la alarma.
+- **Cómo está hecho (2026-11-24):** La alarma vuelve a sonar cuando no salió ningún SMS y el servidor no confirmó la alerta, y se calla si un reintento logra avisarle a alguien. La pantalla dice la causa real (sin señal o sin permiso) y muestra un botón para llamar al 123.
 
 ---
 
 ### 3.4 Ubicación
 
-*Toda esta sección quedó fuera de alcance el 2026-10-25. La ubicación se sigue usando, pero solo dentro de una alerta (RF-15, RF-16).*
+*Toda esta sección quedó fuera de alcance el 2026-10-25. La ubicación se usa dentro de una alerta (RF-15, RF-16) y, desde el 2026-11-24, para los cuidadores si la persona lo activa (RF-26).*
 
 #### RF-18 — Crear y editar geocercas, y avisar cuando la persona entre o salga de ellas
 > ⛔ **Fuera de alcance** (decisión del 2026-10-25). Se conserva solo como referencia; no se implementa.
@@ -356,6 +359,11 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se pudo cargar la información de [nombre]. Desliza para actualizar."
   - "Aún no tienes personas a tu cargo."
   - "Sin conexión. Mostrando datos de hace [X] minutos."
+- **Cómo está hecho (2026-11-24):** El panel muestra estado, última ubicación, alertas y cumplimiento.
+  - **Ubicación:** la persona la comparte si lo activa en Contactos → Quién te cuida → "Compartir mi ubicación" (consentimiento aparte, RF-30). Se actualiza cada 5 minutos, con cada "Estoy bien" y cuando el cuidador toca "Actualizar ubicación". Al pausar la ronda o quitar el permiso, se borra del servidor. La de una alerta se ve siempre.
+  - **Novedades:** notificación cuando la persona pausa o reanuda su ronda, dice que está bien o marca que no tomó un medicamento.
+  - **Parentesco:** el cuidador lo escribe al aceptar la invitación ("Mamá") y queda solo en su celular.
+  - **Sin conexión** se muestra "Sin conexión. Mostrando datos de hace [X] minutos." y se sigue viendo lo último.
 
 #### RF-27 — Limitar al cuidador a los datos de quien lo invitó, y cortar su acceso si el usuario revoca el vínculo
 - **Cómo funciona:** En cada consulta el servidor verifica que exista un vínculo activo entre el cuidador y la persona. Si el usuario revoca el vínculo, la consulta se rechaza desde ese momento.
@@ -367,7 +375,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No tienes permiso para ver esta información."
   - "[Nombre] ya no comparte su información contigo."
   - "Esta invitación ya no es válida."
-- **Cómo está hecho (2026-11-09):** Firebase con sesión anónima y Firestore. Las reglas de `firestore.rules` solo dejan leer lo que la persona comparte a quien tenga un vínculo activo con ella. La persona corta el vínculo desde Contactos → "Quién te cuida", y también al quitar ese contacto o al cerrar sesión. Por ahora se comparte el estado de la ronda, el último "Estoy bien" y el cumplimiento de medicamentos; la ubicación y las alertas todavía no.
+- **Cómo está hecho (2026-11-09):** Firebase con sesión anónima y Firestore. Las reglas de `firestore.rules` solo dejan leer lo que la persona comparte a quien tenga un vínculo activo con ella. La persona corta el vínculo desde Contactos → "Quién te cuida", y también al quitar ese contacto o al cerrar sesión. Se comparte el estado de la ronda, el último "Estoy bien", el cumplimiento de medicamentos, las alertas y, solo si la persona lo activa, su ubicación (RF-26).
 
 ---
 
@@ -382,6 +390,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - "Sin conexión. Tus eventos se guardarán y se enviarán cuando vuelvas a tener internet."
   - "El almacenamiento del celular está lleno. No se pueden guardar más eventos."
+- **Cómo está hecho (2026-11-24):** Firestore guarda en el celular lo que falta por enviar (alertas, "Estoy bien", estado). Los SMS no necesitan internet. La pantalla de la alerta dice "Sin conexión: a tus cuidadores les llegará en Rondó cuando vuelva el internet.". No hay una base local propia con el campo `enviado`.
 
 #### RF-29 — Sincronizar la cola automáticamente al recuperar la red, sin pérdida ni duplicados
 - **Cómo funciona:** Al volver la red, la app envía los eventos pendientes en orden. Cada uno lleva un UUID generado en el celular, así el servidor detecta si ya lo recibió y no lo duplica. Se marcan como enviados solo cuando el servidor confirma.
@@ -392,6 +401,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - "No se pudo sincronizar. Se reintentará automáticamente."
   - "Algunos eventos no se pudieron enviar. Revisa tu conexión."
+- **Cómo está hecho (2026-11-24):** La cola la sincroniza Firestore al volver la red. Cada alerta lleva un ID creado en el celular, así un reintento no la duplica. Si una escucha del servidor falla, se vuelve a intentar sola (3 s, 6 s, … hasta cada minuto).
 
 ---
 
@@ -406,6 +416,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "Necesitamos tu permiso de ubicación para enviar alertas con tu posición."
   - "Necesitamos tu consentimiento para guardar tus datos médicos."
   - "Sin este permiso no podemos activar esta función."
+- **Cómo está hecho (2026-11-24):** Son tres consentimientos separados, cada uno con su fecha: ubicación en una alerta, ubicación para los cuidadores y datos médicos. Al activar la ronda, si faltan permisos, se explica para qué sirven y Android los pide uno por uno; se puede seguir sin ellos.
 
 #### RF-31 — Ofrecer un panel central de permisos y gestión de contactos
 - **Cómo funciona:** Una pantalla de ajustes muestra el estado de cada permiso y permite agregar, editar y eliminar contactos.
@@ -414,6 +425,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
   - "No se pudieron cargar tus permisos. Intenta de nuevo."
   - "No se pudo eliminar el contacto. Intenta de nuevo."
   - "Debes mantener al menos un contacto de emergencia."
+- **Cómo está hecho (2026-11-24):** Tocar un contacto ofrece editarlo o quitarlo. Si cambia el celular de alguien que cuida a la persona, ese vínculo se corta y hay que invitarlo otra vez. No se acepta el propio número ni números que no sean celulares de Colombia. El panel agrega el permiso de notificaciones, que el cuidador también ve.
 
 #### RF-32 — Si el usuario revoca un permiso, reducir la función y avisarle, sin fallar en silencio
 - **Cómo funciona:** La app revisa el estado del permiso al abrirse y al usar la función. Si fue revocado, muestra un aviso y sigue en modo reducido (por ejemplo, alertas sin ubicación) en lugar de fallar en silencio.
@@ -422,6 +434,7 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 - **Errores:**
   - "Desactivaste el permiso de [ubicación / sensores]. Esta función funcionará de forma limitada."
   - "Las alertas se enviarán sin tu ubicación. Actívala de nuevo en ajustes."
+- **Cómo está hecho (2026-11-24):** Además del aviso al quitar un permiso, Inicio muestra "Para estar mejor protegido" con lo que hoy haría que una alerta no llegue bien (sin SMS, sin ubicación, sin notificaciones, sin cuidadores). Al tocar cada aviso se llega a donde se arregla.
 
 #### RF-33 — Borrar las ubicaciones de "Acompáñame" una vez confirmada la llegada segura
 > ⛔ **Fuera de alcance** (decisión del 2026-10-25). Se conserva solo como referencia; no se implementa.
@@ -463,3 +476,9 @@ Cada requerimiento indica qué hace la app, cómo funciona, qué datos maneja y 
 | 2026-11-13 | RF-06 / RF-09 / RF-10 | La detección de caídas es real, con la app abierta. Se fijan los umbrales iniciales, los tres motivos de descarte y una espera de 60 s entre alertas. El error del ajuste de sensibilidad de RF-09 queda sin uso. |
 | 2026-11-13 | RF-22 | La alarma de toma es una notificación del celular que suena a la hora aunque la app esté cerrada. Se programan 7 días y la toma se registra abriendo la app. |
 | 2026-11-23 | RF-02 | Reingreso con huella: oferta única al llegar a Inicio, interruptor en Ajustes, pantalla de huella al abrir la app y plan B con el código SMS. |
+| 2026-11-24 | RF-06 / RF-13 / RF-15 | La detección de caídas y las alertas funcionan con la app cerrada, la pantalla apagada y después de reiniciar el celular. La cuenta regresiva ya no depende de la pantalla y lo que no sale se reintenta. |
+| 2026-11-24 | RF-14 | Se agregan "Pedir ayuda" en Inicio, "Ya estoy bien, avísales" y "Probar la alerta" en Ajustes. |
+| 2026-11-24 | RF-16 | Se corrige el SMS de alerta, que fallaba siempre en los Android nuevos con textos con tildes, y se confirma que salió. |
+| 2026-11-24 | RF-26 / RF-30 | La persona puede compartir su ubicación con sus cuidadores, con un consentimiento aparte. Sección 3.4: cambia la nota sobre el uso de la ubicación. |
+| 2026-11-24 | RF-31 / RF-32 | Se pueden editar contactos, y se agregan el permiso de notificaciones y los avisos de protección en Inicio. |
+| 2026-11-24 | RF-24 | La pantalla del QR dice si el código ya se puede escanear. Si la ficha no se pudo subir, lo muestra y lo reintenta cada 15 s (antes no avisaba ni reintentaba). |
