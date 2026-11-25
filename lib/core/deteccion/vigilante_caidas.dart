@@ -39,8 +39,8 @@ class SensoresDelCelular implements FuenteSensores {
 /// Escucha al [AppState]: solo vigila en una cuenta "para mí", con la ronda
 /// activa (no en pausa) y el permiso de sensores encendido.
 ///
-/// POR AHORA SOLO CON LA APP ABIERTA. Con la app cerrada Android corta los
-/// sensores; para eso hace falta un servicio en primer plano (pendiente).
+/// Con la app cerrada o la pantalla apagada sigue funcionando gracias al
+/// servicio en primer plano (lib/core/fondo/): sin él Android corta los sensores.
 class VigilanteCaidas extends ChangeNotifier {
   VigilanteCaidas(this._estado, this._sensores, {DateTime Function()? reloj}) : _reloj = reloj ?? DateTime.now {
     _estado.addListener(_revisar);
@@ -91,10 +91,16 @@ class VigilanteCaidas extends ChangeNotifier {
       _empezar();
     } else if (!debe && (vigilando || _fallaron)) {
       _parar();
+      _reintento?.cancel();
+      _reintento = null;
       _fallaron = false; // Al reanudar se vuelve a intentar
       notifyListeners();
     }
   }
+
+  /// El sensor falló: se vuelve a intentar al rato (y al reanudar la ronda).
+  static const reintentarSensores = Duration(seconds: 30);
+  Timer? _reintento;
 
   void _empezar() {
     detector.reiniciar();
@@ -119,6 +125,12 @@ class VigilanteCaidas extends ChangeNotifier {
   void _alFallar(Object _) {
     _parar();
     _fallaron = true;
+    _reintento ??= Timer(reintentarSensores, () {
+      _reintento = null;
+      _fallaron = false;
+      _revisar();
+      if (!_cerrado) notifyListeners();
+    });
     notifyListeners();
   }
 
@@ -140,6 +152,7 @@ class VigilanteCaidas extends ChangeNotifier {
   void dispose() {
     _cerrado = true;
     _estado.removeListener(_revisar);
+    _reintento?.cancel();
     _parar();
     _caidas.close();
     super.dispose();

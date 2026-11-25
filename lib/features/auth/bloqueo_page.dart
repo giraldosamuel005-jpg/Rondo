@@ -46,9 +46,12 @@ class _BloqueoPageState extends State<BloqueoPage> {
     if (!mounted) return;
 
     if (resultado == ResultadoBiometria.valido) {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainShell()));
+      // Se cambia ESTA pantalla, no la de encima: si mientras tanto se abrió
+      // una alerta, la alerta se queda.
+      Navigator.of(context).replace(
+        oldRoute: ModalRoute.of(context)!,
+        newRoute: MaterialPageRoute<void>(builder: (_) => const MainShell()),
+      );
       return;
     }
     setState(() {

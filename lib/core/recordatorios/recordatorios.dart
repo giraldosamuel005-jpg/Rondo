@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../notificaciones/notificaciones.dart';
 import '../state/app_state.dart';
 import 'recordatorio.dart';
 
@@ -44,6 +45,10 @@ class Recordatorios extends ChangeNotifier {
 
   final _tocados = StreamController<String>.broadcast();
   List<Recordatorio>? _programados;
+
+  /// Con la app días abierta en segundo plano nadie la "abre": cada tanto se
+  /// programan los días que siguen.
+  Timer? _alDia;
   bool? _permitidas;
   bool _fallo = false;
   bool _yaPidio = false;
@@ -101,6 +106,7 @@ class Recordatorios extends ChangeNotifier {
     if (_cerrado) return;
     _listo = true;
     _estado.addListener(_revisar);
+    _alDia = Timer.periodic(const Duration(hours: 6), (_) => _revisar());
     _revisar();
     notifyListeners();
   }
@@ -159,6 +165,7 @@ class Recordatorios extends ChangeNotifier {
   void dispose() {
     _cerrado = true;
     _estado.removeListener(_revisar);
+    _alDia?.cancel();
     _tocados.close();
     super.dispose();
   }
@@ -170,10 +177,12 @@ class Recordatorios extends ChangeNotifier {
 /// Las programa el propio celular: suenan aunque la app esté cerrada y sin
 /// internet, y se conservan al reiniciar el celular.
 class ProgramadorAndroid implements ProgramadorNotificaciones {
-  final _plugin = FlutterLocalNotificationsPlugin();
+  ProgramadorAndroid(this._notificaciones);
 
-  AndroidFlutterLocalNotificationsPlugin? get _android =>
-      _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  final NotificacionesAndroid _notificaciones;
+
+  FlutterLocalNotificationsPlugin get _plugin => _notificaciones.plugin;
+  AndroidFlutterLocalNotificationsPlugin? get _android => _notificaciones.android;
 
   static const _detalles = NotificationDetails(
     android: AndroidNotificationDetails(
@@ -192,20 +201,16 @@ class ProgramadorAndroid implements ProgramadorNotificaciones {
     // Las horas se pasan como instantes exactos (UTC): no hace falta saber
     // la zona horaria del celular.
     tz.setLocalLocation(tz.UTC);
-    await _plugin.initialize(
-      settings: const InitializationSettings(android: AndroidInitializationSettings('ic_stat_rondo')),
-      onDidReceiveNotificationResponse: (respuesta) {
-        final id = respuesta.payload;
-        if (id != null) alTocar(id);
-      },
-    );
+    await _notificaciones.iniciar();
+    _notificaciones.respuestas.listen((r) {
+      if (!r.esDeAlerta) alTocar(r.destino);
+    });
   }
 
   @override
   Future<String?> abiertaDesde() async {
-    final detalles = await _plugin.getNotificationAppLaunchDetails();
-    if (detalles?.didNotificationLaunchApp != true) return null;
-    return detalles!.notificationResponse?.payload;
+    final r = await _notificaciones.abiertaDesde();
+    return r == null || r.esDeAlerta ? null : r.destino;
   }
 
   @override

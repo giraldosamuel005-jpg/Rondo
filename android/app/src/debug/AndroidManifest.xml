@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Solo en desarrollo: el Firebase local (FIREBASE_LOCAL, ver main.dart)
+         no usa cifrado. En la app que se entrega esto no está. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

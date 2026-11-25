@@ -1,12 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
+import 'core/alertas/alertas_cuidador.dart';
 import 'core/alertas/aviso_alerta.dart';
+import 'core/alertas/control_alerta.dart';
 import 'core/biometria/servicio_biometria.dart';
 import 'core/deteccion/vigilante_caidas.dart';
+import 'core/fondo/fondo.dart';
+import 'core/notificaciones/notificaciones.dart';
 import 'core/permisos/vigilante_permisos.dart';
 import 'core/persistencia/almacen_local.dart';
 import 'core/recordatorios/recordatorios.dart';
@@ -17,8 +23,17 @@ import 'core/vinculos/servicio_vinculos_firebase.dart';
 import 'core/vinculos/vinculos.dart';
 import 'features/auth/bloqueo_page.dart';
 import 'features/auth/login_page.dart';
+import 'features/shell/coordinador.dart';
 import 'features/shell/main_shell.dart';
 import 'firebase_options.dart';
+
+/// Para probar contra un Firebase local en vez del real, sin tocar sus datos:
+/// `flutter run --dart-define=FIREBASE_LOCAL=10.0.2.2` (10.0.2.2 es el
+/// computador, visto desde el emulador).
+const _firebaseLocal = String.fromEnvironment('FIREBASE_LOCAL');
+
+/// Con esta llave se abren pantallas (alertas) desde fuera de ellas.
+final _navegador = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   // Necesario para leer lo guardado antes de mostrar la app.
@@ -30,10 +45,31 @@ Future<void> main() async {
   final conFirebase = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
   if (conFirebase) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    if (_firebaseLocal.isNotEmpty) {
+      await FirebaseAuth.instance.useAuthEmulator(_firebaseLocal, 9099);
+      FirebaseFirestore.instance.useFirestoreEmulator(_firebaseLocal, 8080);
+    }
   }
 
   final estado = await AppState.cargar(AlmacenLocal());
   RondoPerf.reducir.value = estado.vidrioReducido;
+
+  // Lo que trabaja aunque no haya pantallas (con la app cerrada, el servicio
+  // en primer plano mantiene vivo todo esto).
+  const gps = LectorUbicacionGps();
+  final vinculos = conFirebase ? Vinculos(ServicioVinculosFirebase(), estado, ubicacion: gps) : null;
+  final notificaciones = conFirebase ? NotificacionesAndroid() : null;
+  final vigilante = conFirebase ? VigilanteCaidas(estado, const SensoresDelCelular()) : null;
+  final fondo = conFirebase ? const ServicioFondoAndroid() : null;
+  final control = ControlAlerta(
+    estado,
+    // En web y Windows no se envía nada: la alerta es una simulación.
+    ubicacion: conFirebase ? gps : null,
+    sms: conFirebase ? const EnviadorSmsAndroid() : null,
+    servidor: vinculos,
+    alarma: AlarmaSonora(),
+  );
+  vigilante?.caidas.listen((caida) => control.iniciar(detectadaA: caida.fecha));
 
   runApp(
     MultiProvider(
@@ -42,22 +78,31 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: estado),
         // Huella para reingresar (RF-02).
         Provider<ServicioBiometria>.value(value: servicioBiometriaDeLaPlataforma()),
+        // La alerta de la persona: cuenta regresiva, SMS y servidor (RF-13 a RF-17).
+        ChangeNotifierProvider.value(value: control),
         // Cuidador ↔ persona (RF-05, RF-26, RF-27).
-        if (conFirebase) ChangeNotifierProvider(create: (_) => Vinculos(ServicioVinculosFirebase(), estado)),
-        // Detección de caídas con los sensores (RF-06, RF-09, RF-10). Arranca
-        // de una (lazy: false), no cuando una pantalla lo pida.
-        if (conFirebase)
+        if (vinculos != null) ChangeNotifierProvider.value(value: vinculos),
+        // Detección de caídas con los sensores (RF-06, RF-09, RF-10).
+        if (vigilante != null) ChangeNotifierProvider.value(value: vigilante),
+        if (notificaciones != null) ...[
+          Provider<Notificaciones>.value(value: notificaciones),
+          // Alertas que le llegan al cuidador (RF-15).
           ChangeNotifierProvider(
             lazy: false,
-            create: (_) => VigilanteCaidas(estado, const SensoresDelCelular()),
+            create: (_) =>
+                AlertasCuidador(estado, vinculos!, alarma: AlarmaSonora(), notificaciones: notificaciones),
           ),
-        // Avisos de toma de medicamentos (RF-22).
-        if (conFirebase)
-          ChangeNotifierProvider(lazy: false, create: (_) => Recordatorios(estado, ProgramadorAndroid())),
-        // Alerta real: GPS + SMS + servidor (RF-15 a RF-17). Sin esto, la
-        // alerta solo queda en el Historial (en web, Windows y pruebas).
-        if (conFirebase)
-          Provider.value(value: const AvisoDeAlerta(ubicacion: LectorUbicacionGps(), sms: EnviadorSmsAndroid())),
+          // Avisos de toma de medicamentos (RF-22).
+          ChangeNotifierProvider(
+            lazy: false,
+            create: (_) => Recordatorios(estado, ProgramadorAndroid(notificaciones)),
+          ),
+        ],
+        // Seguir pendiente con la app cerrada.
+        if (fondo != null) ...[
+          Provider<ServicioFondo>.value(value: fondo),
+          Provider(lazy: false, create: (_) => ControlFondo(estado, fondo), dispose: (_, c) => c.dispose()),
+        ],
       ],
       child: RondoApp(registrado: estado.registroCompleto, conHuella: estado.huellaActivada),
     ),
@@ -77,6 +122,7 @@ class RondoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Rondó',
+      navigatorKey: _navegador,
       // Textos de Flutter (selector de hora, diálogos...) en español de Colombia.
       locale: const Locale('es', 'CO'),
       supportedLocales: const [Locale('es', 'CO'), Locale('es')],
@@ -89,8 +135,11 @@ class RondoApp extends StatelessWidget {
       home: !registrado
           ? const LoginPage()
           : (conHuella ? const BloqueoPage() : const MainShell()),
-      // Revisa en todas las pantallas si quitaron un permiso (RF-32).
-      builder: (context, child) => VigilantePermisos(child: child!),
+      // En todas las pantallas: revisa si quitaron un permiso (RF-32) y abre
+      // las alertas.
+      builder: (context, child) => VigilantePermisos(
+        child: Coordinador(navegador: _navegador, child: child!),
+      ),
     );
   }
 }

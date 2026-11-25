@@ -76,6 +76,13 @@ class DetectorCaidas {
   static const giroQuieto = 0.6; // rad/s
   static const fraccionQuieta = 0.8;
 
+  /// Con menos lecturas que estas no se decide nada (el celular se durmió o
+  /// el sensor va muy lento).
+  static const muestrasMinimas = 10;
+
+  /// Un hueco así entre dos lecturas: el golpe en estudio ya no vale.
+  static const huecoMaximo = Duration(milliseconds: 1500);
+
   /// Un golpe a 4 g o más cuenta como "fuerte del todo" para la confianza.
   static const golpeFuerte = 4.0 * gravedad;
 
@@ -92,6 +99,8 @@ class DetectorCaidas {
 
   /// Hacia dónde apunta la gravedad, suavizada (la "postura" del celular).
   List<double>? _postura;
+
+  DateTime? _ultimaLectura;
 
   // Un golpe en estudio.
   DateTime? _golpeEn;
@@ -115,6 +124,9 @@ class DetectorCaidas {
   /// con esta lectura se confirma una.
   CaidaDetectada? acelerometro(DateTime t, double x, double y, double z) {
     final magnitud = sqrt(x * x + y * y + z * z);
+    final anterior = _ultimaLectura;
+    _ultimaLectura = t;
+    if (anterior != null && t.difference(anterior) > huecoMaximo) reiniciar();
     _contarSacudida(t, magnitud);
 
     final golpeEn = _golpeEn;
@@ -147,7 +159,7 @@ class DetectorCaidas {
     _suma[1] += y;
     _suma[2] += z;
     if ((magnitud - gravedad).abs() <= toleranciaQuietud && _giro <= giroQuieto) _quietas++;
-    if (desdeGolpe < asentamiento + observacion) return null;
+    if (desdeGolpe < asentamiento + observacion || _muestras < muestrasMinimas) return null;
 
     return _decidir(golpeEn);
   }

@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- RF-30: ubicación para enviarla dentro de una alerta. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- RF-30: ubicación, para una alerta y para los cuidadores si la persona lo decide. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- RF-30 / sección 4: actividad física, para filtrar falsos positivos. -->
@@ -15,6 +16,15 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <!-- RF-02: reingresar con la huella. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Segundo plano: seguir vigilando caídas (RF-06) y recibiendo alertas
+         (RF-15) con la app cerrada o la pantalla apagada. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- La alerta se abre a pantalla completa aunque el celular esté bloqueado (RF-13). -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <application
         android:label="Rondó"
@@ -42,6 +52,22 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Mantiene a Rondó pendiente con la app cerrada (ver ServicioFondo.kt). -->
+        <service
+            android:name=".ServicioFondo"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="specialUse|location">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Detección de caídas y aviso de emergencias a cuidadores"/>
+        </service>
+        <receiver android:name=".ArranqueReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>
         <!-- RF-22: flutter_local_notifications muestra el aviso a su hora
              (con la app cerrada) y lo reprograma al reiniciar el celular. -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
