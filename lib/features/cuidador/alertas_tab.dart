@@ -46,7 +46,7 @@ class AlertasTab extends StatelessWidget {
           ),
         const SizedBox(height: 14),
         Text(
-          'Si alguien que cuidas no responde a una posible caída, te avisamos al instante.',
+          'Si alguien que cuidas pide ayuda o no responde a una posible caída, te avisamos al instante, aunque tengas la app cerrada.',
           textAlign: TextAlign.center,
           style: t.bodySmall,
         ),
@@ -105,12 +105,13 @@ class FilaAlertaPersona extends StatelessWidget {
             Icons.check_rounded,
             c.accentSoft,
             c.accent,
-            'Respondió que estaba bien',
+            'Avisó que estaba bien',
           )
         : (Icons.done_all_rounded, c.neutralSoft, c.textSecondary, 'Atendida');
+    final que = alerta.prueba ? 'Prueba de alerta' : 'Alerta';
     final titulo = mostrarNombre
-        ? 'Posible caída de ${primerNombre(persona.nombre)}'
-        : 'Posible caída';
+        ? '$que de ${primerNombre(persona.nombre)}'
+        : que;
     final detalle =
         '${diaRelativo(alerta.fecha)} · ${horaCorta(alerta.fecha)} · $estadoTexto';
     final sePuedeAbrir = !alerta.atendida || mostrarNombre;

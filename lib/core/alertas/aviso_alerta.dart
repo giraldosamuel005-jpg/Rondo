@@ -1,18 +1,20 @@
-import 'dart:async';
-
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
-import '../models/contacto.dart';
 import 'alerta_compartida.dart';
 
 /// Lee la ubicación del celular. `null` si no hay permiso o no se pudo.
 abstract interface class LectorUbicacion {
   Future<Posicion?> leer();
+
+  /// La última que conoce el celular, sin esperar al GPS.
+  Future<Posicion?> ultima();
 }
 
-/// Envía un SMS sin abrir la app de mensajes.
-/// Lanza [SinPermisoSms] si Android no lo permite, o cualquier otro error si falló.
+/// Envía un SMS sin abrir la app de mensajes. Termina cuando el SMS salió del
+/// celular. Lanza [SinPermisoSms] si Android no lo permite, o cualquier otro
+/// error si no salió (sin señal, sin saldo, modo avión).
 abstract interface class EnviadorSms {
   Future<void> enviar(String celular, String texto);
 }
@@ -21,91 +23,12 @@ class SinPermisoSms implements Exception {
   const SinPermisoSms();
 }
 
-/// Lo que pasó al avisar, para mostrárselo a la persona.
-class ResultadoAviso {
-  const ResultadoAviso({
-    required this.posicion,
-    required this.conSms,
-    required this.sinSms,
-    required this.faltaPermisoSms,
-    required this.llegoACuidadores,
-  });
+/// La alarma sonora (RF-13, RF-17).
+abstract interface class Alarma {
+  /// Suena en bucle. `false` si no se pudo reproducir.
+  Future<bool> sonar();
 
-  final Posicion? posicion;
-
-  /// A quiénes se les envió el SMS.
-  final List<Contacto> conSms;
-
-  /// A quiénes no se les pudo enviar (sin señal, sin saldo, sin permiso).
-  final List<Contacto> sinSms;
-
-  final bool faltaPermisoSms;
-
-  /// El servidor confirmó la alerta: los cuidadores con Rondó la ven.
-  final bool llegoACuidadores;
-
-  /// Ni SMS ni servidor: toca la alarma local (RF-17).
-  bool get nadieAvisado => conSms.isEmpty && !llegoACuidadores;
-}
-
-/// RF-15 a RF-17: cuando la persona no cancela la alerta, consigue la
-/// ubicación, manda el SMS a cada contacto y sube la alerta para los cuidadores.
-class AvisoDeAlerta {
-  const AvisoDeAlerta({required this.ubicacion, required this.sms});
-
-  final LectorUbicacion ubicacion;
-  final EnviadorSms sms;
-
-  /// Cuánto se espera la ubicación y la confirmación del servidor.
-  static const espera = Duration(seconds: 10);
-
-  /// [usarUbicacion] y [usarSms]: lo que la persona tiene encendido en Rondó.
-  /// [alServidor] sube la alerta y dice si el servidor la recibió.
-  Future<ResultadoAviso> avisar({
-    required String nombre,
-    required List<Contacto> contactos,
-    required DateTime fecha,
-    required bool usarUbicacion,
-    required bool usarSms,
-    Future<bool> Function({required DateTime fecha, Posicion? posicion})? alServidor,
-  }) async {
-    final posicion = usarUbicacion
-        ? await ubicacion.leer().timeout(espera, onTimeout: () => null).catchError((Object _) => null)
-        : null;
-
-    // El servidor y los SMS a la vez: ninguno espera al otro.
-    final servidor = (alServidor?.call(fecha: fecha, posicion: posicion) ?? Future.value(false))
-        .timeout(espera, onTimeout: () => false)
-        .catchError((Object _) => false);
-
-    final conSms = <Contacto>[];
-    final sinSms = <Contacto>[];
-    var faltaPermiso = !usarSms;
-    final texto = AlertaCompartida.mensajeSms(nombre: nombre, fecha: fecha, posicion: posicion);
-    for (final contacto in contactos) {
-      if (faltaPermiso) {
-        sinSms.add(contacto);
-        continue;
-      }
-      try {
-        await sms.enviar(contacto.celular, texto);
-        conSms.add(contacto);
-      } on SinPermisoSms {
-        faltaPermiso = true;
-        sinSms.add(contacto);
-      } catch (_) {
-        sinSms.add(contacto);
-      }
-    }
-
-    return ResultadoAviso(
-      posicion: posicion,
-      conSms: conSms,
-      sinSms: sinSms,
-      faltaPermisoSms: faltaPermiso,
-      llegoACuidadores: await servidor,
-    );
-  }
+  Future<void> parar();
 }
 
 // ---------- En el celular ----------
@@ -120,17 +43,24 @@ class LectorUbicacionGps implements LectorUbicacion {
       final permiso = await Geolocator.checkPermission();
       if (permiso == LocationPermission.denied || permiso == LocationPermission.deniedForever) return null;
       final p = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 8)),
+        // Con los servicios de Google, sin wifi sale un cuadro pidiendo activar
+        // la "precisión" que taparía la alerta. Así lee directo de Android.
+        locationSettings: AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          forceLocationManager: true,
+          timeLimit: const Duration(seconds: 8),
+        ),
       );
       return Posicion(p.latitude, p.longitude);
     } catch (_) {
-      return _ultima();
+      return ultima();
     }
   }
 
-  Future<Posicion?> _ultima() async {
+  @override
+  Future<Posicion?> ultima() async {
     try {
-      final p = await Geolocator.getLastKnownPosition();
+      final p = await Geolocator.getLastKnownPosition(forceAndroidLocationManager: true);
       return p == null ? null : Posicion(p.latitude, p.longitude);
     } catch (_) {
       return null;
@@ -138,7 +68,7 @@ class LectorUbicacionGps implements LectorUbicacion {
   }
 }
 
-/// SMS con el canal `rondo/sms` de MainActivity.kt (SmsManager de Android).
+/// SMS con el canal `rondo/sms` (CanalSms.kt, SmsManager de Android).
 class EnviadorSmsAndroid implements EnviadorSms {
   const EnviadorSmsAndroid();
 
@@ -151,6 +81,43 @@ class EnviadorSmsAndroid implements EnviadorSms {
     } on PlatformException catch (e) {
       if (e.code == 'sin-permiso') throw const SinPermisoSms();
       rethrow;
+    }
+  }
+}
+
+/// La alarma, por el canal de ALARMA (no de música): suena con el volumen de
+/// alarmas, aunque la persona tenga la música en silencio.
+class AlarmaSonora implements Alarma {
+  AudioPlayer? _audio;
+
+  @override
+  Future<bool> sonar() async {
+    try {
+      final audio = _audio ??= AudioPlayer();
+      await audio.setAudioContext(
+        AudioContext(
+          android: const AudioContextAndroid(
+            usageType: AndroidUsageType.alarm,
+            contentType: AndroidContentType.sonification,
+            audioFocus: AndroidAudioFocus.gainTransient,
+            stayAwake: true,
+          ),
+        ),
+      );
+      await audio.setReleaseMode(ReleaseMode.loop); // Suena en bucle
+      await audio.play(AssetSource('sounds/alarma.wav'), volume: 1);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> parar() async {
+    try {
+      await _audio?.stop();
+    } catch (_) {
+      // Ya estaba parada.
     }
   }
 }
